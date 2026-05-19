@@ -1,0 +1,7 @@
+build*/
+*.o
+*.a
+*.so
+*.log
+rozeta_test_config.ini
+.DS_Store

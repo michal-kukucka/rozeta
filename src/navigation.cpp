@@ -1,0 +1,6 @@
+#include <rozeta/navigation.hpp>
+#include <cmath>
+namespace rozeta::navigation {
+SimpleNavigator::SimpleNavigator(NavigatorConfig c):config_(c){}
+NavigationDecision SimpleNavigator::goToWaypoint(const Pose2D& pose,const LocalCoordinate& target,const obstacle_detection::ObstacleInfo& obs) const { NavigationDecision d; if(obs.nearestDistance>0 && obs.nearestDistance<0.25){ d.emergency_stop=true; d.reason="obstacle too close"; return d; } if(obs.obstacleAhead){ d.reason="avoid obstacle"; d.motor.left_speed= obs.obstacleLeft ? config_.base_speed : -config_.base_speed*0.3; d.motor.right_speed= obs.obstacleLeft ? -config_.base_speed*0.3 : config_.base_speed; return d; } double dx=target.x-pose.x, dy=target.y-pose.y; double dist=std::sqrt(dx*dx+dy*dy); if(dist<config_.waypoint_tolerance_m){ d.reason="waypoint reached"; return d; } double desired=std::atan2(dy,dx); double err=normalizeAngle(desired-pose.heading); double correction=config_.heading_gain*err; d.motor.left_speed=std::max(-1.0,std::min(1.0,config_.base_speed-correction)); d.motor.right_speed=std::max(-1.0,std::min(1.0,config_.base_speed+correction)); d.reason="go to waypoint"; return d; }
+}
