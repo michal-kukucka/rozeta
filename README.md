@@ -1,5 +1,8 @@
 # Rozeta — Universal C/C++ Robotics Library
 
+[![CI](https://github.com/michal-kukucka/rozeta/actions/workflows/ci.yml/badge.svg)](https://github.com/michal-kukucka/rozeta/actions/workflows/ci.yml)
+
+
 Rozeta is a Linux-first modular robotics framework for autonomous vehicles and outdoor competition robots such as Robotour. It is intentionally built as **software LEGO**: every hardware or logic area has a small public API, mockable interfaces, and tests that can run without real devices.
 
 The initial milestone focuses on the foundation, not final hardware drivers:
@@ -62,6 +65,18 @@ Robotour-style loop:
 ./build/examples/robotour_demo
 ```
 
+## Documentation
+
+Detailed docs are included in `docs/`:
+
+- `docs/architecture.md` — library layering, APIs, hardware abstraction and test strategy
+- `docs/module_overview.md` — module-by-module status and responsibilities
+- `docs/motor_module.md` — differential-drive motor API, mock backend and safety behavior
+- `docs/gps_module.md` — NMEA parsing and geo/local coordinate usage
+- `docs/lidar_module.md` — LiDAR scan structures, filtering and future backend plan
+- `docs/navigation.md` — waypoint navigation and obstacle-aware decisions
+- `docs/robotour_use_case.md` — Robotour-style autonomous vehicle workflow
+
 ## Testing
 
 Tests are deliberately standalone and do not require GoogleTest/Catch2, so the first Linux milestone stays dependency-light.
@@ -83,3 +98,8 @@ Covered behavior:
 ## Status
 
 This is milestone 1: a compiling foundation with mockable interfaces. Real YDLIDAR, serial motor, OpenCV camera, Kinect/libfreenect, IMU and OSM backends are intentionally left as future backend plugins behind the existing APIs.
+
+
+## License
+
+MIT License. See `LICENSE`.
