@@ -6,10 +6,13 @@ add_executable(rozeta_tests
     test_obstacles.cpp
     test_motors.cpp
     test_config.cpp
+    test_serial_port.cpp
 )
 target_link_libraries(rozeta_tests PRIVATE rozeta_static)
+target_include_directories(rozeta_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_compile_options(rozeta_tests PRIVATE -Wall -Wextra -Wpedantic)
 add_test(NAME rozeta_tests COMMAND rozeta_tests)
+add_test(NAME rozeta_serial_tests COMMAND rozeta_tests)
 
 find_package(Python3 COMPONENTS Interpreter)
 if(Python3_Interpreter_FOUND)

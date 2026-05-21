@@ -30,3 +30,24 @@ Sensors -> normalized data structures -> RobotState/Pose -> Navigation -> MotorC
 3. Add a CMake option such as `ROZETA_WITH_YDLIDAR`.
 4. Add tests for parsing/filtering logic and a mock for hardware-unavailable CI.
 5. Document setup, permissions and failure modes in `docs/`.
+
+## Internal backend foundation
+
+Rozeta follows the same practical pattern used by mature robotics stacks such as ROS 2 hardware components, WPILib serial device wrappers and YARP device drivers: protocol/device modules depend on a small transport abstraction, while public robot APIs stay stable and mockable. The first shared transport is `rozeta::internal::SerialPort` under `src/internal/`, a Linux/POSIX RAII utility for optional hardware backends.
+
+Lifecycle rules for internal backends:
+
+1. Construct objects without opening hardware.
+2. Validate configuration before touching devices.
+3. Open the device with finite read/write timeouts.
+4. Return `Status` on unavailable hardware, invalid config, I/O errors or timeout.
+5. Keep reconnect policy in higher-level device backends, not in the transport.
+6. Make `close()` idempotent and destructors `noexcept`.
+
+Serial-specific rules:
+
+- Prefer stable Linux device names such as `/dev/serial/by-id/...` over `/dev/ttyUSB0` when deploying robots.
+- Users may need `dialout`/`uucp` group membership or udev rules for USB serial devices.
+- All blocking operations must use finite deadlines; no backend may block forever in library code.
+- Partial reads/writes are normal and must be handled by protocol-specific modules.
+- Emergency-stop policy belongs above the transport; never rely on a serial destructor to deliver a safety command.

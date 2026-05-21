@@ -43,3 +43,14 @@ Before opening a PR or pushing to `main`:
 - [ ] New examples are mentioned and smoke-tested.
 - [ ] `scripts/verify_docs.py` passes locally and in CI.
 - [ ] CMake/CTest still pass.
+
+## Backend implementation checklist
+
+When adding a real hardware backend, keep the M1 transport contract intact:
+
+- Start with a failing CTest that uses a mock, fixture file, or pseudo-terminal instead of requiring physical hardware.
+- Keep device dependencies optional behind CMake flags.
+- Map failures to `Status` and `ErrorCode`; do not throw across public module APIs.
+- Use finite timeouts for serial reads/writes and document default values.
+- Document Linux permissions, udev recommendations and hardware-unavailable behavior in the matching module doc.
+- Update `docs/diagrams/module-map.html` whenever a backend changes module relationships or data flow.

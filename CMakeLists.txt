@@ -18,7 +18,7 @@ if(DOXYGEN_FOUND)
       VERBATIM)
 endif()
 
-add_library(rozeta_static STATIC
+set(ROZETA_SOURCES
     src/core.cpp
     src/logging.cpp
     src/motors.cpp
@@ -27,23 +27,21 @@ add_library(rozeta_static STATIC
     src/lidar.cpp
     src/navigation.cpp
     src/obstacle_detection.cpp
+    src/internal/serial_port.cpp
 )
-target_include_directories(rozeta_static PUBLIC include)
+
+add_library(rozeta_static STATIC
+    ${ROZETA_SOURCES}
+)
+target_include_directories(rozeta_static PUBLIC include PRIVATE src)
 target_compile_options(rozeta_static PRIVATE -Wall -Wextra -Wpedantic)
 set_target_properties(rozeta_static PROPERTIES OUTPUT_NAME rozeta)
 
 if(ROZETA_BUILD_SHARED)
   add_library(rozeta_shared SHARED
-      src/core.cpp
-      src/logging.cpp
-      src/motors.cpp
-      src/gps.cpp
-      src/odometry.cpp
-      src/lidar.cpp
-      src/navigation.cpp
-      src/obstacle_detection.cpp
+      ${ROZETA_SOURCES}
   )
-  target_include_directories(rozeta_shared PUBLIC include)
+  target_include_directories(rozeta_shared PUBLIC include PRIVATE src)
   target_compile_options(rozeta_shared PRIVATE -Wall -Wextra -Wpedantic)
   set_target_properties(rozeta_shared PROPERTIES OUTPUT_NAME rozeta)
 endif()

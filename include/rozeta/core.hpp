@@ -6,7 +6,7 @@
 
 namespace rozeta {
 
-enum class ErrorCode { Ok=0, InvalidArgument, HardwareUnavailable, IoError, EmergencyStopped, NotImplemented, ParseError };
+enum class ErrorCode { Ok=0, InvalidArgument, HardwareUnavailable, IoError, EmergencyStopped, NotImplemented, ParseError, Timeout };
 
 struct Status {
     ErrorCode code{ErrorCode::Ok};

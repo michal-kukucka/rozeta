@@ -62,3 +62,25 @@ ctest --test-dir build --output-on-failure
 ## Recommended implementation order
 
 M1 first, because it creates reusable serial/time/safety primitives for motor, GPS, and LiDAR. Then M2/M3/M4 unlock basic physical Robotour sensors. M5/M6 improve autonomy quality. M7/M8 add perception. M9 makes the library consumable. M10 turns the whole stack into public demos and release-grade docs.
+
+## Progress log
+
+### M1 — Hardware-safe backend foundation
+
+Status: completed locally in this milestone implementation.
+
+Delivered:
+
+- Internal POSIX `rozeta::internal::SerialPort` transport under `src/internal/`.
+- RAII ownership, move-only semantics, idempotent `close()`, raw 8N1 serial configuration, common robotics baud rates, finite poll-based read/write timeouts.
+- `ErrorCode::Timeout` appended to the public status enum for precise timeout mapping.
+- PTY-based deterministic CTest coverage for open/configure, read timeout, write/read round-trip, invalid device/config and close idempotency.
+- Backend lifecycle and safety documentation updated.
+
+Verification commands used:
+
+```bash
+cmake -S . -B build-m1 -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_EXAMPLES=ON
+cmake --build build-m1 --parallel 2
+ctest --test-dir build-m1 -R serial --output-on-failure
+```

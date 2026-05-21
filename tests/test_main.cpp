@@ -9,6 +9,8 @@ void test_coordinate_local_conversion();
 void test_obstacle_sector_calculation();
 void test_motor_command_validation_and_estop();
 void test_config_loader_reads_key_values();
+void test_serial_port_open_timeout_write_read_and_close();
+void test_serial_port_rejects_invalid_configuration();
 
 int main(){
     std::vector<std::pair<const char*, std::function<void()>>> tests = {
@@ -19,6 +21,8 @@ int main(){
         {"obstacles", test_obstacle_sector_calculation},
         {"motors", test_motor_command_validation_and_estop},
         {"config", test_config_loader_reads_key_values},
+        {"serial_port", test_serial_port_open_timeout_write_read_and_close},
+        {"serial_invalid_config", test_serial_port_rejects_invalid_configuration},
     };
     int failed = 0;
     for (auto &test : tests) {

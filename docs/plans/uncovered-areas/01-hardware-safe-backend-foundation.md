@@ -65,3 +65,39 @@
 - Hardware-unavailable conditions return `Status` errors, never crashes.
 - No new mandatory runtime dependencies.
 - Docs explain backend lifecycle, permissions, timeouts and safe fallback.
+
+## Implementation progress
+
+Status: completed.
+
+Research summary:
+
+- ROS 2/YARP-style backend lifecycle inspired the open/configure/read-write/close separation and `Status`-based failure reporting.
+- WPILib/libserial-style serial wrappers inspired the small RAII class shape and explicit serial settings.
+- Robotics testing practice favored pseudo-terminal tests for transport behavior and fake transports for future protocol layers.
+
+Implemented files:
+
+- `src/internal/serial_port.hpp`
+- `src/internal/serial_port.cpp`
+- `tests/test_serial_port.cpp`
+
+Modified files:
+
+- `include/rozeta/core.hpp` — appended `ErrorCode::Timeout`.
+- `CMakeLists.txt` — introduced shared `ROZETA_SOURCES` and built serial utility into static/shared libraries.
+- `tests/CMakeLists.txt` and `tests/test_main.cpp` — added serial test coverage and `rozeta_serial_tests` CTest selector.
+- `docs/architecture.md`, `docs/maintenance.md`, `docs/api-reference.md`, `docs/diagrams/module-map.html` — documented backend lifecycle, timeouts and safety constraints.
+
+Acceptance criteria status:
+
+- [x] Internal serial helper has deterministic tests without real devices.
+- [x] Hardware-unavailable conditions return `Status` errors, never crashes.
+- [x] No new mandatory runtime dependencies.
+- [x] Docs explain backend lifecycle, permissions, timeouts and safe fallback.
+
+Verification:
+
+```bash
+ctest --test-dir build-m1 -R serial --output-on-failure
+```

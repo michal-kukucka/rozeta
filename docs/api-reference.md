@@ -26,7 +26,7 @@ Document public behavior in the headers first, then link user-facing tutorials t
 
 Current public surface:
 
-- `include/rozeta/core.hpp` — status/error model, timestamps, geometry, robot state, config loading, coordinate conversion and lifecycle hooks.
+- `include/rozeta/core.hpp` — status/error model including `Timeout`, timestamps, geometry, robot state, config loading, coordinate conversion and lifecycle hooks.
 - `include/rozeta/logging.hpp` — logger interface plus console/CSV logger implementations.
 - `include/rozeta/motors.hpp` — differential-drive motor control, mock controller, encoder feedback and emergency stop semantics.
 - `include/rozeta/gps.hpp` — NMEA parser, parsed GPS fix model and local conversion helpers.
@@ -71,3 +71,7 @@ python3 scripts/verify_docs.py
 ```
 
 If you add, rename or remove a public header or example, the verifier tells you which documentation map or page needs to change.
+
+## Internal implementation APIs
+
+`src/internal/serial_port.hpp` is intentionally not part of the stable public API, but Doxygen includes it so maintainers can inspect backend behavior. It provides the M1 hardware-safe foundation: RAII file-descriptor ownership, POSIX raw-mode serial configuration, finite read/write timeouts, idempotent close and `Status`-based failure reporting.
