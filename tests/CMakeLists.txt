@@ -10,3 +10,8 @@ add_executable(rozeta_tests
 target_link_libraries(rozeta_tests PRIVATE rozeta_static)
 target_compile_options(rozeta_tests PRIVATE -Wall -Wextra -Wpedantic)
 add_test(NAME rozeta_tests COMMAND rozeta_tests)
+
+find_package(Python3 COMPONENTS Interpreter)
+if(Python3_Interpreter_FOUND)
+  add_test(NAME rozeta_docs_contract COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/verify_docs.py)
+endif()

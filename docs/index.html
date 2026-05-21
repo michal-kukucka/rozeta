@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Rozeta Documentation Portal</title>
+  <style>
+    :root{color-scheme:dark;--bg:#020617;--panel:#0f172a;--muted:#94a3b8;--text:#e2e8f0;--cyan:#22d3ee;--green:#34d399;--amber:#fbbf24;--violet:#a78bfa;--rose:#fb7185;--line:#1e293b}*{box-sizing:border-box}body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,sans-serif;background:radial-gradient(circle at 20% 0%,rgba(34,211,238,.18),transparent 30%),radial-gradient(circle at 80% 0%,rgba(167,139,250,.16),transparent 30%),var(--bg);color:var(--text)}a{color:var(--cyan);text-decoration:none}a:hover{text-decoration:underline}.wrap{max-width:1180px;margin:0 auto;padding:48px 22px 72px}.hero{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(320px,.8fr);gap:28px;align-items:center}.eyebrow{display:inline-flex;gap:8px;align-items:center;color:var(--green);font:700 13px ui-monospace,monospace;text-transform:uppercase;letter-spacing:.12em}.pulse{width:10px;height:10px;border-radius:999px;background:var(--green);box-shadow:0 0 0 8px rgba(52,211,153,.12)}h1{font-size:clamp(42px,7vw,84px);line-height:.92;margin:16px 0 18px;letter-spacing:-.06em}.lead{font-size:20px;line-height:1.65;color:#cbd5e1;margin:0}.actions{display:flex;flex-wrap:wrap;gap:14px;margin-top:28px}.btn{display:inline-flex;align-items:center;gap:10px;border:1px solid rgba(34,211,238,.5);background:rgba(8,51,68,.55);color:#e0faff;border-radius:14px;padding:13px 17px;font-weight:800}.btn.alt{border-color:rgba(167,139,250,.5);background:rgba(76,29,149,.35)}.terminal{border:1px solid rgba(148,163,184,.25);border-radius:22px;background:rgba(15,23,42,.78);box-shadow:0 24px 80px rgba(0,0,0,.38);overflow:hidden}.bar{height:42px;background:#111827;display:flex;gap:8px;align-items:center;padding:0 14px}.dot{width:12px;height:12px;border-radius:99px}.r{background:#fb7185}.y{background:#fbbf24}.g{background:#34d399}pre{margin:0;padding:22px;white-space:pre-wrap;color:#d1fae5;font:14px/1.75 ui-monospace,SFMono-Regular,Menlo,monospace}.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;margin-top:34px}.card{border:1px solid rgba(148,163,184,.22);border-radius:22px;background:linear-gradient(180deg,rgba(15,23,42,.92),rgba(15,23,42,.58));padding:22px;min-height:205px}.card h2{margin:0 0 10px;font-size:20px}.card p,.card li{color:#cbd5e1;line-height:1.55}.card ul{padding-left:19px}.badge{display:inline-flex;border:1px solid rgba(148,163,184,.28);border-radius:999px;padding:5px 9px;margin:4px 5px 0 0;color:#cbd5e1;font:12px ui-monospace,monospace}.section{margin-top:54px}.split{display:grid;grid-template-columns:.85fr 1.15fr;gap:22px;align-items:start}.callout{border-left:4px solid var(--amber);background:rgba(120,53,15,.24);padding:18px 20px;border-radius:14px;color:#fde68a}.footer{margin-top:58px;color:var(--muted);font-size:14px;border-top:1px solid var(--line);padding-top:22px}@media(max-width:900px){.hero,.split,.grid{grid-template-columns:1fr}h1{font-size:48px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <div>
+        <div class="eyebrow"><span class="pulse"></span> Linux-first robotics LEGO</div>
+        <h1>Rozeta Documentation Portal</h1>
+        <p class="lead">A modern, site-ready documentation home for the Rozeta C/C++ robotics library: quick start, module map, API reference, examples, and a maintainability contract so code-based documentation stays aligned with public headers.</p>
+        <div class="actions">
+          <a class="btn" href="../README.md">Start with README</a>
+          <a class="btn alt" href="diagrams/module-map.html">Open module diagrams</a>
+          <a class="btn" href="api-reference.md">API reference workflow</a>
+          <a class="btn alt" href="maintenance.md">Docs maintenance rules</a>
+        </div>
+      </div>
+      <div class="terminal" aria-label="Rozeta quick start commands"><div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div><pre><code>git clone https://github.com/michal-kukucka/rozeta.git
+cd rozeta
+cmake -S . -B build -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_EXAMPLES=ON
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
+./build/examples/robotour_demo
+
+# code-based documentation
+python3 scripts/verify_docs.py
+doxygen Doxyfile</code></pre></div>
+    </section>
+
+    <section class="grid" aria-label="Documentation entry points">
+      <article class="card"><h2>New users</h2><p>Learn the mental model first: core types, sensors, navigation decisions, motor commands, and safety behavior.</p><p><a href="module_overview.md">Module overview</a> · <a href="robotour_use_case.md">Robotour use case</a></p><span class="badge">quick-start</span><span class="badge">examples</span></article>
+      <article class="card"><h2>API users</h2><p>Public headers under <code>include/rozeta</code> are the source of truth. Doxygen generates browsable HTML/XML API docs for website publishing and IDE integrations.</p><p><a href="api-reference.md">API reference workflow</a></p><span class="badge">Doxygen</span><span class="badge">C++17</span><span class="badge">C ABI seed</span></article>
+      <article class="card"><h2>Maintainers</h2><p>Every public header and example is checked by <code>scripts/verify_docs.py</code>. If code changes, update the mapped docs in the same commit.</p><p><a href="maintenance.md">Maintenance contract</a></p><span class="badge">CI verified</span><span class="badge">same commit</span></article>
+    </section>
+
+    <section class="section split">
+      <div><h2>Module-based diagrams</h2><p class="lead">The diagram page is a self-contained HTML/SVG artifact with an inspectable data model (<code>ROZETA_MODULE_MODEL</code>). It is easy to embed into a future official website or publish through GitHub Pages.</p><div class="callout">Tip: keep diagrams vector/HTML-first. Do not replace them with low-resolution PNG exports; users need readable labels and zoomable architecture views.</div></div>
+      <div class="card"><h2>Included views</h2><ul><li><strong>Module architecture:</strong> public headers, implementations, tests, examples.</li><li><strong>Robotour autonomous loop:</strong> GPS + LiDAR + odometry into navigation and motor commands.</li><li><strong>Data flow:</strong> inspectable payload labels such as GPS fix, LiDAR scan, obstacle sectors, pose estimate and motor commands.</li></ul><p><a href="diagrams/module-map.html">Open interactive diagram →</a></p></div>
+    </section>
+
+    <section class="section grid">
+      <article class="card"><h2>Core docs</h2><ul><li><a href="architecture.md">Architecture</a></li><li><a href="module_overview.md">Module overview</a></li><li><a href="navigation.md">Navigation</a></li></ul></article>
+      <article class="card"><h2>Hardware modules</h2><ul><li><a href="motor_module.md">Motors</a></li><li><a href="gps_module.md">GPS</a></li><li><a href="lidar_module.md">LiDAR</a></li></ul></article>
+      <article class="card"><h2>Generated reference</h2><ul><li><code>doxygen Doxyfile</code></li><li>HTML output: <code>docs/generated/doxygen/html</code></li><li>XML output: <code>docs/generated/doxygen/xml</code></li></ul></article>
+    </section>
+
+    <p class="footer">Rozeta Documentation Portal · static, dependency-light, GitHub Pages friendly · API docs generated from public headers via Doxygen.</p>
+  </main>
+</body>
+</html>

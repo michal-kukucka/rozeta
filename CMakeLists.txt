@@ -9,6 +9,15 @@ option(ROZETA_BUILD_EXAMPLES "Build examples" ON)
 option(ROZETA_BUILD_TESTS "Build tests" ON)
 option(ROZETA_WITH_OPENCV "Enable optional OpenCV camera backend hooks" OFF)
 
+find_package(Doxygen QUIET)
+if(DOXYGEN_FOUND)
+  add_custom_target(rozeta_docs
+      COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Doxyfile
+      WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+      COMMENT "Generate Rozeta code-based API documentation with Doxygen"
+      VERBATIM)
+endif()
+
 add_library(rozeta_static STATIC
     src/core.cpp
     src/logging.cpp

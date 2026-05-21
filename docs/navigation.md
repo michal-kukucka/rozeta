@@ -1,6 +1,6 @@
 # Navigation
 
-Public header: `include/rozeta/navigation.hpp`
+Public headers: `include/rozeta/navigation.hpp` and `include/rozeta/obstacle_detection.hpp`
 
 The first navigator is deliberately simple and deterministic:
 

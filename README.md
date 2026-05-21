@@ -67,8 +67,12 @@ Robotour-style loop:
 
 ## Documentation
 
-Detailed docs are included in `docs/`:
+Detailed docs are included in `docs/` and are ready to be reused as a future official website:
 
+- `docs/index.html` — modern static documentation portal for new users
+- `docs/diagrams/module-map.html` — interactive module, Robotour and data-flow diagrams
+- `docs/api-reference.md` — code-based documentation workflow using `doxygen Doxyfile`
+- `docs/maintenance.md` — same-commit documentation maintenance contract
 - `docs/architecture.md` — library layering, APIs, hardware abstraction and test strategy
 - `docs/module_overview.md` — module-by-module status and responsibilities
 - `docs/motor_module.md` — differential-drive motor API, mock backend and safety behavior
@@ -76,6 +80,14 @@ Detailed docs are included in `docs/`:
 - `docs/lidar_module.md` — LiDAR scan structures, filtering and future backend plan
 - `docs/navigation.md` — waypoint navigation and obstacle-aware decisions
 - `docs/robotour_use_case.md` — Robotour-style autonomous vehicle workflow
+
+Documentation is verified from the public code surface:
+
+```bash
+python3 scripts/verify_docs.py
+# optional generated API reference when Doxygen is installed
+doxygen Doxyfile
+```
 
 ## Testing
 
