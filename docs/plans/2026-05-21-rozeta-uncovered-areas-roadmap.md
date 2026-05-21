@@ -84,3 +84,34 @@ cmake -S . -B build-m1 -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_EXAMPLES=ON
 cmake --build build-m1 --parallel 2
 ctest --test-dir build-m1 -R serial --output-on-failure
 ```
+
+
+### M2 — Serial motor backend and calibration
+
+Status: completed locally in this milestone implementation.
+
+Research summary:
+
+- ROS 2 `ros2_control`/YARP-style separation inspired keeping motor logic stable while isolating hardware transport behind a backend.
+- WPILib-style safety inspired explicit stop vs latched emergency-stop semantics.
+- RoboClaw/Sabertooth/Arduino-style serial controllers inspired the simple command encoder boundary while leaving checksummed protocol adapters for later.
+
+Delivered:
+
+- Optional `ROZETA_WITH_SERIAL_MOTORS` CMake flag.
+- `motors::SerialMotorConfig` and `motors::SerialMotorController` public API behind the flag.
+- Internal fake-testable `rozeta::internal::SerialMotorBackend` using M1 serial transport for the real controller.
+- Deterministic serial command formatting from normalized speeds to `M <left> <right>\n`.
+- Emergency stop writes the configured stop command before latching refusal of future motion.
+- Motor calibration save/load helpers with validation and dependency-free key-value persistence.
+- `serial_motor_calibrate --dry-run` example.
+- Module docs, API docs and diagrams updated.
+
+Verification commands used:
+
+```bash
+cmake -S . -B build-m2 -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_EXAMPLES=ON -DROZETA_WITH_SERIAL_MOTORS=ON
+cmake --build build-m2 --parallel 2
+ctest --test-dir build-m2 --output-on-failure
+./build-m2/examples/serial_motor_calibrate --dry-run
+```

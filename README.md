@@ -11,7 +11,7 @@ The initial milestone focuses on the foundation, not final hardware drivers:
 - C++17 public headers plus a small C ABI seed
 - core types, status/error handling, configuration loading, math helpers and geo-local conversion
 - logging interface with console and CSV file logger
-- differential-drive motor interface with mock implementation and emergency stop
+- differential-drive motor interface with mock implementation, calibration persistence, optional serial backend and emergency stop
 - NMEA GPS parser for GGA/RMC
 - differential-drive odometry
 - LiDAR interface skeleton plus filtering and console visualization
@@ -46,6 +46,7 @@ Useful options:
 ```bash
 cmake .. -DROZETA_BUILD_EXAMPLES=ON -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_SHARED=ON
 cmake .. -DROZETA_WITH_OPENCV=ON   # reserved for future optional camera backend hooks
+cmake .. -DROZETA_WITH_SERIAL_MOTORS=ON   # optional POSIX serial motor backend
 ```
 
 ## Quick usage
@@ -63,6 +64,12 @@ Robotour-style loop:
 
 ```bash
 ./build/examples/robotour_demo
+```
+
+Optional serial motor calibration dry run:
+
+```bash
+./build/examples/serial_motor_calibrate --dry-run
 ```
 
 ## Documentation
@@ -105,11 +112,13 @@ Covered behavior:
 - coordinate conversion
 - obstacle sector calculation
 - motor command validation/emergency stop
+- motor calibration save/load
+- optional serial motor command formatting when `ROZETA_WITH_SERIAL_MOTORS=ON`
 - configuration loading
 
 ## Status
 
-This is milestone 1: a compiling foundation with mockable interfaces. Real YDLIDAR, serial motor, OpenCV camera, Kinect/libfreenect, IMU and OSM backends are intentionally left as future backend plugins behind the existing APIs.
+Rozeta now includes milestone 1 and milestone 2 foundations: mockable core APIs, an internal POSIX serial transport, motor calibration persistence, and an optional serial motor backend. Real YDLIDAR, OpenCV camera, Kinect/libfreenect, IMU and OSM backends remain future optional plugins behind the existing APIs.
 
 
 ## License

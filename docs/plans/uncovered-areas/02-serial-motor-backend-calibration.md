@@ -41,3 +41,38 @@ python3 scripts/verify_docs.py
 - Mock backend behavior stays unchanged.
 - Emergency stop is tested at API and backend level.
 - Calibration can be saved/loaded and documented.
+
+
+## Implementation progress
+
+Status: completed.
+
+Implemented files:
+
+- `src/internal/serial_motor_backend.hpp`
+- `src/motors_serial.cpp`
+- `tests/test_serial_motors.cpp`
+- `tests/test_motor_calibration.cpp`
+- `examples/serial_motor_calibrate.cpp`
+
+Modified files:
+
+- `include/rozeta/motors.hpp` — added calibration persistence APIs plus optional serial motor config/controller.
+- `src/motors.cpp` — added calibration save/load validation while preserving mock behavior.
+- `CMakeLists.txt`, `tests/CMakeLists.txt`, `examples/CMakeLists.txt` — added `ROZETA_WITH_SERIAL_MOTORS` and conditional tests/example.
+- `docs/motor_module.md`, `docs/api-reference.md`, `docs/diagrams/module-map.html`, `README.md` — documented M2 behavior and example usage.
+
+Acceptance criteria status:
+
+- [x] Real backend is optional behind `ROZETA_WITH_SERIAL_MOTORS`.
+- [x] Mock backend behavior stays unchanged.
+- [x] Emergency stop is tested at backend level and writes the stop command before refusing motion.
+- [x] Calibration can be saved/loaded and is documented.
+
+Verification:
+
+```bash
+ctest --test-dir build-m2 --output-on-failure
+./build-m2/examples/serial_motor_calibrate --dry-run
+python3 scripts/verify_docs.py
+```

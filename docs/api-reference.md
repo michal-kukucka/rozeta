@@ -10,7 +10,7 @@ sudo apt install doxygen graphviz
 
 # from the repository root
 doxygen Doxyfile
-xdg-open docs/generated/doxygen/html/index.html
+xdg-open docs/generated/html/index.html
 ```
 
 Generated outputs:
@@ -28,7 +28,7 @@ Current public surface:
 
 - `include/rozeta/core.hpp` — status/error model including `Timeout`, timestamps, geometry, robot state, config loading, coordinate conversion and lifecycle hooks.
 - `include/rozeta/logging.hpp` — logger interface plus console/CSV logger implementations.
-- `include/rozeta/motors.hpp` — differential-drive motor control, mock controller, encoder feedback and emergency stop semantics.
+- `include/rozeta/motors.hpp` — differential-drive motor control, mock controller, optional serial motor controller, encoder feedback, calibration persistence and emergency stop semantics.
 - `include/rozeta/gps.hpp` — NMEA parser, parsed GPS fix model and local conversion helpers.
 - `include/rozeta/odometry.hpp` — differential-drive odometry and pose integration.
 - `include/rozeta/lidar.hpp` — LiDAR scan types, scanner interface, filtering and console visualization.
@@ -51,6 +51,7 @@ These examples are deliberately small and should stay buildable in CI:
 - `motor_test` — motor command and safety smoke test.
 - `odometry_test` — odometry smoke test.
 - `camera_capture` — camera interface placeholder.
+- `serial_motor_calibrate` — dry-run calibration helper for the optional serial motor backend.
 
 ## Website integration plan
 
@@ -58,8 +59,8 @@ For a future official website, keep this split:
 
 1. `docs/index.html` as the hand-authored landing page / documentation portal.
 2. `docs/diagrams/module-map.html` as embeddable, vector, module-based diagrams.
-3. `docs/generated/doxygen/html/` as generated API reference.
-4. `docs/generated/doxygen/xml/` as a machine-readable API model for custom rendering.
+3. `docs/generated/html/` as generated API reference.
+4. `docs/generated/xml/` as a machine-readable API model for custom rendering.
 5. `scripts/verify_docs.py` as the no-dependency CI guard that catches public header/example drift.
 
 ## CI guard
@@ -74,4 +75,4 @@ If you add, rename or remove a public header or example, the verifier tells you 
 
 ## Internal implementation APIs
 
-`src/internal/serial_port.hpp` is intentionally not part of the stable public API, but Doxygen includes it so maintainers can inspect backend behavior. It provides the M1 hardware-safe foundation: RAII file-descriptor ownership, POSIX raw-mode serial configuration, finite read/write timeouts, idempotent close and `Status`-based failure reporting.
+`src/internal/serial_port.hpp` and `src/internal/serial_motor_backend.hpp` are intentionally not part of the stable public API, but Doxygen includes them so maintainers can inspect backend behavior. They provide the M1/M2 hardware-safe foundation: RAII serial transport, POSIX raw-mode serial configuration, finite read/write timeouts, deterministic motor command formatting, best-effort emergency stop writes and `Status`-based failure reporting.

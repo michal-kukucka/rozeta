@@ -7,7 +7,11 @@ add_executable(rozeta_tests
     test_motors.cpp
     test_config.cpp
     test_serial_port.cpp
+    test_motor_calibration.cpp
 )
+if(ROZETA_WITH_SERIAL_MOTORS)
+  target_sources(rozeta_tests PRIVATE test_serial_motors.cpp)
+endif()
 target_link_libraries(rozeta_tests PRIVATE rozeta_static)
 target_include_directories(rozeta_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
 target_compile_options(rozeta_tests PRIVATE -Wall -Wextra -Wpedantic)

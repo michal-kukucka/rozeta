@@ -8,6 +8,7 @@ option(ROZETA_BUILD_SHARED "Build shared library" ON)
 option(ROZETA_BUILD_EXAMPLES "Build examples" ON)
 option(ROZETA_BUILD_TESTS "Build tests" ON)
 option(ROZETA_WITH_OPENCV "Enable optional OpenCV camera backend hooks" OFF)
+option(ROZETA_WITH_SERIAL_MOTORS "Enable optional serial motor backend" OFF)
 
 find_package(Doxygen QUIET)
 if(DOXYGEN_FOUND)
@@ -30,11 +31,18 @@ set(ROZETA_SOURCES
     src/internal/serial_port.cpp
 )
 
+if(ROZETA_WITH_SERIAL_MOTORS)
+  list(APPEND ROZETA_SOURCES src/motors_serial.cpp)
+endif()
+
 add_library(rozeta_static STATIC
     ${ROZETA_SOURCES}
 )
 target_include_directories(rozeta_static PUBLIC include PRIVATE src)
 target_compile_options(rozeta_static PRIVATE -Wall -Wextra -Wpedantic)
+if(ROZETA_WITH_SERIAL_MOTORS)
+  target_compile_definitions(rozeta_static PUBLIC ROZETA_WITH_SERIAL_MOTORS)
+endif()
 set_target_properties(rozeta_static PROPERTIES OUTPUT_NAME rozeta)
 
 if(ROZETA_BUILD_SHARED)
@@ -43,6 +51,9 @@ if(ROZETA_BUILD_SHARED)
   )
   target_include_directories(rozeta_shared PUBLIC include PRIVATE src)
   target_compile_options(rozeta_shared PRIVATE -Wall -Wextra -Wpedantic)
+  if(ROZETA_WITH_SERIAL_MOTORS)
+    target_compile_definitions(rozeta_shared PUBLIC ROZETA_WITH_SERIAL_MOTORS)
+  endif()
   set_target_properties(rozeta_shared PROPERTIES OUTPUT_NAME rozeta)
 endif()
 
