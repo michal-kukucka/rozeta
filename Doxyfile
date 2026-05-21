@@ -3,7 +3,7 @@
 PROJECT_NAME           = "Rozeta"
 PROJECT_BRIEF          = "Linux-first modular C/C++ robotics library"
 PROJECT_NUMBER         = 0.1.0
-OUTPUT_DIRECTORY       = docs/generated/doxygen
+OUTPUT_DIRECTORY       = docs/generated
 INPUT                  = include src examples
 RECURSIVE              = YES
 FILE_PATTERNS          = *.hpp *.h *.cpp

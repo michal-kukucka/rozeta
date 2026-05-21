@@ -15,8 +15,8 @@ xdg-open docs/generated/doxygen/html/index.html
 
 Generated outputs:
 
-- HTML: `docs/generated/doxygen/html/`
-- XML: `docs/generated/doxygen/xml/`
+- HTML: `docs/generated/html/`
+- XML: `docs/generated/xml/`
 
 The XML output is intentionally enabled so a future official site can consume the API model and render it with another frontend if desired.
 

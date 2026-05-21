@@ -5,3 +5,5 @@ build*/
 *.log
 rozeta_test_config.ini
 .DS_Store
+docs/generated/
+__pycache__/

@@ -127,7 +127,7 @@ def main() -> int:
             fail(f"module diagram missing: {phrase}", failures)
 
     doxygen = read("Doxyfile")
-    for required in ["INPUT                  = include src examples", "GENERATE_HTML", "GENERATE_XML", "EXTRACT_ALL"]:
+    for required in ["INPUT                  = include src examples", "OUTPUT_DIRECTORY       = docs/generated", "GENERATE_HTML", "GENERATE_XML", "EXTRACT_ALL"]:
         if required not in doxygen:
             fail(f"Doxyfile missing expected setting: {required}", failures)
 
