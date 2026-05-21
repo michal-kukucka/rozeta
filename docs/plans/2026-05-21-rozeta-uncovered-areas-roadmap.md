@@ -115,3 +115,34 @@ cmake --build build-m2 --parallel 2
 ctest --test-dir build-m2 --output-on-failure
 ./build-m2/examples/serial_motor_calibrate --dry-run
 ```
+
+
+### M3 — GPS serial receiver and robust NMEA validation
+
+Status: completed locally in this milestone implementation.
+
+Research summary:
+
+- ROS `nmea_navsat_driver`/gpsd-style layering inspired the split between transport, stream framing, checksum validation and parsing.
+- TinyGPS++-style incremental stream handling inspired `NmeaStreamBuffer` for fragmented reads.
+- Linux robotics deployment conventions inspired `/dev/serial/by-id` documentation and `dialout` permission guidance.
+
+Delivered:
+
+- `validateNmeaSentence()` with standard XOR checksum validation and structured error codes.
+- `NmeaParser::parseLineDetailed()` with compatibility-preserving `parseLine()`.
+- `NmeaStreamBuffer` for fragmented, batched and noisy serial input.
+- `GpsReceiverConfig`, `GpsReceiverStats` and `SerialGpsReceiver` backed by the M1 POSIX serial transport.
+- PTY-backed receiver tests for fragmented reads, timeout status, invalid config and bad-checksum recovery.
+- `tests/fixtures/gps/robotour_sample.nmea` sample fixture.
+- `gps_serial_reader` example with `--device`, `--baud` and `--sample`.
+- GPS docs, API docs, Robotour docs and diagrams updated.
+
+Verification commands used:
+
+```bash
+cmake -S . -B build-m3-red -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_EXAMPLES=ON -DROZETA_WITH_SERIAL_MOTORS=ON
+cmake --build build-m3-red --parallel 2
+ctest --test-dir build-m3-red --output-on-failure
+./build-m3-red/examples/gps_serial_reader --sample tests/fixtures/gps/robotour_sample.nmea
+```

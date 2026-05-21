@@ -4,6 +4,16 @@
 
 void test_gps_parses_gga_fix();
 void test_gps_parses_rmc_course_and_speed();
+void test_gps_validates_good_and_bad_checksums();
+void test_gps_rejects_missing_and_malformed_checksums();
+void test_gps_parser_detailed_rejects_invalid_checksum();
+void test_gps_parser_accepts_lowercase_checksum_and_crlf();
+void test_gps_stream_buffers_fragmented_and_multiple_lines();
+void test_gps_stream_discards_garbage_before_sentence();
+void test_gps_serial_receiver_reads_fragmented_fix_from_pty();
+void test_gps_serial_receiver_skips_bad_checksum_then_returns_good_fix();
+void test_gps_serial_receiver_timeout_reports_status();
+void test_gps_serial_receiver_rejects_invalid_config();
 void test_odometry_differential_drive_forward_and_turn();
 void test_coordinate_local_conversion();
 void test_obstacle_sector_calculation();
@@ -29,6 +39,16 @@ int main(){
     std::vector<std::pair<const char*, std::function<void()>>> tests = {
         {"gps_gga", test_gps_parses_gga_fix},
         {"gps_rmc", test_gps_parses_rmc_course_and_speed},
+        {"gps_checksum", test_gps_validates_good_and_bad_checksums},
+        {"gps_checksum_malformed", test_gps_rejects_missing_and_malformed_checksums},
+        {"gps_detailed_bad_checksum", test_gps_parser_detailed_rejects_invalid_checksum},
+        {"gps_detailed_crlf", test_gps_parser_accepts_lowercase_checksum_and_crlf},
+        {"gps_stream_fragmented", test_gps_stream_buffers_fragmented_and_multiple_lines},
+        {"gps_stream_garbage", test_gps_stream_discards_garbage_before_sentence},
+        {"gps_serial_fragmented", test_gps_serial_receiver_reads_fragmented_fix_from_pty},
+        {"gps_serial_skip_bad", test_gps_serial_receiver_skips_bad_checksum_then_returns_good_fix},
+        {"gps_serial_timeout", test_gps_serial_receiver_timeout_reports_status},
+        {"gps_serial_invalid_config", test_gps_serial_receiver_rejects_invalid_config},
         {"odometry", test_odometry_differential_drive_forward_and_turn},
         {"coordinates", test_coordinate_local_conversion},
         {"obstacles", test_obstacle_sector_calculation},

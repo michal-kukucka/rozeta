@@ -6,7 +6,7 @@ Rozeta is inspired by the Buchlovice/Robotour style workflow, but rebuilt as C/C
 
 `examples/robotour_demo.cpp` demonstrates the intended sequence:
 
-1. Read GPS.
+1. Read checksum-validated GPS fixes from sample files or serial NMEA devices.
 2. Read odometry.
 3. Read LiDAR and obstacle sensors.
 4. Update robot state.
@@ -24,10 +24,8 @@ Rozeta is inspired by the Buchlovice/Robotour style workflow, but rebuilt as C/C
 
 ## Next milestones
 
-1. Serial motor backend and hardware calibration tool.
-2. YDLIDAR X4 backend.
-3. GPS serial receiver and checksum validation.
-4. Simplified offline OSM path loader.
-5. Camera/OpenCV optional backend.
-6. Kinect/libfreenect depth backend.
-7. IMU fusion with odometry/GPS.
+1. YDLIDAR X4 backend.
+2. Simplified offline OSM path loader.
+3. Camera/OpenCV optional backend.
+4. Kinect/libfreenect depth backend.
+5. IMU fusion with odometry/GPS.

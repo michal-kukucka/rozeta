@@ -38,3 +38,37 @@ doxygen Doxyfile
 - Invalid checksums are rejected with clear status.
 - Receiver handles fragmented serial reads.
 - Example works without GPS hardware via sample input.
+
+
+## Implementation progress
+
+Status: completed.
+
+Implemented files:
+
+- `include/rozeta/gps.hpp`
+- `src/gps.cpp`
+- `tests/test_gps_receiver.cpp`
+- `tests/fixtures/gps/robotour_sample.nmea`
+- `examples/gps_serial_reader.cpp`
+
+Modified files:
+
+- `tests/test_gps.cpp` — corrected RMC fixture checksum for strict validation.
+- `tests/test_main.cpp`, `tests/CMakeLists.txt`, `examples/CMakeLists.txt` — wired receiver tests and example.
+- `docs/gps_module.md`, `docs/api-reference.md`, `docs/diagrams/module-map.html`, `docs/robotour_use_case.md`, `README.md` — documented M3 behavior and usage.
+
+Acceptance criteria status:
+
+- [x] Invalid checksums are rejected with clear structured status.
+- [x] Receiver handles fragmented serial reads via `NmeaStreamBuffer` and PTY-backed tests.
+- [x] Example works without GPS hardware through `--sample tests/fixtures/gps/robotour_sample.nmea`.
+
+Verification:
+
+```bash
+ctest --test-dir build-m3-red --output-on-failure
+./build-m3-red/examples/gps_serial_reader --sample tests/fixtures/gps/robotour_sample.nmea
+python3 scripts/verify_docs.py
+doxygen Doxyfile
+```

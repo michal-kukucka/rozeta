@@ -1,6 +1,7 @@
 add_executable(rozeta_tests
     test_main.cpp
     test_gps.cpp
+    test_gps_receiver.cpp
     test_odometry.cpp
     test_coordinates.cpp
     test_obstacles.cpp

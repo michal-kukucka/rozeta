@@ -12,7 +12,7 @@ The initial milestone focuses on the foundation, not final hardware drivers:
 - core types, status/error handling, configuration loading, math helpers and geo-local conversion
 - logging interface with console and CSV file logger
 - differential-drive motor interface with mock implementation, calibration persistence, optional serial backend and emergency stop
-- NMEA GPS parser for GGA/RMC
+- NMEA GPS parser/validator for GGA/RMC plus serial receiver with stream buffering
 - differential-drive odometry
 - LiDAR interface skeleton plus filtering and console visualization
 - obstacle sector calculation from LiDAR scans
@@ -72,6 +72,12 @@ Optional serial motor calibration dry run:
 ./build/examples/serial_motor_calibrate --dry-run
 ```
 
+GPS serial reader sample mode without hardware:
+
+```bash
+./build/examples/gps_serial_reader --sample tests/fixtures/gps/robotour_sample.nmea
+```
+
 ## Documentation
 
 Detailed docs are included in `docs/` and are ready to be reused as a future official website:
@@ -107,7 +113,7 @@ ctest --test-dir build --output-on-failure
 
 Covered behavior:
 
-- GPS parsing
+- GPS parsing, checksum validation, stream buffering and serial receiver sample mode
 - odometry calculations
 - coordinate conversion
 - obstacle sector calculation
@@ -118,7 +124,7 @@ Covered behavior:
 
 ## Status
 
-Rozeta now includes milestone 1 and milestone 2 foundations: mockable core APIs, an internal POSIX serial transport, motor calibration persistence, and an optional serial motor backend. Real YDLIDAR, OpenCV camera, Kinect/libfreenect, IMU and OSM backends remain future optional plugins behind the existing APIs.
+Rozeta now includes milestone 1, milestone 2 and milestone 3 foundations: mockable core APIs, an internal POSIX serial transport, motor calibration persistence, an optional serial motor backend, and a serial/file GPS receiver with robust NMEA validation. Real YDLIDAR, OpenCV camera, Kinect/libfreenect, IMU and OSM backends remain future optional plugins behind the existing APIs.
 
 
 ## License

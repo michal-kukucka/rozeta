@@ -1,6 +1,13 @@
 #pragma once
+
+#include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <optional>
 #include <string>
+#include <vector>
+
 #include <rozeta/core.hpp>
 
 namespace rozeta::gps {
@@ -17,6 +24,56 @@ struct GpsFix {
     Timestamp timestamp{now()};
 };
 
+enum class NmeaValidationCode {
+    Ok,
+    Empty,
+    MissingStart,
+    MissingChecksum,
+    InvalidChecksumLength,
+    InvalidChecksumHex,
+    ChecksumMismatch
+};
+
+struct NmeaValidationResult {
+    NmeaValidationCode code{NmeaValidationCode::Empty};
+    std::uint8_t expected{0};
+    std::uint8_t actual{0};
+    std::string message{};
+    bool ok() const { return code == NmeaValidationCode::Ok; }
+};
+
+enum class NmeaParseCode {
+    Ok,
+    Empty,
+    UnsupportedSentence,
+    MalformedSentence,
+    MissingChecksum,
+    InvalidChecksum,
+    InvalidFix
+};
+
+struct NmeaParseResult {
+    GpsFix fix{};
+    NmeaParseCode code{NmeaParseCode::Empty};
+    std::string message{};
+    bool ok() const { return code == NmeaParseCode::Ok; }
+};
+
+NmeaValidationResult validateNmeaSentence(const std::string& sentence);
+
+class NmeaStreamBuffer {
+public:
+    explicit NmeaStreamBuffer(std::size_t max_sentence_length = 256);
+
+    std::vector<std::string> push(const std::string& bytes);
+    void clear();
+    std::size_t pendingSize() const;
+
+private:
+    std::string pending_{};
+    std::size_t max_sentence_length_{256};
+};
+
 class GpsReceiver {
 public:
     virtual ~GpsReceiver() = default;
@@ -27,6 +84,41 @@ public:
 class NmeaParser {
 public:
     GpsFix parseLine(const std::string& line) const;
+    NmeaParseResult parseLineDetailed(const std::string& line) const;
+};
+
+struct GpsReceiverConfig {
+    std::string device{"/dev/ttyUSB0"};
+    int baud_rate{9600};
+    std::chrono::milliseconds read_timeout{100};
+    std::size_t read_buffer_size{256};
+    std::size_t max_sentence_length{256};
+};
+
+struct GpsReceiverStats {
+    std::uint64_t bytes_read{0};
+    std::uint64_t sentences_seen{0};
+    std::uint64_t valid_sentences{0};
+    std::uint64_t checksum_failures{0};
+    std::uint64_t parse_failures{0};
+};
+
+class SerialGpsReceiver final : public GpsReceiver {
+public:
+    explicit SerialGpsReceiver(GpsReceiverConfig config = {});
+    ~SerialGpsReceiver() override;
+
+    Status open();
+    Status open(const std::string& device) override;
+    std::optional<GpsFix> readFix() override;
+    void close() noexcept;
+    bool isOpen() const;
+    Status lastStatus() const;
+    const GpsReceiverStats& stats() const;
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
 };
 
 LocalCoordinate toLocal(const GeoCoordinate& origin, const GpsFix& fix);
