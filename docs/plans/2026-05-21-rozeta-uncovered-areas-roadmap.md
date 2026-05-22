@@ -177,3 +177,33 @@ cmake --build build-m4-red --parallel 2
 ctest --test-dir build-m4-red --output-on-failure
 ./build-m4-red/examples/ydlidar_scan_console --sample tests/fixtures/lidar/ydlidar_frame.bin
 ```
+
+
+### M5 — Offline maps and route following
+
+Status: completed locally in this milestone implementation.
+
+Research summary:
+
+- ROS Nav2/Autoware-style separation inspired keeping offline route parsing, coordinate conversion and runtime following as separate layers.
+- Minimal robotics replay conventions inspired a stable CSV route format before OSM/PBF complexity.
+- Route-following reviews highlighted monotonic progress so navigation cannot jump backward on loops or near parallel path segments.
+
+Delivered:
+
+- `src/maps.cpp` implementation and CMake integration.
+- `maps::CsvMapLoader`, `MapLoadResult`, `kInvalidPathIndex` and `nearestPathIndex` public API.
+- CSV route fixtures for valid, multiple-path, invalid and empty route cases.
+- `navigation::RouteFollower` stateful wrapper around `SimpleNavigator` for multi-waypoint progress.
+- Tests for map loading, explicit parse/I/O/empty errors, nearest path lookup and route follower progression.
+- `route_follower_demo` example using `tests/fixtures/maps/robotour_route.csv`.
+- Maps docs, navigation docs, API docs and Robotour docs updated.
+
+Verification commands used:
+
+```bash
+cmake -S . -B build-m5-red -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_EXAMPLES=ON -DROZETA_WITH_SERIAL_MOTORS=ON -DROZETA_WITH_YDLIDAR=ON
+cmake --build build-m5-red --parallel 2
+ctest --test-dir build-m5-red --output-on-failure
+./build-m5-red/examples/route_follower_demo tests/fixtures/maps/robotour_route.csv
+```

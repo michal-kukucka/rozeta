@@ -1,0 +1,4 @@
+path_id,seq,latitude,longitude,altitude_m,label
+main,0,48.0000000,17.0000000,200.0,start
+main,1,48.0000100,17.0000000,200.0,next
+backup,0,49.0000000,18.0000000,210.0,start

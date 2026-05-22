@@ -4,15 +4,18 @@ Rozeta is inspired by the Buchlovice/Robotour style workflow, but rebuilt as C/C
 
 ## Autonomous loop
 
-`examples/robotour_demo.cpp` demonstrates the intended sequence:
+`examples/robotour_demo.cpp` remains the compact end-to-end autonomous-loop sketch using mock data and a local waypoint.
+`examples/route_follower_demo.cpp` demonstrates the M5 offline route-loading path. Together they show the intended sequence:
 
-1. Read checksum-validated GPS fixes from sample files or serial NMEA devices.
-2. Read odometry.
-3. Read normalized LiDAR scans from mock data, sample replay or optional YDLIDAR serial devices.
-4. Update robot state.
-5. Make navigation decision.
-6. Send motor commands.
-7. Log information.
+1. Load an offline CSV route with `maps::CsvMapLoader`.
+2. Read checksum-validated GPS fixes from sample files or serial NMEA devices.
+3. Convert route GPS coordinates to local waypoints with `geoToLocal`.
+4. Read odometry.
+5. Read normalized LiDAR scans from mock data, sample replay or optional YDLIDAR serial devices.
+6. Update robot state.
+7. Use `navigation::RouteFollower` to make a waypoint/obstacle-aware decision.
+8. Send motor commands.
+9. Log information.
 
 ## Competition-oriented priorities
 
@@ -20,11 +23,11 @@ Rozeta is inspired by the Buchlovice/Robotour style workflow, but rebuilt as C/C
 - mock/demo mode for development without hardware
 - structured logs for later replay and analysis
 - clean replacement of sensor backends
-- offline maps and waypoint route following prepared as next milestones
+- offline maps and waypoint route following available through CSV fixtures and `RouteFollower`
 
 ## Next milestones
 
-1. Simplified offline OSM path loader.
+1. Optional OSM/PBF import on top of the stable CSV route contract.
 2. Camera/OpenCV optional backend.
 3. Kinect/libfreenect depth backend.
 4. IMU fusion with odometry/GPS.

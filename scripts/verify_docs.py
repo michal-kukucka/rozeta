@@ -23,7 +23,7 @@ PUBLIC_HEADER_DOCS = {
     "kinect": "docs/module_overview.md",
     "lidar": "docs/lidar_module.md",
     "logging": "docs/module_overview.md",
-    "maps": "docs/module_overview.md",
+    "maps": "docs/maps_module.md",
     "motors": "docs/motor_module.md",
     "navigation": "docs/navigation.md",
     "obstacle_detection": "docs/navigation.md",

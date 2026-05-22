@@ -1,0 +1,5 @@
+# rozeta_route_csv_v1
+path_id,seq,latitude,longitude,altitude_m,label
+robotour,2,48.0000200,17.0000100,200.5,turn
+robotour,0,48.0000000,17.0000000,200.0,start
+robotour,1,48.0000100,17.0000000,200.0,straight

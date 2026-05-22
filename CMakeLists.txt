@@ -27,6 +27,7 @@ set(ROZETA_SOURCES
     src/gps.cpp
     src/odometry.cpp
     src/lidar.cpp
+    src/maps.cpp
     src/navigation.cpp
     src/obstacle_detection.cpp
     src/internal/serial_port.cpp

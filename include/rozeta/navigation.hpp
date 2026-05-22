@@ -38,4 +38,25 @@ private:
     NavigatorConfig config_;
 };
 
+class RouteFollower {
+public:
+    explicit RouteFollower(NavigatorConfig config = {});
+
+    void setRoute(std::vector<LocalCoordinate> route);
+    std::size_t currentWaypointIndex() const;
+    bool finished() const;
+    NavigationDecision update(
+        const Pose2D& pose,
+        const obstacle_detection::ObstacleInfo& obstacles);
+
+private:
+    bool currentWaypointReached(const Pose2D& pose) const;
+
+    NavigatorConfig config_{};
+    SimpleNavigator navigator_;
+    std::vector<LocalCoordinate> route_;
+    std::size_t current_index_{0};
+    bool finished_{true};
+};
+
 } // namespace rozeta::navigation

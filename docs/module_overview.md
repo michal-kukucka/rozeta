@@ -30,8 +30,12 @@ Combines normalized sensor results into `ObstacleInfo` with ahead/left/right fla
 
 ## Navigation
 
-`navigation::SimpleNavigator` maps pose, target waypoint and obstacles into motor decisions: go-to-waypoint, obstacle avoidance and emergency stop.
+`navigation::SimpleNavigator` maps pose, target waypoint and obstacles into motor decisions: go-to-waypoint, obstacle avoidance and emergency stop. `navigation::RouteFollower` adds monotonic multi-waypoint progress while reusing the same decision contract.
 
-## Camera, Kinect, IMU, Maps
+## Maps
+
+`maps::CsvMapLoader` loads offline CSV route files into `OfflineMap` paths with explicit `Status` errors for missing, malformed or empty route files. `nearestPathIndex` selects the closest path and returns `kInvalidPathIndex` for empty maps.
+
+## Camera, Kinect, IMU
 
 Header-level interfaces/skeletons are present so future backends can be added without changing high-level applications.

@@ -24,6 +24,18 @@ void test_serial_port_rejects_invalid_configuration();
 void test_motor_calibration_save_load_round_trip();
 void test_motor_calibration_load_rejects_invalid_values();
 void test_motor_calibration_load_missing_file_returns_error();
+void test_maps_nearest_path_index_selects_closest_path();
+void test_maps_nearest_path_index_empty_map_returns_invalid_index();
+void test_maps_csv_loader_loads_fixture_route_and_sorts_by_sequence();
+void test_maps_csv_loader_loads_multiple_paths();
+void test_maps_csv_loader_reports_missing_file();
+void test_maps_csv_loader_reports_invalid_row();
+void test_maps_csv_loader_reports_empty_route();
+void test_navigation_go_to_waypoint_stops_inside_tolerance();
+void test_navigation_route_follower_advances_waypoints();
+void test_navigation_route_follower_finishes_route();
+void test_navigation_route_follower_empty_route_reports_finished();
+void test_navigation_route_follower_obstacle_does_not_advance_unless_reached();
 #ifdef ROZETA_WITH_SERIAL_MOTORS
 void test_serial_motor_formats_normalized_speed_commands();
 void test_serial_motor_rejects_invalid_speed_without_writing();
@@ -67,6 +79,18 @@ int main(){
         {"motor_calibration_round_trip", test_motor_calibration_save_load_round_trip},
         {"motor_calibration_invalid", test_motor_calibration_load_rejects_invalid_values},
         {"motor_calibration_missing", test_motor_calibration_load_missing_file_returns_error},
+        {"maps_nearest_path", test_maps_nearest_path_index_selects_closest_path},
+        {"maps_empty_index", test_maps_nearest_path_index_empty_map_returns_invalid_index},
+        {"maps_csv_fixture", test_maps_csv_loader_loads_fixture_route_and_sorts_by_sequence},
+        {"maps_csv_multiple_paths", test_maps_csv_loader_loads_multiple_paths},
+        {"maps_missing_file", test_maps_csv_loader_reports_missing_file},
+        {"maps_invalid_row", test_maps_csv_loader_reports_invalid_row},
+        {"maps_empty_route", test_maps_csv_loader_reports_empty_route},
+        {"navigation_waypoint_tolerance", test_navigation_go_to_waypoint_stops_inside_tolerance},
+        {"navigation_route_advance", test_navigation_route_follower_advances_waypoints},
+        {"navigation_route_complete", test_navigation_route_follower_finishes_route},
+        {"navigation_route_empty", test_navigation_route_follower_empty_route_reports_finished},
+        {"navigation_route_obstacle", test_navigation_route_follower_obstacle_does_not_advance_unless_reached},
 #ifdef ROZETA_WITH_SERIAL_MOTORS
         {"serial_motor_format", test_serial_motor_formats_normalized_speed_commands},
         {"serial_motor_invalid_speed", test_serial_motor_rejects_invalid_speed_without_writing},

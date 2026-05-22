@@ -1,36 +1,36 @@
 # M5 — Offline Maps and Route Following Implementation Plan
 
-> **For Hermes:** Use subagent-driven-development skill to implement this plan task-by-task.
+> **Status:** Completed in M5 implementation.
 
-**Goal:** Implement the currently header-only maps module and upgrade navigation from one waypoint to route following with offline path loading.
+**Goal:** Implement the previously header-only maps module and upgrade navigation from one waypoint to route following with offline path loading.
 
-**Architecture:** Keep map parsing independent from navigation decisions. Start with a simple, documented JSON/CSV route format before adding OSM/PBF complexity.
+**Architecture:** Map parsing is independent from navigation decisions. Rozeta starts with a simple documented CSV route format before adding OSM/PBF complexity.
 
-**Tech Stack:** C++17, stdlib file parsing, CTest fixtures, existing `GeoCoordinate` and `SimpleNavigator`.
+**Tech Stack:** C++17, stdlib file parsing, CTest fixtures, existing `GeoCoordinate`, `geoToLocal` and `SimpleNavigator`.
 
 ---
 
 ## Gap evidence
 
-- `include/rozeta/maps.hpp` is header-only with `MapLoader` and `nearestPathIndex` declarations.
-- `docs/robotour_use_case.md` lists offline OSM path loader as next milestone.
+- `include/rozeta/maps.hpp` was header-only with `MapLoader` and `nearestPathIndex` declarations.
+- `docs/robotour_use_case.md` listed offline path loading as a future milestone.
 
-## Tasks
+## Completed tasks
 
-1. Add fixture route files under `tests/fixtures/maps/`.
-2. Add RED tests for `nearestPathIndex` and empty-map behavior.
-3. Implement `src/maps.cpp` and add it to CMake targets.
-4. Add a simple route loader for a stable JSON-lines or CSV waypoint format.
-5. Extend navigation tests for multi-waypoint progression and arrival tolerance.
-6. Add `examples/route_follower_demo.cpp` using sample route file.
-7. Create `docs/maps_module.md` and update `docs/module_overview.md`, API docs and diagrams.
-8. Update `scripts/verify_docs.py` if new docs mapping is needed.
+1. Added route fixtures under `tests/fixtures/maps/`.
+2. Added RED tests for `nearestPathIndex`, empty maps, CSV load success/failure and route following.
+3. Implemented `src/maps.cpp` and added it to CMake targets.
+4. Added `maps::CsvMapLoader` for a stable CSV waypoint format with explicit `MapLoadResult` status.
+5. Added `navigation::RouteFollower` for monotonic multi-waypoint progression.
+6. Added `examples/route_follower_demo.cpp` using the sample route file.
+7. Created `docs/maps_module.md` and updated module overview, API docs, Robotour use case and docs verifier mapping.
 
 ## Verification
 
 ```bash
-ctest --test-dir build -R 'maps|navigation' --output-on-failure
-./build/examples/route_follower_demo tests/fixtures/maps/robotour_route.csv
+cmake --build build-m5-red --parallel 2
+ctest --test-dir build-m5-red --output-on-failure
+./build-m5-red/examples/route_follower_demo tests/fixtures/maps/robotour_route.csv
 python3 scripts/verify_docs.py
 ```
 
@@ -39,3 +39,4 @@ python3 scripts/verify_docs.py
 - Maps module is implemented and tested.
 - Route following works from sample offline route.
 - Empty/invalid route files return explicit errors.
+- Documentation and examples describe the stable CSV route contract.

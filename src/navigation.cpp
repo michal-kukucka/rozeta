@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace rozeta::navigation {
 
@@ -46,6 +47,61 @@ NavigationDecision SimpleNavigator::goToWaypoint(
     decision.motor.right_speed = std::clamp(config_.base_speed + correction, -1.0, 1.0);
     decision.reason = "go to waypoint";
     return decision;
+}
+
+RouteFollower::RouteFollower(NavigatorConfig config)
+    : config_(config), navigator_(config) {}
+
+void RouteFollower::setRoute(std::vector<LocalCoordinate> route) {
+    route_ = std::move(route);
+    current_index_ = 0;
+    finished_ = route_.empty();
+}
+
+std::size_t RouteFollower::currentWaypointIndex() const {
+    return current_index_;
+}
+
+bool RouteFollower::finished() const {
+    return finished_;
+}
+
+bool RouteFollower::currentWaypointReached(const Pose2D& pose) const {
+    if (route_.empty() || current_index_ >= route_.size()) {
+        return false;
+    }
+
+    const auto& target = route_[current_index_];
+    const double dx = target.x - pose.x;
+    const double dy = target.y - pose.y;
+    return std::sqrt(dx * dx + dy * dy) < config_.waypoint_tolerance_m;
+}
+
+NavigationDecision RouteFollower::update(
+    const Pose2D& pose,
+    const obstacle_detection::ObstacleInfo& obstacles) {
+    NavigationDecision decision;
+    if (route_.empty()) {
+        finished_ = true;
+        decision.reason = "route empty";
+        return decision;
+    }
+
+    if (finished_) {
+        decision.reason = "route complete";
+        return decision;
+    }
+
+    if (currentWaypointReached(pose)) {
+        if (current_index_ + 1 >= route_.size()) {
+            finished_ = true;
+            decision.reason = "route complete";
+            return decision;
+        }
+        ++current_index_;
+    }
+
+    return navigator_.goToWaypoint(pose, route_[current_index_], obstacles);
 }
 
 } // namespace rozeta::navigation

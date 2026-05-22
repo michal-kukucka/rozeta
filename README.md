@@ -15,8 +15,9 @@ The initial milestone focuses on the foundation, not final hardware drivers:
 - NMEA GPS parser/validator for GGA/RMC plus serial receiver with stream buffering
 - differential-drive odometry
 - LiDAR interface, filtering, console visualization and optional YDLIDAR-style packet parser/backend
+- offline CSV maps/route loading with explicit status errors
 - obstacle sector calculation from LiDAR scans
-- simple waypoint navigator
+- simple waypoint navigator plus monotonic route follower
 - examples and standalone C++ test binary
 
 ## Project layout
@@ -85,6 +86,12 @@ YDLIDAR sample replay without hardware:
 ./build/examples/ydlidar_scan_console --sample tests/fixtures/lidar/ydlidar_frame.bin
 ```
 
+Offline route following without hardware:
+
+```bash
+./build/examples/route_follower_demo tests/fixtures/maps/robotour_route.csv
+```
+
 ## Documentation
 
 Detailed docs are included in `docs/` and are ready to be reused as a future official website:
@@ -98,7 +105,8 @@ Detailed docs are included in `docs/` and are ready to be reused as a future off
 - `docs/motor_module.md` — differential-drive motor API, mock backend and safety behavior
 - `docs/gps_module.md` — NMEA parsing and geo/local coordinate usage
 - `docs/lidar_module.md` — LiDAR scan structures, filtering, YDLIDAR backend and sample replay
-- `docs/navigation.md` — waypoint navigation and obstacle-aware decisions
+- `docs/maps_module.md` — offline CSV route format, loader behavior and fixtures
+- `docs/navigation.md` — waypoint navigation, route following and obstacle-aware decisions
 - `docs/robotour_use_case.md` — Robotour-style autonomous vehicle workflow
 
 Documentation is verified from the public code surface:
@@ -125,6 +133,7 @@ Covered behavior:
 - coordinate conversion
 - obstacle sector calculation
 - optional YDLIDAR-style parser/backend when `ROZETA_WITH_YDLIDAR=ON`
+- offline CSV route loading, nearest-path lookup and route follower progression
 - motor command validation/emergency stop
 - motor calibration save/load
 - optional serial motor command formatting when `ROZETA_WITH_SERIAL_MOTORS=ON`
@@ -132,7 +141,7 @@ Covered behavior:
 
 ## Status
 
-Rozeta now includes milestone 1 through milestone 4 foundations: mockable core APIs, an internal POSIX serial transport, motor calibration persistence, optional serial motor and YDLIDAR-style LiDAR backends, and a serial/file GPS receiver with robust NMEA validation. Real OpenCV camera, Kinect/libfreenect, IMU and OSM backends remain future optional plugins behind the existing APIs.
+Rozeta now includes milestone 1 through milestone 5 foundations: mockable core APIs, an internal POSIX serial transport, motor calibration persistence, optional serial motor and YDLIDAR-style LiDAR backends, a serial/file GPS receiver with robust NMEA validation, and offline CSV route loading with monotonic route following. Real OpenCV camera, Kinect/libfreenect, IMU and OSM backends remain future optional plugins behind the existing APIs.
 
 
 ## License
