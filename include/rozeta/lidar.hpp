@@ -1,4 +1,8 @@
 #pragma once
+#include <chrono>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
 #include <string>
 #include <vector>
 #include <rozeta/core.hpp>
@@ -31,5 +35,35 @@ private:
     bool running_{false};
     Scan scan_{};
 };
+
+#ifdef ROZETA_WITH_YDLIDAR
+
+struct YdLidarConfig {
+    std::string device{"/dev/ttyUSB0"};
+    int baud_rate{128000};
+    std::chrono::milliseconds read_timeout{100};
+    std::chrono::milliseconds write_timeout{100};
+    std::size_t read_buffer_size{256};
+};
+
+class YdLidarScanner final : public LidarScanner {
+public:
+    explicit YdLidarScanner(YdLidarConfig config = {});
+    ~YdLidarScanner() override;
+
+    Status initialize(const std::string& device) override;
+    Status start() override;
+    Status stop() override;
+    Scan readScan() override;
+    void close() noexcept;
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+};
+
+std::vector<ScanPoint> parseYdLidarPacketStream(const std::uint8_t* data, std::size_t size);
+
+#endif
 
 } // namespace rozeta::lidar

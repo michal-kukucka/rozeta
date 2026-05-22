@@ -2,7 +2,7 @@
 
 Public header: `include/rozeta/lidar.hpp`
 
-Initial target: YDLIDAR X4 or similar 2D serial scanning LiDAR.
+The LiDAR module normalizes 2D range scanners into `ScanPoint { angle_deg, distance_m, valid }` and `Scan` structures used by obstacle detection and navigation.
 
 ## Current milestone
 
@@ -11,11 +11,90 @@ Initial target: YDLIDAR X4 or similar 2D serial scanning LiDAR.
 - invalid point filtering
 - mock scanner
 - console visualization helper
+- optional YDLIDAR-style serial backend behind `ROZETA_WITH_YDLIDAR`
+- no-hardware binary fixture replay for tests and examples
 
-## Future YDLIDAR backend checklist
+## Optional YDLIDAR backend
 
-1. Add serial device configuration (`/dev/ttyUSB0`, baud rate, timeout).
-2. Implement initialization/start/stop commands.
-3. Normalize driver output into `ScanPoint { angle_deg, distance_m, valid }`.
-4. Keep driver details out of navigation and obstacle detection.
-5. Add hardware smoke example and document udev permissions.
+Enable the backend explicitly:
+
+```bash
+cmake -S . -B build-ydlidar \
+  -DROZETA_BUILD_TESTS=ON \
+  -DROZETA_BUILD_EXAMPLES=ON \
+  -DROZETA_WITH_YDLIDAR=ON
+cmake --build build-ydlidar --parallel 2
+```
+
+The public class is `rozeta::lidar::YdLidarScanner`, guarded by `ROZETA_WITH_YDLIDAR`. It uses the M1 internal POSIX serial transport and keeps YDLIDAR protocol details out of obstacle detection and navigation.
+
+Default configuration:
+
+- device: `/dev/ttyUSB0`
+- baud: `128000` for X4-style devices when the host termios exposes `B128000`
+- serial mode: raw 8N1, no flow control
+- finite read/write timeouts
+
+If a platform does not expose `B128000`, opening at 128000 returns a clear `InvalidArgument` status. Use a supported baud such as 115200 for compatible devices or add platform-specific `termios2/BOTHER` support in a later backend hardening task.
+
+## Packet parser
+
+`src/internal/ydlidar_parser.*` implements a defensive YDLIDAR-style streaming parser:
+
+- syncs on `0xAA 0x55`
+- accepts fragmented byte chunks
+- discards garbage before valid frames
+- validates bounded sample counts
+- verifies a deterministic frame checksum used by the test fixtures
+- converts raw distances into meters
+- interpolates start/end angles, including 360° wraparound
+- marks zero or out-of-range samples invalid instead of crashing
+
+The public helper `parseYdLidarPacketStream()` is available when `ROZETA_WITH_YDLIDAR=ON` so examples can replay binary captures without real hardware.
+
+## Smoke test without hardware
+
+```bash
+./build-ydlidar/examples/ydlidar_scan_console --sample tests/fixtures/lidar/ydlidar_frame.bin
+```
+
+Expected output includes point counts and a console scan line, for example:
+
+```text
+ydlidar sample bytes=18 points=4 valid=3
+```
+
+## Hardware smoke test
+
+```bash
+./build-ydlidar/examples/ydlidar_scan_console --device /dev/ttyUSB0 --baud 128000
+```
+
+Prefer stable Linux device paths when available:
+
+```bash
+ls -l /dev/serial/by-id/
+```
+
+Permissions usually require the `dialout` group:
+
+```bash
+sudo usermod -aG dialout "$USER"
+```
+
+Log out/in after changing group membership.
+
+## Troubleshooting
+
+- `HardwareUnavailable`: wrong device path, permissions, unplugged adapter, or busy serial device.
+- `InvalidArgument` for baud 128000: host libc/kernel does not expose `B128000`; try 115200 or add `termios2/BOTHER` support.
+- Empty scan: scanner not running, no complete packet yet, timeout, wrong baud, or unsupported device protocol.
+- Parser returns no points from a file: fixture may be truncated, have a checksum mismatch, or not match the X4-style packet layout.
+
+## Future hardening
+
+- Real captured golden frames from multiple YDLIDAR X4 firmware versions.
+- Device info/health query commands.
+- Scan-frequency reporting.
+- Optional angle correction constants per device model.
+- `termios2/BOTHER` non-standard baud fallback on Linux.

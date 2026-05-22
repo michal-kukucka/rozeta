@@ -34,6 +34,14 @@ void test_serial_motor_emergency_stop_writes_stop_even_when_motion_config_is_inv
 void test_serial_motor_rejects_command_prefix_with_control_characters();
 void test_serial_motor_propagates_transport_write_errors();
 #endif
+#ifdef ROZETA_WITH_YDLIDAR
+void test_ydlidar_parser_parses_sample_frame();
+void test_ydlidar_parser_accepts_fragmented_frame();
+void test_ydlidar_parser_discards_garbage_before_frame();
+void test_ydlidar_parser_rejects_invalid_packets_without_throwing();
+void test_ydlidar_parser_normalizes_wraparound_angles();
+void test_ydlidar_backend_invalid_device_reports_hardware_unavailable();
+#endif
 
 int main(){
     std::vector<std::pair<const char*, std::function<void()>>> tests = {
@@ -68,6 +76,14 @@ int main(){
         {"serial_motor_estop_ignores_motion_config", test_serial_motor_emergency_stop_writes_stop_even_when_motion_config_is_invalid},
         {"serial_motor_prefix_validation", test_serial_motor_rejects_command_prefix_with_control_characters},
         {"serial_motor_write_error", test_serial_motor_propagates_transport_write_errors},
+#endif
+#ifdef ROZETA_WITH_YDLIDAR
+        {"ydlidar_parse_fixture", test_ydlidar_parser_parses_sample_frame},
+        {"ydlidar_fragmented", test_ydlidar_parser_accepts_fragmented_frame},
+        {"ydlidar_garbage", test_ydlidar_parser_discards_garbage_before_frame},
+        {"ydlidar_invalid_safe", test_ydlidar_parser_rejects_invalid_packets_without_throwing},
+        {"ydlidar_wraparound", test_ydlidar_parser_normalizes_wraparound_angles},
+        {"ydlidar_invalid_device", test_ydlidar_backend_invalid_device_reports_hardware_unavailable},
 #endif
     };
     int failed = 0;

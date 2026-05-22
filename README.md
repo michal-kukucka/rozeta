@@ -14,7 +14,7 @@ The initial milestone focuses on the foundation, not final hardware drivers:
 - differential-drive motor interface with mock implementation, calibration persistence, optional serial backend and emergency stop
 - NMEA GPS parser/validator for GGA/RMC plus serial receiver with stream buffering
 - differential-drive odometry
-- LiDAR interface skeleton plus filtering and console visualization
+- LiDAR interface, filtering, console visualization and optional YDLIDAR-style packet parser/backend
 - obstacle sector calculation from LiDAR scans
 - simple waypoint navigator
 - examples and standalone C++ test binary
@@ -47,6 +47,7 @@ Useful options:
 cmake .. -DROZETA_BUILD_EXAMPLES=ON -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_SHARED=ON
 cmake .. -DROZETA_WITH_OPENCV=ON   # reserved for future optional camera backend hooks
 cmake .. -DROZETA_WITH_SERIAL_MOTORS=ON   # optional POSIX serial motor backend
+cmake .. -DROZETA_WITH_YDLIDAR=ON   # optional YDLIDAR-style serial LiDAR backend
 ```
 
 ## Quick usage
@@ -78,6 +79,12 @@ GPS serial reader sample mode without hardware:
 ./build/examples/gps_serial_reader --sample tests/fixtures/gps/robotour_sample.nmea
 ```
 
+YDLIDAR sample replay without hardware:
+
+```bash
+./build/examples/ydlidar_scan_console --sample tests/fixtures/lidar/ydlidar_frame.bin
+```
+
 ## Documentation
 
 Detailed docs are included in `docs/` and are ready to be reused as a future official website:
@@ -90,7 +97,7 @@ Detailed docs are included in `docs/` and are ready to be reused as a future off
 - `docs/module_overview.md` — module-by-module status and responsibilities
 - `docs/motor_module.md` — differential-drive motor API, mock backend and safety behavior
 - `docs/gps_module.md` — NMEA parsing and geo/local coordinate usage
-- `docs/lidar_module.md` — LiDAR scan structures, filtering and future backend plan
+- `docs/lidar_module.md` — LiDAR scan structures, filtering, YDLIDAR backend and sample replay
 - `docs/navigation.md` — waypoint navigation and obstacle-aware decisions
 - `docs/robotour_use_case.md` — Robotour-style autonomous vehicle workflow
 
@@ -117,6 +124,7 @@ Covered behavior:
 - odometry calculations
 - coordinate conversion
 - obstacle sector calculation
+- optional YDLIDAR-style parser/backend when `ROZETA_WITH_YDLIDAR=ON`
 - motor command validation/emergency stop
 - motor calibration save/load
 - optional serial motor command formatting when `ROZETA_WITH_SERIAL_MOTORS=ON`
@@ -124,7 +132,7 @@ Covered behavior:
 
 ## Status
 
-Rozeta now includes milestone 1, milestone 2 and milestone 3 foundations: mockable core APIs, an internal POSIX serial transport, motor calibration persistence, an optional serial motor backend, and a serial/file GPS receiver with robust NMEA validation. Real YDLIDAR, OpenCV camera, Kinect/libfreenect, IMU and OSM backends remain future optional plugins behind the existing APIs.
+Rozeta now includes milestone 1 through milestone 4 foundations: mockable core APIs, an internal POSIX serial transport, motor calibration persistence, optional serial motor and YDLIDAR-style LiDAR backends, and a serial/file GPS receiver with robust NMEA validation. Real OpenCV camera, Kinect/libfreenect, IMU and OSM backends remain future optional plugins behind the existing APIs.
 
 
 ## License

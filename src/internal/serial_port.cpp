@@ -30,6 +30,9 @@ speed_t baudToSpeed(int baud) {
         case 38400: return B38400;
         case 57600: return B57600;
         case 115200: return B115200;
+#ifdef B128000
+        case 128000: return B128000;
+#endif
 #ifdef B230400
         case 230400: return B230400;
 #endif

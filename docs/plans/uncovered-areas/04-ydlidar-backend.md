@@ -38,3 +38,39 @@ ctest --test-dir build --output-on-failure
 - Parser tests pass without hardware.
 - Invalid/partial packets do not crash.
 - Backend is optional and documented.
+
+
+## Implementation progress
+
+Status: completed.
+
+Implemented files:
+
+- `include/rozeta/lidar.hpp`
+- `src/internal/ydlidar_parser.hpp`
+- `src/internal/ydlidar_parser.cpp`
+- `src/lidar_ydlidar.cpp`
+- `tests/test_ydlidar_parser.cpp`
+- `tests/fixtures/lidar/ydlidar_frame.bin`
+- `examples/ydlidar_scan_console.cpp`
+
+Modified files:
+
+- `CMakeLists.txt`, `examples/CMakeLists.txt`, `tests/CMakeLists.txt`, `tests/test_main.cpp` — wired optional backend, tests and example.
+- `src/internal/serial_port.cpp` — added guarded `B128000` support when available.
+- `docs/lidar_module.md`, `docs/api-reference.md`, `docs/diagrams/module-map.html`, `docs/robotour_use_case.md`, `README.md` — documented M4 behavior and usage.
+
+Acceptance criteria status:
+
+- [x] Parser tests pass without hardware.
+- [x] Invalid/partial packets do not crash and parser recovers after bad data.
+- [x] Backend is optional behind `ROZETA_WITH_YDLIDAR` and documented.
+
+Verification:
+
+```bash
+ctest --test-dir build-m4-red --output-on-failure
+./build-m4-red/examples/ydlidar_scan_console --sample tests/fixtures/lidar/ydlidar_frame.bin
+python3 scripts/verify_docs.py
+doxygen Doxyfile
+```

@@ -31,7 +31,7 @@ Current public surface:
 - `include/rozeta/motors.hpp` — differential-drive motor control, mock controller, optional serial motor controller, encoder feedback, calibration persistence and emergency stop semantics.
 - `include/rozeta/gps.hpp` — NMEA checksum validation, stream buffering, serial/file GPS receiver, parsed GPS fix model and local conversion helpers.
 - `include/rozeta/odometry.hpp` — differential-drive odometry and pose integration.
-- `include/rozeta/lidar.hpp` — LiDAR scan types, scanner interface, filtering and console visualization.
+- `include/rozeta/lidar.hpp` — LiDAR scan types, scanner interface, filtering, console visualization and optional YDLIDAR-style backend/parser helper.
 - `include/rozeta/obstacle_detection.hpp` — obstacle sector calculation from LiDAR scans.
 - `include/rozeta/navigation.hpp` — waypoint navigation and obstacle-aware motor decisions.
 - `include/rozeta/camera.hpp` — camera interface skeleton for future OpenCV/backends.
@@ -49,6 +49,7 @@ These examples are deliberately small and should stay buildable in CI:
 - `gps_reader` — parse GPS/NMEA data.
 - `gps_serial_reader` — serial GPS receiver with `--device`, `--baud` and sample-file fallback.
 - `lidar_scan_console` — work with LiDAR scan structures.
+- `ydlidar_scan_console` — replay a YDLIDAR-style binary fixture or read a serial YDLIDAR device when `ROZETA_WITH_YDLIDAR=ON`.
 - `motor_test` — motor command and safety smoke test.
 - `odometry_test` — odometry smoke test.
 - `camera_capture` — camera interface placeholder.
@@ -76,4 +77,4 @@ If you add, rename or remove a public header or example, the verifier tells you 
 
 ## Internal implementation APIs
 
-`src/internal/serial_port.hpp` and `src/internal/serial_motor_backend.hpp` are intentionally not part of the stable public API, but Doxygen includes them so maintainers can inspect backend behavior. They provide the M1/M2/M3 hardware-safe foundation: RAII serial transport, POSIX raw-mode serial configuration, finite read/write timeouts, deterministic motor command formatting, best-effort emergency stop writes, GPS serial read timeouts and `Status`-based failure reporting.
+`src/internal/serial_port.hpp` and `src/internal/serial_motor_backend.hpp` are intentionally not part of the stable public API, but Doxygen includes them so maintainers can inspect backend behavior. They provide the M1/M2/M3/M4 hardware-safe foundation: RAII serial transport, POSIX raw-mode serial configuration, finite read/write timeouts, deterministic motor command formatting, best-effort emergency stop writes, GPS serial read timeouts, YDLIDAR packet parsing, serial scanner lifecycle and `Status`-based failure reporting.

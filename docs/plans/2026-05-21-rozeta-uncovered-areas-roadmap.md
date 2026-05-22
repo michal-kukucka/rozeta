@@ -146,3 +146,34 @@ cmake --build build-m3-red --parallel 2
 ctest --test-dir build-m3-red --output-on-failure
 ./build-m3-red/examples/gps_serial_reader --sample tests/fixtures/gps/robotour_sample.nmea
 ```
+
+
+### M4 — YDLIDAR-style LiDAR backend
+
+Status: completed locally in this milestone implementation.
+
+Research summary:
+
+- YDLIDAR SDK/ROS-style layering inspired the split between serial lifecycle, packet parsing, normalized scan points and examples.
+- RPLIDAR/Hokuyo-style drivers inspired defensive stream parsing, resynchronization after garbage and no-hardware binary replay fixtures.
+- Linux robotics conventions inspired `/dev/serial/by-id`, `dialout` and unsupported baud-rate troubleshooting documentation.
+
+Delivered:
+
+- Optional `ROZETA_WITH_YDLIDAR` CMake flag.
+- Public `YdLidarConfig`, `YdLidarScanner` and `parseYdLidarPacketStream()` behind the flag.
+- Internal `YdLidarParser` with sync detection, fragmentation buffering, checksum validation, bounded sample counts, angle interpolation and wraparound normalization.
+- Fixture-backed parser tests for valid frames, fragmented frames, garbage recovery, corrupted/partial data safety and wraparound angles.
+- Invalid-device backend lifecycle test using M1 serial status mapping.
+- `ydlidar_scan_console` example with `--sample`, `--device` and `--baud`.
+- `tests/fixtures/lidar/ydlidar_frame.bin` no-hardware replay fixture.
+- LiDAR docs, API docs, Robotour docs and diagrams updated.
+
+Verification commands used:
+
+```bash
+cmake -S . -B build-m4-red -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_EXAMPLES=ON -DROZETA_WITH_SERIAL_MOTORS=ON -DROZETA_WITH_YDLIDAR=ON
+cmake --build build-m4-red --parallel 2
+ctest --test-dir build-m4-red --output-on-failure
+./build-m4-red/examples/ydlidar_scan_console --sample tests/fixtures/lidar/ydlidar_frame.bin
+```

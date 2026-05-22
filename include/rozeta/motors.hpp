@@ -1,15 +1,39 @@
 #pragma once
+
 #include <rozeta/core.hpp>
+
 #include <chrono>
 #include <memory>
 #include <string>
 
 namespace rozeta::motors {
 
-enum class Direction { Reverse=-1, Stopped=0, Forward=1 };
-struct MotorCommand { double left_speed{0}; double right_speed{0}; Direction left_direction{Direction::Stopped}; Direction right_direction{Direction::Stopped}; };
-struct EncoderFeedback { std::int64_t left_ticks{0}; std::int64_t right_ticks{0}; double left_velocity{0}; double right_velocity{0}; };
-struct MotorCalibration { double max_speed{1.0}; double left_scale{1.0}; double right_scale{1.0}; double pwm_frequency_hz{1000.0}; };
+enum class Direction {
+    Reverse = -1,
+    Stopped = 0,
+    Forward = 1,
+};
+
+struct MotorCommand {
+    double left_speed{0};
+    double right_speed{0};
+    Direction left_direction{Direction::Stopped};
+    Direction right_direction{Direction::Stopped};
+};
+
+struct EncoderFeedback {
+    std::int64_t left_ticks{0};
+    std::int64_t right_ticks{0};
+    double left_velocity{0};
+    double right_velocity{0};
+};
+
+struct MotorCalibration {
+    double max_speed{1.0};
+    double left_scale{1.0};
+    double right_scale{1.0};
+    double pwm_frequency_hz{1000.0};
+};
 
 Status saveMotorCalibration(const MotorCalibration& calibration, const std::string& path);
 Status loadMotorCalibration(const std::string& path, MotorCalibration& calibration);
@@ -40,6 +64,7 @@ public:
     EncoderFeedback encoderFeedback() const override;
     void setEncoderFeedback(EncoderFeedback feedback);
     MotorCommand lastCommand() const;
+
 private:
     MotorCalibration calibration_;
     MotorCommand last_{};

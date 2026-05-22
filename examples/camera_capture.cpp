@@ -1,3 +1,10 @@
-#include <iostream>
 #include <rozeta/camera.hpp>
-int main(){ rozeta::camera::CameraConfig cfg; std::cout << "Camera interface skeleton: " << cfg.width << "x" << cfg.height << " @ " << cfg.fps << " fps\n"; }
+
+#include <iostream>
+
+int main() {
+    rozeta::camera::CameraConfig config;
+    std::cout << "Camera interface skeleton: "
+              << config.width << "x" << config.height
+              << " @ " << config.fps << " fps\n";
+}

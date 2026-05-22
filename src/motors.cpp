@@ -10,7 +10,15 @@
 namespace rozeta::motors {
 namespace {
 
-static Direction dir(double v){ return v>0?Direction::Forward:(v<0?Direction::Reverse:Direction::Stopped); }
+Direction directionFromSpeed(double value) {
+    if (value > 0) {
+        return Direction::Forward;
+    }
+    if (value < 0) {
+        return Direction::Reverse;
+    }
+    return Direction::Stopped;
+}
 
 bool finite(double value) {
     return std::isfinite(value);
@@ -24,16 +32,22 @@ Status validateCalibration(const MotorCalibration& calibration) {
         return Status::error(ErrorCode::InvalidArgument, "motor calibration scale values must be finite");
     }
     if (!finite(calibration.pwm_frequency_hz) || calibration.pwm_frequency_hz <= 0.0) {
-        return Status::error(ErrorCode::InvalidArgument, "motor calibration pwm_frequency_hz must be positive");
+        return Status::error(
+            ErrorCode::InvalidArgument,
+            "motor calibration pwm_frequency_hz must be positive");
     }
     return Status::okStatus();
 }
 
-Status parseDouble(const std::map<std::string, std::string>& values, const std::string& key, double& out) {
+Status parseDouble(
+    const std::map<std::string, std::string>& values,
+    const std::string& key,
+    double& out) {
     auto it = values.find(key);
     if (it == values.end()) {
         return Status::error(ErrorCode::ParseError, "missing motor calibration key: " + key);
     }
+
     char* end = nullptr;
     out = std::strtod(it->second.c_str(), &end);
     if (!end || *end != '\0' || !finite(out)) {
@@ -44,20 +58,62 @@ Status parseDouble(const std::map<std::string, std::string>& values, const std::
 
 } // namespace
 
-MockMotorController::MockMotorController(MotorCalibration c):calibration_(c){}
-Status MockMotorController::setSpeed(double l,double r){ if(emergency_) return Status::error(ErrorCode::EmergencyStopped,"emergency stop active"); if(std::fabs(l)>calibration_.max_speed||std::fabs(r)>calibration_.max_speed) return Status::error(ErrorCode::InvalidArgument,"speed outside calibrated range"); last_={l*calibration_.left_scale,r*calibration_.right_scale,dir(l),dir(r)}; return Status::okStatus(); }
-Status MockMotorController::stop(){ last_={}; return Status::okStatus(); }
-void MockMotorController::emergencyStop(){ emergency_=true; last_={}; }
-void MockMotorController::clearEmergencyStop(){ emergency_=false; }
-bool MockMotorController::isEmergencyStopped() const { return emergency_; }
-EncoderFeedback MockMotorController::encoderFeedback() const { return feedback_; }
-void MockMotorController::setEncoderFeedback(EncoderFeedback f){ feedback_=f; }
-MotorCommand MockMotorController::lastCommand() const { return last_; }
+MockMotorController::MockMotorController(MotorCalibration calibration)
+    : calibration_(calibration) {}
+
+Status MockMotorController::setSpeed(double left, double right) {
+    if (emergency_) {
+        return Status::error(ErrorCode::EmergencyStopped, "emergency stop active");
+    }
+
+    if (std::fabs(left) > calibration_.max_speed || std::fabs(right) > calibration_.max_speed) {
+        return Status::error(ErrorCode::InvalidArgument, "speed outside calibrated range");
+    }
+
+    last_ = {
+        left * calibration_.left_scale,
+        right * calibration_.right_scale,
+        directionFromSpeed(left),
+        directionFromSpeed(right),
+    };
+    return Status::okStatus();
+}
+
+Status MockMotorController::stop() {
+    last_ = {};
+    return Status::okStatus();
+}
+
+void MockMotorController::emergencyStop() {
+    emergency_ = true;
+    last_ = {};
+}
+
+void MockMotorController::clearEmergencyStop() {
+    emergency_ = false;
+}
+
+bool MockMotorController::isEmergencyStopped() const {
+    return emergency_;
+}
+
+EncoderFeedback MockMotorController::encoderFeedback() const {
+    return feedback_;
+}
+
+void MockMotorController::setEncoderFeedback(EncoderFeedback feedback) {
+    feedback_ = feedback;
+}
+
+MotorCommand MockMotorController::lastCommand() const {
+    return last_;
+}
 
 Status saveMotorCalibration(const MotorCalibration& calibration, const std::string& path) {
     if (path.empty()) {
         return Status::error(ErrorCode::InvalidArgument, "motor calibration path is empty");
     }
+
     Status valid = validateCalibration(calibration);
     if (!valid.ok()) {
         return valid;
@@ -95,6 +151,7 @@ Status loadMotorCalibration(const std::string& path, MotorCalibration& calibrati
         if (line.empty() || line[0] == '#') {
             continue;
         }
+
         const std::size_t eq = line.find('=');
         if (eq == std::string::npos) {
             return Status::error(ErrorCode::ParseError, "invalid motor calibration line: " + line);
@@ -104,13 +161,21 @@ Status loadMotorCalibration(const std::string& path, MotorCalibration& calibrati
 
     MotorCalibration parsed;
     Status status = parseDouble(values, "max_speed", parsed.max_speed);
-    if (!status.ok()) return status;
+    if (!status.ok()) {
+        return status;
+    }
     status = parseDouble(values, "left_scale", parsed.left_scale);
-    if (!status.ok()) return status;
+    if (!status.ok()) {
+        return status;
+    }
     status = parseDouble(values, "right_scale", parsed.right_scale);
-    if (!status.ok()) return status;
+    if (!status.ok()) {
+        return status;
+    }
     status = parseDouble(values, "pwm_frequency_hz", parsed.pwm_frequency_hz);
-    if (!status.ok()) return status;
+    if (!status.ok()) {
+        return status;
+    }
 
     status = validateCalibration(parsed);
     if (!status.ok()) {

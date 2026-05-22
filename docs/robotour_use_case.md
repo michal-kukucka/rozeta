@@ -8,7 +8,7 @@ Rozeta is inspired by the Buchlovice/Robotour style workflow, but rebuilt as C/C
 
 1. Read checksum-validated GPS fixes from sample files or serial NMEA devices.
 2. Read odometry.
-3. Read LiDAR and obstacle sensors.
+3. Read normalized LiDAR scans from mock data, sample replay or optional YDLIDAR serial devices.
 4. Update robot state.
 5. Make navigation decision.
 6. Send motor commands.
@@ -24,8 +24,7 @@ Rozeta is inspired by the Buchlovice/Robotour style workflow, but rebuilt as C/C
 
 ## Next milestones
 
-1. YDLIDAR X4 backend.
-2. Simplified offline OSM path loader.
-3. Camera/OpenCV optional backend.
-4. Kinect/libfreenect depth backend.
-5. IMU fusion with odometry/GPS.
+1. Simplified offline OSM path loader.
+2. Camera/OpenCV optional backend.
+3. Kinect/libfreenect depth backend.
+4. IMU fusion with odometry/GPS.
