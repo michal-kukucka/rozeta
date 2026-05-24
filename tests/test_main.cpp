@@ -36,6 +36,13 @@ void test_navigation_route_follower_advances_waypoints();
 void test_navigation_route_follower_finishes_route();
 void test_navigation_route_follower_empty_route_reports_finished();
 void test_navigation_route_follower_obstacle_does_not_advance_unless_reached();
+void test_imu_tilt_detects_lateral_acceleration_threshold();
+void test_imu_collision_detects_total_acceleration_spike();
+void test_imu_pose_fusion_normalizes_heading_and_blends_gps_correction();
+void test_imu_pose_fusion_rejects_invalid_weights();
+void test_imu_pose_fusion_ignores_gps_without_origin_or_fix();
+void test_imu_pose_fusion_weight_boundaries_select_sources();
+void test_imu_pose_fusion_replays_fixture_samples();
 #ifdef ROZETA_WITH_SERIAL_MOTORS
 void test_serial_motor_formats_normalized_speed_commands();
 void test_serial_motor_rejects_invalid_speed_without_writing();
@@ -91,6 +98,13 @@ int main(){
         {"navigation_route_complete", test_navigation_route_follower_finishes_route},
         {"navigation_route_empty", test_navigation_route_follower_empty_route_reports_finished},
         {"navigation_route_obstacle", test_navigation_route_follower_obstacle_does_not_advance_unless_reached},
+        {"imu_tilt", test_imu_tilt_detects_lateral_acceleration_threshold},
+        {"imu_collision", test_imu_collision_detects_total_acceleration_spike},
+        {"imu_pose_fusion", test_imu_pose_fusion_normalizes_heading_and_blends_gps_correction},
+        {"imu_invalid_weights", test_imu_pose_fusion_rejects_invalid_weights},
+        {"imu_gps_edge_cases", test_imu_pose_fusion_ignores_gps_without_origin_or_fix},
+        {"imu_weight_boundaries", test_imu_pose_fusion_weight_boundaries_select_sources},
+        {"imu_fixture_replay", test_imu_pose_fusion_replays_fixture_samples},
 #ifdef ROZETA_WITH_SERIAL_MOTORS
         {"serial_motor_format", test_serial_motor_formats_normalized_speed_commands},
         {"serial_motor_invalid_speed", test_serial_motor_rejects_invalid_speed_without_writing},

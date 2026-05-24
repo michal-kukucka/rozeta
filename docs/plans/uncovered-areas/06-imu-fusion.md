@@ -32,6 +32,10 @@ ctest --test-dir build -R 'imu|odometry|coordinates' --output-on-failure
 python3 scripts/verify_docs.py
 ```
 
+Status: completed.
+
+Completed in the M6 implementation commit. See `../2026-05-21-rozeta-uncovered-areas-roadmap.md` progress log for delivered files and verification commands.
+
 ## Acceptance criteria
 
 - Header declarations have implementations.

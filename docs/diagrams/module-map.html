@@ -24,7 +24,7 @@ const ROZETA_MODULE_MODEL = {
         ['app','User application / examples',380,35,210,62,'#a78bfa','robotour, replay, routes, motors'],
         ['headers','Public headers include/rozeta',335,130,300,70,'#22d3ee','core, sensors, navigation, motors, C API'],
         ['core','Core types',70,250,170,62,'#22d3ee','Status, ErrorCode, Pose2D, RobotState, Config, geoToLocal'],
-        ['sensors','Sensor modules',280,250,180,62,'#34d399','GPS fix, LiDAR scan, odometry pose'],
+        ['sensors','Sensor modules',280,250,180,62,'#34d399','GPS fix, LiDAR scan, odometry pose, IMU heading'],
         ['logic','Navigation logic',505,250,180,62,'#34d399','maps, routes, obstacles, motors'],
         ['hardware','Hardware adapters',720,250,170,62,'#94a3b8','Serial IO, motors, GPS, YDLIDAR'],
         ['tests','Dependency-free tests',370,405,220,62,'#a78bfa','CTest executable verifies parsing, odometry, coordinates, motors, obstacles, config'],
@@ -40,13 +40,14 @@ const ROZETA_MODULE_MODEL = {
         ['maps','Maps module',80,190,170,62,'#34d399','CSV route to sorted offline paths'],
         ['lidar','LiDAR module',80,300,170,62,'#34d399','YDLIDAR/sample bytes to ScanPoint ranges'],
         ['odom','Odometry',80,415,170,62,'#34d399','Wheel ticks to Pose2D'],
-        ['state','RobotState fusion',365,215,210,82,'#22d3ee','Pose2D, GPS, route, velocity, timestamp'],
+        ['imu','IMU module',300,415,170,62,'#34d399','Tilt/collision helpers + heading sample'],
+        ['state','Pose fusion state',365,215,210,82,'#22d3ee','Pose2D blended from odometry, GPS and IMU heading'],
         ['obstacles','Obstacle detection',650,145,190,62,'#34d399','Sectors + nearest distance'],
         ['nav','RouteFollower + Navigator',650,285,220,70,'#34d399','Route progress + avoidance'],
         ['motors','Motor controller',650,430,190,62,'#fb7185','Speed, calibration, stop, e-stop'],
       ],
       edges: [
-        ['gps','state','GPS fix','validated latitude, longitude, altitude, speed, course, satellites'], ['maps','state','Offline route','CSV path_id, seq, latitude, longitude, altitude_m'], ['lidar','obstacles','LiDAR scan','angle_deg, distance_m, valid flags'], ['odom','state','Pose estimate','x, y, heading from encoder ticks'], ['state','nav','Robot state','pose, gps, velocities, timestamp'], ['obstacles','nav','Obstacle sectors','ahead/left/right flags, nearest_distance_m'], ['nav','motors','Motor commands','linear/angular decision mapped to left/right speeds'], ['nav','motors','Emergency stop','safe halt when waypoint/obstacle logic requires it','safe']
+        ['gps','state','GPS fix','validated latitude, longitude, altitude, speed, course, satellites'], ['maps','state','Offline route','CSV path_id, seq, latitude, longitude, altitude_m'], ['lidar','obstacles','LiDAR scan','angle_deg, distance_m, valid flags'], ['odom','state','Pose estimate','x, y, heading from encoder ticks'], ['imu','state','IMU heading','heading_rad plus accelerometer tilt/collision checks'], ['state','nav','Robot state','pose, gps, velocities, timestamp'], ['obstacles','nav','Obstacle sectors','ahead/left/right flags, nearest_distance_m'], ['nav','motors','Motor commands','linear/angular decision mapped to left/right speeds'], ['nav','motors','Emergency stop','safe halt when waypoint/obstacle logic requires it','safe']
       ]
     },
     dataflow: {

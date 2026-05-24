@@ -19,7 +19,7 @@ PUBLIC_HEADER_DOCS = {
     "c_api": "docs/api-reference.md",
     "core": "docs/module_overview.md",
     "gps": "docs/gps_module.md",
-    "imu": "docs/module_overview.md",
+    "imu": "docs/imu_module.md",
     "kinect": "docs/module_overview.md",
     "lidar": "docs/lidar_module.md",
     "logging": "docs/module_overview.md",

@@ -36,6 +36,10 @@ Combines normalized sensor results into `ObstacleInfo` with ahead/left/right fla
 
 `maps::CsvMapLoader` loads offline CSV route files into `OfflineMap` paths with explicit `Status` errors for missing, malformed or empty route files. `nearestPathIndex` selects the closest path and returns `kInvalidPathIndex` for empty maps.
 
-## Camera, Kinect, IMU
+## IMU
+
+`imu::tiltDetected` and `imu::collisionDetected` provide threshold helpers for lateral tilt and acceleration spikes. `imu::PoseFusion` blends odometry pose, optional GPS local correction and IMU heading into a normalized deterministic `Pose2D` using fixture-testable weights.
+
+## Camera, Kinect
 
 Header-level interfaces/skeletons are present so future backends can be added without changing high-level applications.

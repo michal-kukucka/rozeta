@@ -18,6 +18,7 @@ The initial milestone focuses on the foundation, not final hardware drivers:
 - offline CSV maps/route loading with explicit status errors
 - obstacle sector calculation from LiDAR scans
 - simple waypoint navigator plus monotonic route follower
+- IMU tilt/collision helpers and deterministic pose fusion from odometry, GPS and IMU heading
 - examples and standalone C++ test binary
 
 ## Project layout
@@ -92,6 +93,12 @@ Offline route following without hardware:
 ./build/examples/route_follower_demo tests/fixtures/maps/robotour_route.csv
 ```
 
+IMU fusion replay without hardware:
+
+```bash
+./build/examples/imu_fusion_demo --sample tests/fixtures/imu/basic.csv
+```
+
 ## Documentation
 
 Detailed docs are included in `docs/` and are ready to be reused as a future official website:
@@ -107,6 +114,7 @@ Detailed docs are included in `docs/` and are ready to be reused as a future off
 - `docs/lidar_module.md` — LiDAR scan structures, filtering, YDLIDAR backend and sample replay
 - `docs/maps_module.md` — offline CSV route format, loader behavior and fixtures
 - `docs/navigation.md` — waypoint navigation, route following and obstacle-aware decisions
+- `docs/imu_module.md` — IMU thresholds, pose fusion and sample replay
 - `docs/robotour_use_case.md` — Robotour-style autonomous vehicle workflow
 
 Documentation is verified from the public code surface:

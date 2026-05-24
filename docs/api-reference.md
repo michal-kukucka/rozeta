@@ -36,7 +36,7 @@ Current public surface:
 - `include/rozeta/navigation.hpp` — waypoint navigation, route-following progress state and obstacle-aware motor decisions.
 - `include/rozeta/camera.hpp` — camera interface skeleton for future OpenCV/backends.
 - `include/rozeta/kinect.hpp` — depth-camera/Kinect skeleton.
-- `include/rozeta/imu.hpp` — inertial-measurement skeleton.
+- `include/rozeta/imu.hpp` — inertial samples, tilt/collision helpers and deterministic odometry/GPS/IMU pose fusion.
 - `include/rozeta/maps.hpp` — offline CSV route loader, `OfflineMap` paths, explicit load results and nearest-path lookup.
 - `include/rozeta/c_api.h` — initial C ABI seed for non-C++ integrations.
 
@@ -51,6 +51,7 @@ These examples are deliberately small and should stay buildable in CI:
 - `lidar_scan_console` — work with LiDAR scan structures.
 - `ydlidar_scan_console` — replay a YDLIDAR-style binary fixture or read a serial YDLIDAR device when `ROZETA_WITH_YDLIDAR=ON`.
 - `route_follower_demo` — load an offline CSV route and drive it through `navigation::RouteFollower` without hardware.
+- `imu_fusion_demo` — replay recorded odometry/GPS/IMU samples through deterministic pose fusion without hardware.
 - `motor_test` — motor command and safety smoke test.
 - `odometry_test` — odometry smoke test.
 - `camera_capture` — camera interface placeholder.

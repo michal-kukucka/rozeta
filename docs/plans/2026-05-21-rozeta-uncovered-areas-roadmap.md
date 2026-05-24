@@ -22,9 +22,9 @@
   - `ctest --test-dir build-docs-check --output-on-failure`
   - `doxygen Doxyfile`
 - Implemented/tested modules today:
-  - `core`, `logging`, `motors` mock, `gps` parser, `odometry`, `lidar` mock/filter/console, `obstacle_detection`, `navigation` simple waypoint decisions.
+  - `core`, `logging`, `motors` mock, `gps` parser, `odometry`, `lidar` mock/filter/console, `obstacle_detection`, `navigation` simple waypoint decisions, `maps`, route following, `imu` thresholds and pose fusion.
 - Uncovered or header-only areas:
-  - `camera`, `kinect`, `imu`, `maps`, wider `c_api`, real serial/POSIX hardware backends, route following, replay/telemetry, packaging/install/export config.
+  - `camera`, `kinect`, wider `c_api`, real serial/POSIX hardware backends, replay/telemetry, packaging/install/export config.
 
 ## Milestone index
 
@@ -206,4 +206,28 @@ cmake -S . -B build-m5-red -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_EXAMPLES=ON -D
 cmake --build build-m5-red --parallel 2
 ctest --test-dir build-m5-red --output-on-failure
 ./build-m5-red/examples/route_follower_demo tests/fixtures/maps/robotour_route.csv
+```
+
+### M6 — IMU implementation and pose fusion
+
+Status: completed locally in this milestone implementation.
+
+Delivered:
+
+- `src/imu.cpp` implementation and CMake integration.
+- `imu::tiltDetected()` and `imu::collisionDetected()` acceleration-threshold helpers.
+- `imu::PoseFusion` API for deterministic odometry/GPS/IMU heading blending.
+- Heading normalization and invalid fusion weight status coverage.
+- `tests/fixtures/imu/basic.csv` sample fixture.
+- `imu_fusion_demo --sample` no-hardware replay example.
+- IMU docs, API docs, README and diagrams updated.
+
+Verification commands used:
+
+```bash
+cmake -S . -B build-m6-red -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_EXAMPLES=ON
+cmake --build build-m6-red --parallel 2
+ctest --test-dir build-m6-red --output-on-failure
+./build-m6-red/examples/imu_fusion_demo --sample tests/fixtures/imu/basic.csv
+python3 scripts/verify_docs.py
 ```

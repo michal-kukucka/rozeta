@@ -7,6 +7,7 @@ set(ROZETA_EXAMPLES
     odometry_test
     simple_robot_loop
     route_follower_demo
+    imu_fusion_demo
     robotour_demo
 )
 if(ROZETA_WITH_SERIAL_MOTORS)
