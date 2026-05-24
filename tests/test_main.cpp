@@ -17,6 +17,9 @@ void test_gps_serial_receiver_rejects_invalid_config();
 void test_odometry_differential_drive_forward_and_turn();
 void test_coordinate_local_conversion();
 void test_obstacle_sector_calculation();
+void test_depth_frame_extracts_nearest_obstacle_sectors();
+void test_depth_frame_to_point_cloud_projects_valid_pixels();
+void test_depth_frame_ignores_invalid_pixels_and_bad_fixtures();
 void test_motor_command_validation_and_estop();
 void test_config_loader_reads_key_values();
 void test_serial_port_open_timeout_write_read_and_close();
@@ -82,6 +85,9 @@ int main(){
         {"odometry", test_odometry_differential_drive_forward_and_turn},
         {"coordinates", test_coordinate_local_conversion},
         {"obstacles", test_obstacle_sector_calculation},
+        {"depth_obstacles", test_depth_frame_extracts_nearest_obstacle_sectors},
+        {"depth_point_cloud", test_depth_frame_to_point_cloud_projects_valid_pixels},
+        {"depth_edge_cases", test_depth_frame_ignores_invalid_pixels_and_bad_fixtures},
         {"motors", test_motor_command_validation_and_estop},
         {"config", test_config_loader_reads_key_values},
         {"serial_port", test_serial_port_open_timeout_write_read_and_close},

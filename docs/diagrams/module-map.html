@@ -24,10 +24,10 @@ const ROZETA_MODULE_MODEL = {
         ['app','User application / examples',380,35,210,62,'#a78bfa','robotour, replay, routes, motors'],
         ['headers','Public headers include/rozeta',335,130,300,70,'#22d3ee','core, sensors, navigation, motors, C API'],
         ['core','Core types',70,250,170,62,'#22d3ee','Status, ErrorCode, Pose2D, RobotState, Config, geoToLocal'],
-        ['sensors','Sensor modules',280,250,180,62,'#34d399','GPS fix, LiDAR scan, camera frame, odometry pose, IMU heading'],
+        ['sensors','Sensor modules',280,250,180,62,'#34d399','GPS fix, LiDAR scan, depth frame, camera frame, odometry pose, IMU heading'],
         ['logic','Navigation logic',505,250,180,62,'#34d399','maps, routes, obstacles, motors'],
-        ['hardware','Hardware adapters',720,250,170,62,'#94a3b8','Serial IO, motors, GPS, YDLIDAR, OpenCV camera'],
-        ['tests','Dependency-free tests',370,405,220,62,'#a78bfa','CTest executable verifies parsing, odometry, coordinates, motors, obstacles, config'],
+        ['hardware','Hardware adapters',720,250,170,62,'#94a3b8','Serial IO, motors, GPS, YDLIDAR, OpenCV camera, libfreenect'],
+        ['tests','Dependency-free tests',370,405,220,62,'#a78bfa','CTest executable verifies parsing, odometry, coordinates, motors, obstacles, depth, config'],
       ],
       edges: [
         ['app','headers','API calls','Public headers are the stable contract'], ['headers','core','Core data model','Shared types used by every module'], ['headers','sensors','Sensor APIs','Interfaces and parsed payloads'], ['headers','logic','Navigation APIs','Waypoint and obstacle-aware decisions'], ['sensors','logic','data-flow','GPS fix + LiDAR scan + pose estimate + offline route'], ['logic','hardware','Motor commands','Differential-drive commands, calibration scaling and e-stop over mock/serial backend'], ['tests','headers','Contract tests','Tests compile against public APIs']
@@ -39,22 +39,23 @@ const ROZETA_MODULE_MODEL = {
         ['gps','GPS module',80,80,170,62,'#34d399','Serial/file NMEA + checksum to GPS fix'],
         ['maps','Maps module',80,190,170,62,'#34d399','CSV route to sorted offline paths'],
         ['lidar','LiDAR module',80,300,170,62,'#34d399','YDLIDAR/sample bytes to ScanPoint ranges'],
+        ['depth','Kinect/depth',300,320,170,62,'#34d399','Depth CSV/libfreenect to metric frames'],
         ['odom','Odometry',80,415,170,62,'#34d399','Wheel ticks to Pose2D'],
         ['imu','IMU module',300,415,170,62,'#34d399','Tilt/collision helpers + heading sample'],
         ['state','Pose fusion state',365,215,210,82,'#22d3ee','Pose2D blended from odometry, GPS and IMU heading'],
-        ['obstacles','Obstacle detection',650,145,190,62,'#34d399','Sectors + nearest distance'],
+        ['obstacles','Obstacle detection',650,145,190,62,'#34d399','LiDAR/depth sectors + nearest distance'],
         ['nav','RouteFollower + Navigator',650,285,220,70,'#34d399','Route progress + avoidance'],
         ['motors','Motor controller',650,430,190,62,'#fb7185','Speed, calibration, stop, e-stop'],
       ],
       edges: [
-        ['gps','state','GPS fix','validated latitude, longitude, altitude, speed, course, satellites'], ['maps','state','Offline route','CSV path_id, seq, latitude, longitude, altitude_m'], ['lidar','obstacles','LiDAR scan','angle_deg, distance_m, valid flags'], ['odom','state','Pose estimate','x, y, heading from encoder ticks'], ['imu','state','IMU heading','heading_rad plus accelerometer tilt/collision checks'], ['state','nav','Robot state','pose, gps, velocities, timestamp'], ['obstacles','nav','Obstacle sectors','ahead/left/right flags, nearest_distance_m'], ['nav','motors','Motor commands','linear/angular decision mapped to left/right speeds'], ['nav','motors','Emergency stop','safe halt when waypoint/obstacle logic requires it','safe']
+        ['gps','state','GPS fix','validated latitude, longitude, altitude, speed, course, satellites'], ['maps','state','Offline route','CSV path_id, seq, latitude, longitude, altitude_m'], ['lidar','obstacles','LiDAR scan','angle_deg, distance_m, valid flags'], ['depth','obstacles','Depth frame','width, height and metric depth pixels reduced to obstacle sectors'], ['odom','state','Pose estimate','x, y, heading from encoder ticks'], ['imu','state','IMU heading','heading_rad plus accelerometer tilt/collision checks'], ['state','nav','Robot state','pose, gps, velocities, timestamp'], ['obstacles','nav','Obstacle sectors','ahead/left/right flags, nearest_distance_m'], ['nav','motors','Motor commands','linear/angular decision mapped to left/right speeds'], ['nav','motors','Emergency stop','safe halt when waypoint/obstacle logic requires it','safe']
       ]
     },
     dataflow: {
       title: 'data-flow payload view',
       nodes: [
-        ['raw','Raw hardware + files',70,80,190,70,'#94a3b8','NMEA + YDLIDAR + camera + route CSV + ticks'],
-        ['parse','Normalize modules',365,80,210,70,'#34d399','NMEA + YDLIDAR + OpenCV + CSV + odometry'],
+        ['raw','Raw hardware + files',70,80,190,70,'#94a3b8','NMEA + YDLIDAR + depth CSV + camera + route CSV + ticks'],
+        ['parse','Normalize modules',365,80,210,70,'#34d399','NMEA + YDLIDAR + depth + OpenCV + CSV + odometry'],
         ['model','Rozeta data model',670,80,200,70,'#22d3ee','Geo, scan, pose, state'],
         ['decision','Decision layer',365,270,210,78,'#34d399','Obstacles + RouteFollower + navigator'],
         ['act','Actuation / logging',670,270,200,78,'#fb7185','Mock/serial motors + logs'],
@@ -62,7 +63,7 @@ const ROZETA_MODULE_MODEL = {
         ['site','Official-site ready',535,450,235,70,'#a78bfa','Portal, diagrams, API docs'],
       ],
       edges: [
-        ['raw','parse','Raw samples','serial bytes → NMEA + YDLIDAR packets, BGR frames, route CSV, ticks'], ['parse','model','Typed payloads','GPS, scan, camera frame, offline route, pose'], ['model','decision','data-flow','RobotState + obstacles + route waypoint'], ['decision','act','Motor commands','left/right speed, calibration, stop, emergency stop'], ['model','docs','Documented structs','Public headers feed Doxygen'], ['docs','site','Generated reference','HTML/XML API output and verified static pages']
+        ['raw','parse','Raw samples','serial bytes → NMEA + YDLIDAR packets, depth CSV, BGR frames, route CSV, ticks'], ['parse','model','Typed payloads','GPS, scan, depth frame, camera frame, offline route, pose'], ['model','decision','data-flow','RobotState + obstacles + route waypoint'], ['decision','act','Motor commands','left/right speed, calibration, stop, emergency stop'], ['model','docs','Documented structs','Public headers feed Doxygen'], ['docs','site','Generated reference','HTML/XML API output and verified static pages']
       ]
     }
   }
@@ -77,7 +78,7 @@ function inspect(title,body){inspector.innerHTML=`<h2>${title}</h2><p>${body}</p
 function render(){
 const view=ROZETA_MODULE_MODEL.views[active], nodes=nodeMap(view), edgeLabels=[];
 svg.innerHTML=`<defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.6"/></pattern><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#94a3b8"/></marker><filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><rect width="960" height="620" fill="url(#grid)"/>`;
-view.edges.forEach((e,i)=>{const a=nodes[e[0]], b=nodes[e[1]], label=e[2], detail=e[3], kind=e[4]||''; const d=edgePath(a,b); let mx=(a.x+a.w/2+b.x+b.w/2)/2, my=(a.y+a.h/2+b.y+b.h/2)/2; if(active==='architecture'){const offsets={1:[-72,-28],2:[-96,36],3:[98,34],4:[-8,-42],5:[52,-50],6:[105,42]}; const o=offsets[i]||[0,0]; mx+=o[0]; my+=o[1];} if(active==='robotour'){const offsets={0:[-8,-28],1:[25,-70],2:[-105,34],3:[-18,32],4:[75,-70],5:[88,-28],6:[45,-26],7:[86,34]}; const o=offsets[i]||[0,0]; mx+=o[0]; my+=o[1];} if(active==='dataflow'){const offsets={0:[0,-34],1:[0,-34],2:[0,28],3:[0,-36],4:[-160,72],5:[118,34]}; const o=offsets[i]||[0,0]; mx+=o[0]; my+=o[1];} svg.insertAdjacentHTML('beforeend',`<path class="edge ${label==='data-flow'?'hot':''} ${kind}" d="${d}"/>`); edgeLabels.push({label,detail,mx,my,kind});});
+view.edges.forEach((e,i)=>{const a=nodes[e[0]], b=nodes[e[1]], label=e[2], detail=e[3], kind=e[4]||''; const d=edgePath(a,b); let mx=(a.x+a.w/2+b.x+b.w/2)/2, my=(a.y+a.h/2+b.y+b.h/2)/2; if(active==='architecture'){const offsets={1:[-72,-28],2:[-96,36],3:[98,34],4:[-8,-42],5:[52,-50],6:[105,42]}; const o=offsets[i]||[0,0]; mx+=o[0]; my+=o[1];} if(active==='robotour'){const offsets={0:[-8,-28],1:[25,-70],2:[-105,34],3:[-20,25],4:[-18,32],5:[75,-70],6:[88,-28],7:[45,-26],8:[86,34]}; const o=offsets[i]||[0,0]; mx+=o[0]; my+=o[1];} if(active==='dataflow'){const offsets={0:[0,-34],1:[0,-34],2:[0,28],3:[0,-36],4:[-160,72],5:[118,34]}; const o=offsets[i]||[0,0]; mx+=o[0]; my+=o[1];} svg.insertAdjacentHTML('beforeend',`<path class="edge ${label==='data-flow'?'hot':''} ${kind}" d="${d}"/>`); edgeLabels.push({label,detail,mx,my,kind});});
 view.nodes.forEach(n=>{const detail=String(n[7]); const compact=detail.length>54?detail.slice(0,51)+'…':detail; const y=n[3]+48; svg.insertAdjacentHTML('beforeend',`<g class="node"><title>${detail}</title><rect x="${n[2]}" y="${n[3]}" width="${n[4]}" height="${n[5]}" rx="14" fill="#0f172a" stroke="${n[6]}"/><text x="${n[2]+16}" y="${n[3]+26}" fill="#f8fafc" font-size="15" font-weight="800">${n[1]}</text><text x="${n[2]+16}" y="${y}" fill="#94a3b8" font-size="11">${compact}</text></g>`);});
 edgeLabels.forEach(({label,detail,mx,my,kind})=>{const w=Math.max(124,label.length*9+24); svg.insertAdjacentHTML('beforeend',`<g class="callout"><rect x="${mx-w/2}" y="${my-14}" width="${w}" height="26" rx="13" fill="#0f172a" stroke="${kind==='safe'?'#fb7185':'#334155'}"/><text class="edge-label" data-label="${label}" data-detail="${detail}" x="${mx}" y="${my+5}" text-anchor="middle">${label}</text></g>`);});
 svg.querySelectorAll('.edge-label').forEach(el=>el.addEventListener('click',()=>inspect(el.dataset.label,el.dataset.detail)));

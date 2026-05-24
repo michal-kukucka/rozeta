@@ -27,15 +27,16 @@ Document public behavior in the headers first, then link user-facing tutorials t
 Current public surface:
 
 - `include/rozeta/core.hpp` — status/error model including `Timeout`, timestamps, geometry, robot state, config loading, coordinate conversion and lifecycle hooks.
+- `include/rozeta/depth.hpp` — normalized depth-frame and point-cloud data contracts shared by Kinect helpers and obstacle detection.
 - `include/rozeta/logging.hpp` — logger interface plus console/CSV logger implementations.
 - `include/rozeta/motors.hpp` — differential-drive motor control, mock controller, optional serial motor controller, encoder feedback, calibration persistence and emergency stop semantics.
 - `include/rozeta/gps.hpp` — NMEA checksum validation, stream buffering, serial/file GPS receiver, parsed GPS fix model and local conversion helpers.
 - `include/rozeta/odometry.hpp` — differential-drive odometry and pose integration.
 - `include/rozeta/lidar.hpp` — LiDAR scan types, scanner interface, filtering, console visualization and optional YDLIDAR-style backend/parser helper.
-- `include/rozeta/obstacle_detection.hpp` — obstacle sector calculation from LiDAR scans.
+- `include/rozeta/obstacle_detection.hpp` — obstacle sector calculation from LiDAR scans and depth frames.
 - `include/rozeta/navigation.hpp` — waypoint navigation, route-following progress state and obstacle-aware motor decisions.
 - `include/rozeta/camera.hpp` — camera interface, frame-shape/byte-size validation helpers and optional OpenCV capture backend.
-- `include/rozeta/kinect.hpp` — depth-camera/Kinect skeleton.
+- `include/rozeta/kinect.hpp` — depth-frame model, CSV fixture loader, point-cloud conversion helpers and optional libfreenect runtime probe.
 - `include/rozeta/imu.hpp` — inertial samples, tilt/collision helpers and deterministic odometry/GPS/IMU pose fusion.
 - `include/rozeta/maps.hpp` — offline CSV route loader, `OfflineMap` paths, explicit load results and nearest-path lookup.
 - `include/rozeta/c_api.h` — initial C ABI seed for non-C++ integrations.
@@ -55,6 +56,7 @@ These examples are deliberately small and should stay buildable in CI:
 - `motor_test` — motor command and safety smoke test.
 - `odometry_test` — odometry smoke test.
 - `camera_capture` — camera capture smoke example with dependency-free `--mock` mode and optional `--opencv` mode.
+- `depth_obstacle_console` — replay a depth CSV fixture through Kinect helpers and obstacle sector extraction.
 - `serial_motor_calibrate` — dry-run calibration helper for the optional serial motor backend.
 
 ## Website integration plan

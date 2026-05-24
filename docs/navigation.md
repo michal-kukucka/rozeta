@@ -37,3 +37,7 @@ Behavior:
 - Obstacle avoidance does not advance the route unless the current waypoint was already reached.
 
 For offline map integration, load `GeoCoordinate` route points with `maps::CsvMapLoader`, convert them to local coordinates with `geoToLocal()`, then pass the local route into `RouteFollower`.
+
+## Depth-derived obstacles
+
+`obstacle_detection::fromDepthFrame()` lets Kinect/depth data feed the same `ObstacleInfo` contract as LiDAR. A `kinect::DepthFrame` can be loaded from a CSV fixture for CI-safe replay, converted to a point cloud with `kinect::depthFrameToPointCloud()`, or reduced directly into ahead/left/right sectors and nearest-distance data for `RouteFollower`. Invalid or missing depth pixels are ignored, so no physical Kinect is required for tests.

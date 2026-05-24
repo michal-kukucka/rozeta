@@ -4,6 +4,8 @@
 
 **Goal:** Implement depth-frame helpers and optional Kinect backend, then allow depth data to feed obstacle detection.
 
+Status: completed locally. Delivered deterministic depth CSV helpers, point-cloud projection, depth-derived `ObstacleInfo`, optional libfreenect CMake gating and `depth_obstacle_console --sample`.
+
 **Architecture:** Split deterministic depth processing from hardware capture. Obstacle detection consumes normalized depth/point-cloud data, not Kinect-specific types.
 
 **Tech Stack:** C++17, optional libfreenect/OpenNI backend, CTest fixtures.

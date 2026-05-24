@@ -10,6 +10,7 @@ option(ROZETA_BUILD_TESTS "Build tests" ON)
 option(ROZETA_WITH_OPENCV "Enable optional OpenCV camera backend hooks" OFF)
 option(ROZETA_WITH_SERIAL_MOTORS "Enable optional serial motor backend" OFF)
 option(ROZETA_WITH_YDLIDAR "Enable optional YDLIDAR serial LiDAR backend" OFF)
+option(ROZETA_WITH_KINECT "Enable optional libfreenect Kinect backend" OFF)
 
 find_package(Doxygen QUIET)
 
@@ -20,6 +21,17 @@ if(ROZETA_WITH_OPENCV)
         "ROZETA_WITH_OPENCV=ON requires OpenCV with core, imgproc and videoio "
         "components. Install OpenCV development packages or configure with "
         "-DROZETA_WITH_OPENCV=OFF.")
+  endif()
+endif()
+
+if(ROZETA_WITH_KINECT)
+  find_path(FREENECT_INCLUDE_DIR libfreenect.h)
+  find_library(FREENECT_LIBRARY freenect)
+  if(NOT FREENECT_INCLUDE_DIR OR NOT FREENECT_LIBRARY)
+    message(FATAL_ERROR
+        "ROZETA_WITH_KINECT=ON requires libfreenect development headers and "
+        "library. Install libfreenect-dev or configure with "
+        "-DROZETA_WITH_KINECT=OFF.")
   endif()
 endif()
 
@@ -40,6 +52,7 @@ set(ROZETA_SOURCES
     src/lidar.cpp
     src/imu.cpp
     src/camera.cpp
+    src/kinect.cpp
     src/maps.cpp
     src/navigation.cpp
     src/obstacle_detection.cpp
@@ -54,6 +67,9 @@ if(ROZETA_WITH_YDLIDAR)
 endif()
 if(ROZETA_WITH_OPENCV)
   list(APPEND ROZETA_SOURCES src/camera_opencv.cpp)
+endif()
+if(ROZETA_WITH_KINECT)
+  list(APPEND ROZETA_SOURCES src/kinect_freenect.cpp)
 endif()
 
 add_library(rozeta_static STATIC
@@ -71,6 +87,11 @@ if(ROZETA_WITH_OPENCV)
   target_compile_definitions(rozeta_static PUBLIC ROZETA_WITH_OPENCV)
   target_include_directories(rozeta_static PRIVATE ${OpenCV_INCLUDE_DIRS})
   target_link_libraries(rozeta_static PUBLIC ${OpenCV_LIBS})
+endif()
+if(ROZETA_WITH_KINECT)
+  target_compile_definitions(rozeta_static PUBLIC ROZETA_WITH_KINECT)
+  target_include_directories(rozeta_static PRIVATE ${FREENECT_INCLUDE_DIR})
+  target_link_libraries(rozeta_static PUBLIC ${FREENECT_LIBRARY})
 endif()
 set_target_properties(rozeta_static PROPERTIES OUTPUT_NAME rozeta)
 
@@ -90,6 +111,11 @@ if(ROZETA_BUILD_SHARED)
     target_compile_definitions(rozeta_shared PUBLIC ROZETA_WITH_OPENCV)
     target_include_directories(rozeta_shared PRIVATE ${OpenCV_INCLUDE_DIRS})
     target_link_libraries(rozeta_shared PUBLIC ${OpenCV_LIBS})
+  endif()
+  if(ROZETA_WITH_KINECT)
+    target_compile_definitions(rozeta_shared PUBLIC ROZETA_WITH_KINECT)
+    target_include_directories(rozeta_shared PRIVATE ${FREENECT_INCLUDE_DIR})
+    target_link_libraries(rozeta_shared PUBLIC ${FREENECT_LIBRARY})
   endif()
   set_target_properties(rozeta_shared PROPERTIES OUTPUT_NAME rozeta)
 endif()

@@ -18,6 +18,7 @@ PUBLIC_HEADER_DOCS = {
     "camera": "docs/camera_module.md",
     "c_api": "docs/api-reference.md",
     "core": "docs/module_overview.md",
+    "depth": "docs/navigation.md",
     "gps": "docs/gps_module.md",
     "imu": "docs/imu_module.md",
     "kinect": "docs/module_overview.md",

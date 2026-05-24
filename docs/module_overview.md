@@ -24,9 +24,13 @@ Shared definitions: `Status`, `ErrorCode`, timestamps, geometry, robot state, co
 
 `lidar::LidarScanner` defines lifecycle and scan acquisition. The first real target is YDLIDAR X4 or similar serial 2D scanner. Current milestone includes filtering, mock scanner and console scan visualization.
 
+## Depth
+
+`depth::DepthFrame` and `depth::PointCloud` are neutral metric perception contracts shared by Kinect loaders and obstacle detection, keeping obstacle logic independent from hardware-specific capture APIs.
+
 ## Obstacle detection
 
-Combines normalized sensor results into `ObstacleInfo` with ahead/left/right flags and nearest distance. Current implementation supports LiDAR sectors.
+Combines normalized sensor results into `ObstacleInfo` with ahead/left/right flags and nearest distance. Current implementation supports LiDAR scan sectors and depth-frame obstacle extraction through the same navigation contract.
 
 ## Navigation
 
@@ -48,4 +52,4 @@ See `docs/camera_module.md` for mock and OpenCV capture usage.
 
 ## Kinect
 
-Header-level depth-camera skeleton is present so future backends can be added without changing high-level applications.
+`kinect::DepthFrame` stores normalized metric depth samples with image metadata. `kinect::loadDepthCsv` loads no-hardware fixtures, `kinect::depthFrameToPointCloud` projects valid pixels into a point cloud, and `obstacle_detection::fromDepthFrame` converts depth images into ahead/left/right obstacle sectors. Optional libfreenect probing is isolated behind `ROZETA_WITH_KINECT=ON`; the default build has no Kinect dependency.

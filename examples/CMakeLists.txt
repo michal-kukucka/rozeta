@@ -9,6 +9,7 @@ set(ROZETA_EXAMPLES
     route_follower_demo
     imu_fusion_demo
     robotour_demo
+    depth_obstacle_console
 )
 if(ROZETA_WITH_SERIAL_MOTORS)
   list(APPEND ROZETA_EXAMPLES serial_motor_calibrate)

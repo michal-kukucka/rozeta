@@ -20,6 +20,7 @@ The initial milestone focuses on the foundation, not final hardware drivers:
 - simple waypoint navigator plus monotonic route follower
 - IMU tilt/collision helpers and deterministic pose fusion from odometry, GPS and IMU heading
 - camera frame validation helpers plus optional OpenCV camera backend
+- depth-frame CSV fixtures, point-cloud helpers and obstacle extraction with an optional Kinect/libfreenect flag
 - examples and standalone C++ test binary
 
 ## Project layout
@@ -51,6 +52,7 @@ cmake .. -DROZETA_BUILD_EXAMPLES=ON -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_SHARE
 cmake .. -DROZETA_WITH_OPENCV=ON   # optional OpenCV camera backend
 cmake .. -DROZETA_WITH_SERIAL_MOTORS=ON   # optional POSIX serial motor backend
 cmake .. -DROZETA_WITH_YDLIDAR=ON   # optional YDLIDAR-style serial LiDAR backend
+cmake .. -DROZETA_WITH_KINECT=ON   # optional libfreenect Kinect backend
 ```
 
 ## Quick usage
@@ -106,6 +108,12 @@ Camera capture without hardware:
 ./build/examples/camera_capture --mock
 ```
 
+Depth obstacle extraction without hardware:
+
+```bash
+./build/examples/depth_obstacle_console --sample tests/fixtures/depth/basic.csv
+```
+
 ## Documentation
 
 Detailed docs are included in `docs/` and are ready to be reused as a future official website:
@@ -123,6 +131,7 @@ Detailed docs are included in `docs/` and are ready to be reused as a future off
 - `docs/navigation.md` — waypoint navigation, route following and obstacle-aware decisions
 - `docs/imu_module.md` — IMU thresholds, pose fusion and sample replay
 - `docs/camera_module.md` — camera frame validation, mock capture and optional OpenCV backend
+- `docs/module_overview.md#kinect` — Kinect/depth frame helpers and depth-derived obstacle sectors
 - `docs/robotour_use_case.md` — Robotour-style autonomous vehicle workflow
 
 Documentation is verified from the public code surface:
@@ -147,7 +156,7 @@ Covered behavior:
 - GPS parsing, checksum validation, stream buffering and serial receiver sample mode
 - odometry calculations
 - coordinate conversion
-- obstacle sector calculation
+- obstacle sector calculation from LiDAR and depth frames
 - optional YDLIDAR-style parser/backend when `ROZETA_WITH_YDLIDAR=ON`
 - offline CSV route loading, nearest-path lookup and route follower progression
 - motor command validation/emergency stop
@@ -158,7 +167,7 @@ Covered behavior:
 
 ## Status
 
-Rozeta now includes milestone 1 through milestone 7 foundations: mockable core APIs, an internal POSIX serial transport, motor calibration persistence, optional serial motor, YDLIDAR-style LiDAR and OpenCV camera backends, a serial/file GPS receiver with robust NMEA validation, offline CSV route loading with monotonic route following, and IMU pose fusion. Kinect/libfreenect and wider C ABI packaging remain future optional work behind the existing APIs.
+Rozeta now includes milestone 1 through milestone 8 foundations: mockable core APIs, an internal POSIX serial transport, motor calibration persistence, optional serial motor, YDLIDAR-style LiDAR, OpenCV camera and libfreenect Kinect flags, a serial/file GPS receiver with robust NMEA validation, offline CSV route loading with monotonic route following, IMU pose fusion, and CI-testable depth-to-obstacle processing. Wider C ABI packaging remains future optional work behind the existing APIs.
 
 
 ## License

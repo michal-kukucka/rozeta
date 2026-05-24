@@ -254,3 +254,27 @@ ctest --test-dir build-m7 --output-on-failure
 ./build-m7/examples/camera_capture --mock
 python3 scripts/verify_docs.py
 ```
+
+
+### M8 — Kinect/depth backend and obstacle integration
+
+Status: completed locally in this milestone implementation.
+
+Delivered:
+
+- `src/kinect.cpp` deterministic depth CSV loading and depth-frame to point-cloud projection.
+- `obstacle_detection::fromDepthFrame()` adapter so depth data feeds existing `ObstacleInfo` navigation contracts.
+- Depth fixture coverage for nearest obstacle extraction and point-cloud projection.
+- Optional `ROZETA_WITH_KINECT` CMake flag with clear libfreenect dependency checks and isolated runtime probe source.
+- `depth_obstacle_console --sample` no-hardware replay example.
+- README, API docs, navigation docs, Robotour docs and diagrams updated.
+
+Verification commands used:
+
+```bash
+cmake -S . -B build-m8 -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_EXAMPLES=ON
+cmake --build build-m8 --parallel 2
+ctest --test-dir build-m8 --output-on-failure
+./build-m8/examples/depth_obstacle_console --sample tests/fixtures/depth/basic.csv
+python3 scripts/verify_docs.py
+```
