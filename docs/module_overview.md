@@ -40,6 +40,12 @@ Combines normalized sensor results into `ObstacleInfo` with ahead/left/right fla
 
 `imu::tiltDetected` and `imu::collisionDetected` provide threshold helpers for lateral tilt and acceleration spikes. `imu::PoseFusion` blends odometry pose, optional GPS local correction and IMU heading into a normalized deterministic `Pose2D` using fixture-testable weights.
 
-## Camera, Kinect
+## Camera
 
-Header-level interfaces/skeletons are present so future backends can be added without changing high-level applications.
+`camera::Camera` defines the RGB frame capture lifecycle. Frame-shape, expected-byte-size and validation helpers are implemented and tested with a fake camera. `OpenCvCamera` is available only when `ROZETA_WITH_OPENCV=ON`; the default build has no OpenCV dependency.
+
+See `docs/camera_module.md` for mock and OpenCV capture usage.
+
+## Kinect
+
+Header-level depth-camera skeleton is present so future backends can be added without changing high-level applications.

@@ -19,6 +19,7 @@ The initial milestone focuses on the foundation, not final hardware drivers:
 - obstacle sector calculation from LiDAR scans
 - simple waypoint navigator plus monotonic route follower
 - IMU tilt/collision helpers and deterministic pose fusion from odometry, GPS and IMU heading
+- camera frame validation helpers plus optional OpenCV camera backend
 - examples and standalone C++ test binary
 
 ## Project layout
@@ -47,7 +48,7 @@ Useful options:
 
 ```bash
 cmake .. -DROZETA_BUILD_EXAMPLES=ON -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_SHARED=ON
-cmake .. -DROZETA_WITH_OPENCV=ON   # reserved for future optional camera backend hooks
+cmake .. -DROZETA_WITH_OPENCV=ON   # optional OpenCV camera backend
 cmake .. -DROZETA_WITH_SERIAL_MOTORS=ON   # optional POSIX serial motor backend
 cmake .. -DROZETA_WITH_YDLIDAR=ON   # optional YDLIDAR-style serial LiDAR backend
 ```
@@ -99,6 +100,12 @@ IMU fusion replay without hardware:
 ./build/examples/imu_fusion_demo --sample tests/fixtures/imu/basic.csv
 ```
 
+Camera capture without hardware:
+
+```bash
+./build/examples/camera_capture --mock
+```
+
 ## Documentation
 
 Detailed docs are included in `docs/` and are ready to be reused as a future official website:
@@ -115,6 +122,7 @@ Detailed docs are included in `docs/` and are ready to be reused as a future off
 - `docs/maps_module.md` — offline CSV route format, loader behavior and fixtures
 - `docs/navigation.md` — waypoint navigation, route following and obstacle-aware decisions
 - `docs/imu_module.md` — IMU thresholds, pose fusion and sample replay
+- `docs/camera_module.md` — camera frame validation, mock capture and optional OpenCV backend
 - `docs/robotour_use_case.md` — Robotour-style autonomous vehicle workflow
 
 Documentation is verified from the public code surface:
@@ -145,11 +153,12 @@ Covered behavior:
 - motor command validation/emergency stop
 - motor calibration save/load
 - optional serial motor command formatting when `ROZETA_WITH_SERIAL_MOTORS=ON`
+- camera frame shape, payload validation and mock capture path
 - configuration loading
 
 ## Status
 
-Rozeta now includes milestone 1 through milestone 5 foundations: mockable core APIs, an internal POSIX serial transport, motor calibration persistence, optional serial motor and YDLIDAR-style LiDAR backends, a serial/file GPS receiver with robust NMEA validation, and offline CSV route loading with monotonic route following. Real OpenCV camera, Kinect/libfreenect, IMU and OSM backends remain future optional plugins behind the existing APIs.
+Rozeta now includes milestone 1 through milestone 7 foundations: mockable core APIs, an internal POSIX serial transport, motor calibration persistence, optional serial motor, YDLIDAR-style LiDAR and OpenCV camera backends, a serial/file GPS receiver with robust NMEA validation, offline CSV route loading with monotonic route following, and IMU pose fusion. Kinect/libfreenect and wider C ABI packaging remain future optional work behind the existing APIs.
 
 
 ## License

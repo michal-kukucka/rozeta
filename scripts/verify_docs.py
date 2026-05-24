@@ -15,7 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 PUBLIC_HEADER_DOCS = {
-    "camera": "docs/module_overview.md",
+    "camera": "docs/camera_module.md",
     "c_api": "docs/api-reference.md",
     "core": "docs/module_overview.md",
     "gps": "docs/gps_module.md",

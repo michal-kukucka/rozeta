@@ -231,3 +231,26 @@ ctest --test-dir build-m6-red --output-on-failure
 ./build-m6-red/examples/imu_fusion_demo --sample tests/fixtures/imu/basic.csv
 python3 scripts/verify_docs.py
 ```
+
+### M7 — Camera/OpenCV optional backend
+
+Status: completed locally in this milestone implementation.
+
+Delivered:
+
+- `src/camera.cpp` frame-shape, expected-byte-size and frame validation helpers.
+- Dependency-free fake camera tests for valid metadata/payloads and invalid frame rejection.
+- Optional `camera::OpenCvCamera` behind `ROZETA_WITH_OPENCV` with no default OpenCV dependency.
+- Clear CMake failure when `ROZETA_WITH_OPENCV=ON` and required OpenCV components are unavailable.
+- `camera_capture --mock` default smoke path and optional `--opencv` capture path.
+- Camera module docs, API reference, docs portal, diagrams and README updated.
+
+Verification commands used:
+
+```bash
+cmake -S . -B build-m7 -DROZETA_WITH_OPENCV=OFF -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_EXAMPLES=ON
+cmake --build build-m7 --parallel 2
+ctest --test-dir build-m7 --output-on-failure
+./build-m7/examples/camera_capture --mock
+python3 scripts/verify_docs.py
+```

@@ -24,9 +24,9 @@ const ROZETA_MODULE_MODEL = {
         ['app','User application / examples',380,35,210,62,'#a78bfa','robotour, replay, routes, motors'],
         ['headers','Public headers include/rozeta',335,130,300,70,'#22d3ee','core, sensors, navigation, motors, C API'],
         ['core','Core types',70,250,170,62,'#22d3ee','Status, ErrorCode, Pose2D, RobotState, Config, geoToLocal'],
-        ['sensors','Sensor modules',280,250,180,62,'#34d399','GPS fix, LiDAR scan, odometry pose, IMU heading'],
+        ['sensors','Sensor modules',280,250,180,62,'#34d399','GPS fix, LiDAR scan, camera frame, odometry pose, IMU heading'],
         ['logic','Navigation logic',505,250,180,62,'#34d399','maps, routes, obstacles, motors'],
-        ['hardware','Hardware adapters',720,250,170,62,'#94a3b8','Serial IO, motors, GPS, YDLIDAR'],
+        ['hardware','Hardware adapters',720,250,170,62,'#94a3b8','Serial IO, motors, GPS, YDLIDAR, OpenCV camera'],
         ['tests','Dependency-free tests',370,405,220,62,'#a78bfa','CTest executable verifies parsing, odometry, coordinates, motors, obstacles, config'],
       ],
       edges: [
@@ -53,8 +53,8 @@ const ROZETA_MODULE_MODEL = {
     dataflow: {
       title: 'data-flow payload view',
       nodes: [
-        ['raw','Raw hardware + files',70,80,190,70,'#94a3b8','NMEA + YDLIDAR + route CSV + ticks'],
-        ['parse','Normalize modules',365,80,210,70,'#34d399','NMEA + YDLIDAR + CSV + odometry'],
+        ['raw','Raw hardware + files',70,80,190,70,'#94a3b8','NMEA + YDLIDAR + camera + route CSV + ticks'],
+        ['parse','Normalize modules',365,80,210,70,'#34d399','NMEA + YDLIDAR + OpenCV + CSV + odometry'],
         ['model','Rozeta data model',670,80,200,70,'#22d3ee','Geo, scan, pose, state'],
         ['decision','Decision layer',365,270,210,78,'#34d399','Obstacles + RouteFollower + navigator'],
         ['act','Actuation / logging',670,270,200,78,'#fb7185','Mock/serial motors + logs'],
@@ -62,7 +62,7 @@ const ROZETA_MODULE_MODEL = {
         ['site','Official-site ready',535,450,235,70,'#a78bfa','Portal, diagrams, API docs'],
       ],
       edges: [
-        ['raw','parse','Raw samples','serial bytes → NMEA + YDLIDAR packets, route CSV, ticks'], ['parse','model','Typed payloads','GPS, scan, offline route, pose'], ['model','decision','data-flow','RobotState + obstacles + route waypoint'], ['decision','act','Motor commands','left/right speed, calibration, stop, emergency stop'], ['model','docs','Documented structs','Public headers feed Doxygen'], ['docs','site','Generated reference','HTML/XML API output and verified static pages']
+        ['raw','parse','Raw samples','serial bytes → NMEA + YDLIDAR packets, BGR frames, route CSV, ticks'], ['parse','model','Typed payloads','GPS, scan, camera frame, offline route, pose'], ['model','decision','data-flow','RobotState + obstacles + route waypoint'], ['decision','act','Motor commands','left/right speed, calibration, stop, emergency stop'], ['model','docs','Documented structs','Public headers feed Doxygen'], ['docs','site','Generated reference','HTML/XML API output and verified static pages']
       ]
     }
   }

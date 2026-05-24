@@ -12,6 +12,17 @@ option(ROZETA_WITH_SERIAL_MOTORS "Enable optional serial motor backend" OFF)
 option(ROZETA_WITH_YDLIDAR "Enable optional YDLIDAR serial LiDAR backend" OFF)
 
 find_package(Doxygen QUIET)
+
+if(ROZETA_WITH_OPENCV)
+  find_package(OpenCV QUIET COMPONENTS core imgproc videoio)
+  if(NOT OpenCV_FOUND)
+    message(FATAL_ERROR
+        "ROZETA_WITH_OPENCV=ON requires OpenCV with core, imgproc and videoio "
+        "components. Install OpenCV development packages or configure with "
+        "-DROZETA_WITH_OPENCV=OFF.")
+  endif()
+endif()
+
 if(DOXYGEN_FOUND)
   add_custom_target(rozeta_docs
       COMMAND ${DOXYGEN_EXECUTABLE} ${CMAKE_SOURCE_DIR}/Doxyfile
@@ -28,6 +39,7 @@ set(ROZETA_SOURCES
     src/odometry.cpp
     src/lidar.cpp
     src/imu.cpp
+    src/camera.cpp
     src/maps.cpp
     src/navigation.cpp
     src/obstacle_detection.cpp
@@ -40,6 +52,9 @@ endif()
 if(ROZETA_WITH_YDLIDAR)
   list(APPEND ROZETA_SOURCES src/internal/ydlidar_parser.cpp src/lidar_ydlidar.cpp)
 endif()
+if(ROZETA_WITH_OPENCV)
+  list(APPEND ROZETA_SOURCES src/camera_opencv.cpp)
+endif()
 
 add_library(rozeta_static STATIC
     ${ROZETA_SOURCES}
@@ -51,6 +66,11 @@ if(ROZETA_WITH_SERIAL_MOTORS)
 endif()
 if(ROZETA_WITH_YDLIDAR)
   target_compile_definitions(rozeta_static PUBLIC ROZETA_WITH_YDLIDAR)
+endif()
+if(ROZETA_WITH_OPENCV)
+  target_compile_definitions(rozeta_static PUBLIC ROZETA_WITH_OPENCV)
+  target_include_directories(rozeta_static PRIVATE ${OpenCV_INCLUDE_DIRS})
+  target_link_libraries(rozeta_static PUBLIC ${OpenCV_LIBS})
 endif()
 set_target_properties(rozeta_static PROPERTIES OUTPUT_NAME rozeta)
 
@@ -65,6 +85,11 @@ if(ROZETA_BUILD_SHARED)
   endif()
   if(ROZETA_WITH_YDLIDAR)
     target_compile_definitions(rozeta_shared PUBLIC ROZETA_WITH_YDLIDAR)
+  endif()
+  if(ROZETA_WITH_OPENCV)
+    target_compile_definitions(rozeta_shared PUBLIC ROZETA_WITH_OPENCV)
+    target_include_directories(rozeta_shared PRIVATE ${OpenCV_INCLUDE_DIRS})
+    target_link_libraries(rozeta_shared PUBLIC ${OpenCV_LIBS})
   endif()
   set_target_properties(rozeta_shared PROPERTIES OUTPUT_NAME rozeta)
 endif()

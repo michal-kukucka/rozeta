@@ -34,7 +34,7 @@ Current public surface:
 - `include/rozeta/lidar.hpp` — LiDAR scan types, scanner interface, filtering, console visualization and optional YDLIDAR-style backend/parser helper.
 - `include/rozeta/obstacle_detection.hpp` — obstacle sector calculation from LiDAR scans.
 - `include/rozeta/navigation.hpp` — waypoint navigation, route-following progress state and obstacle-aware motor decisions.
-- `include/rozeta/camera.hpp` — camera interface skeleton for future OpenCV/backends.
+- `include/rozeta/camera.hpp` — camera interface, frame-shape/byte-size validation helpers and optional OpenCV capture backend.
 - `include/rozeta/kinect.hpp` — depth-camera/Kinect skeleton.
 - `include/rozeta/imu.hpp` — inertial samples, tilt/collision helpers and deterministic odometry/GPS/IMU pose fusion.
 - `include/rozeta/maps.hpp` — offline CSV route loader, `OfflineMap` paths, explicit load results and nearest-path lookup.
@@ -54,7 +54,7 @@ These examples are deliberately small and should stay buildable in CI:
 - `imu_fusion_demo` — replay recorded odometry/GPS/IMU samples through deterministic pose fusion without hardware.
 - `motor_test` — motor command and safety smoke test.
 - `odometry_test` — odometry smoke test.
-- `camera_capture` — camera interface placeholder.
+- `camera_capture` — camera capture smoke example with dependency-free `--mock` mode and optional `--opencv` mode.
 - `serial_motor_calibrate` — dry-run calibration helper for the optional serial motor backend.
 
 ## Website integration plan

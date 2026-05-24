@@ -43,6 +43,9 @@ void test_imu_pose_fusion_rejects_invalid_weights();
 void test_imu_pose_fusion_ignores_gps_without_origin_or_fix();
 void test_imu_pose_fusion_weight_boundaries_select_sources();
 void test_imu_pose_fusion_replays_fixture_samples();
+void test_camera_expected_byte_size_and_shape_for_rgb_frame();
+void test_camera_validates_fake_camera_frame_metadata_and_payload();
+void test_camera_rejects_invalid_metadata_and_payload_size();
 #ifdef ROZETA_WITH_SERIAL_MOTORS
 void test_serial_motor_formats_normalized_speed_commands();
 void test_serial_motor_rejects_invalid_speed_without_writing();
@@ -105,6 +108,9 @@ int main(){
         {"imu_gps_edge_cases", test_imu_pose_fusion_ignores_gps_without_origin_or_fix},
         {"imu_weight_boundaries", test_imu_pose_fusion_weight_boundaries_select_sources},
         {"imu_fixture_replay", test_imu_pose_fusion_replays_fixture_samples},
+        {"camera_shape", test_camera_expected_byte_size_and_shape_for_rgb_frame},
+        {"camera_fake_frame", test_camera_validates_fake_camera_frame_metadata_and_payload},
+        {"camera_invalid_frame", test_camera_rejects_invalid_metadata_and_payload_size},
 #ifdef ROZETA_WITH_SERIAL_MOTORS
         {"serial_motor_format", test_serial_motor_formats_normalized_speed_commands},
         {"serial_motor_invalid_speed", test_serial_motor_rejects_invalid_speed_without_writing},
