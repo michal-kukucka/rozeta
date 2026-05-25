@@ -60,6 +60,7 @@ set(ROZETA_SOURCES
     src/kinect.cpp
     src/maps.cpp
     src/navigation.cpp
+    src/runtime.cpp
     src/ui.cpp
     src/obstacle_detection.cpp
     src/internal/serial_port.cpp

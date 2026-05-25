@@ -26,6 +26,7 @@ PUBLIC_HEADER_DOCS = {
     "logging": "docs/module_overview.md",
     "maps": "docs/maps_module.md",
     "motors": "docs/motor_module.md",
+    "runtime": "docs/runtime_module.md",
     "navigation": "docs/navigation.md",
     "obstacle_detection": "docs/navigation.md",
     "odometry": "docs/module_overview.md",
@@ -95,6 +96,15 @@ REQUIRED_BUCHLOVICE_M1_PHRASES = [
     "LRC checksum",
     "buchlovice_repeat_interval",
     "M1 — Buchlovice motor backend",
+]
+
+REQUIRED_BUCHLOVICE_M2_PHRASES = [
+    "MissionRuntime",
+    "tick-based",
+    "module health",
+    "ObstacleWait",
+    "motor keepalive",
+    "M2 — Mission runtime / supervisor",
 ]
 
 
@@ -186,6 +196,19 @@ def main() -> int:
     for phrase in REQUIRED_BUCHLOVICE_M1_PHRASES:
         if phrase not in buchlovice_m1_docs:
             fail(f"Buchlovice M1 documentation/diagram coverage missing: {phrase}", failures)
+
+    buchlovice_m2_docs = (
+        read("docs/runtime_module.md")
+        + "\n"
+        + read("docs/module_overview.md")
+        + "\n"
+        + read("docs/diagrams/module-map.html")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M2_PHRASES:
+        if phrase not in buchlovice_m2_docs:
+            fail(f"Buchlovice M2 runtime documentation/diagram coverage missing: {phrase}", failures)
 
     doxygen = read("Doxyfile")
     for required in ["INPUT                  = include src examples", "OUTPUT_DIRECTORY       = docs/generated", "GENERATE_HTML", "GENERATE_XML", "EXTRACT_ALL"]:

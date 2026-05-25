@@ -11,6 +11,7 @@ add_executable(rozeta_tests
     test_motor_calibration.cpp
     test_maps.cpp
     test_navigation.cpp
+    test_runtime.cpp
     test_imu.cpp
     test_camera.cpp
     test_telemetry.cpp

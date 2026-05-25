@@ -39,6 +39,10 @@ void test_navigation_route_follower_advances_waypoints();
 void test_navigation_route_follower_finishes_route();
 void test_navigation_route_follower_empty_route_reports_finished();
 void test_navigation_route_follower_obstacle_does_not_advance_unless_reached();
+void test_runtime_countdown_start_and_arrival_flow_is_deterministic();
+void test_runtime_faults_on_unhealthy_critical_module();
+void test_runtime_obstacle_wait_bypass_and_resume_flow();
+void test_runtime_motor_keepalive_due_uses_deterministic_ticks();
 void test_imu_tilt_detects_lateral_acceleration_threshold();
 void test_imu_collision_detects_total_acceleration_spike();
 void test_imu_pose_fusion_normalizes_heading_and_blends_gps_correction();
@@ -125,6 +129,10 @@ int main(){
         {"navigation_route_complete", test_navigation_route_follower_finishes_route},
         {"navigation_route_empty", test_navigation_route_follower_empty_route_reports_finished},
         {"navigation_route_obstacle", test_navigation_route_follower_obstacle_does_not_advance_unless_reached},
+        {"runtime_countdown_arrival", test_runtime_countdown_start_and_arrival_flow_is_deterministic},
+        {"runtime_fault_unhealthy_module", test_runtime_faults_on_unhealthy_critical_module},
+        {"runtime_obstacle_bypass", test_runtime_obstacle_wait_bypass_and_resume_flow},
+        {"runtime_motor_keepalive", test_runtime_motor_keepalive_due_uses_deterministic_ticks},
         {"imu_tilt", test_imu_tilt_detects_lateral_acceleration_threshold},
         {"imu_collision", test_imu_collision_detects_total_acceleration_spike},
         {"imu_pose_fusion", test_imu_pose_fusion_normalizes_heading_and_blends_gps_correction},

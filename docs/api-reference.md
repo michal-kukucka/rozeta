@@ -30,6 +30,7 @@ Current public surface:
 - `include/rozeta/depth.hpp` — normalized depth-frame and point-cloud data contracts shared by Kinect helpers and obstacle detection.
 - `include/rozeta/logging.hpp` — logger interface plus console/CSV logger implementations.
 - `include/rozeta/telemetry.hpp` — stable `rozeta.telemetry.v1` Robotour replay CSV schema, parser and deterministic navigation replay helpers. The fixture format is intentionally strict comma-delimited text: quoted fields, embedded commas, partial numeric parses and non-finite numbers are rejected so replay logs fail closed in CI.
+- `include/rozeta/runtime.hpp` — deterministic, tick-based `MissionRuntime` supervisor with module health checks, mission phases, stop/emergency-stop/bypass hooks and motor keepalive scheduling for Buchlovice/Robotour loops.
 - `include/rozeta/motors.hpp` — differential-drive motor control, mock controller, optional serial motor controller, encoder feedback, calibration persistence and emergency stop semantics.
 - `include/rozeta/gps.hpp` — NMEA checksum validation, stream buffering, serial/file GPS receiver, parsed GPS fix model and local conversion helpers.
 - `include/rozeta/odometry.hpp` — differential-drive odometry and pose integration.
@@ -102,6 +103,7 @@ These examples are deliberately small and should stay buildable in CI:
 - `lidar_scan_console` — work with LiDAR scan structures.
 - `ydlidar_scan_console` — replay a YDLIDAR-style binary fixture or read a serial YDLIDAR device when `ROZETA_WITH_YDLIDAR=ON`.
 - `route_follower_demo` — load an offline CSV route and drive it through `navigation::RouteFollower` without hardware.
+- `mission_runtime_demo` — deterministic, tick-based MissionRuntime supervisor flow with module health, ObstacleWait/Bypass and motor keepalive hooks.
 - `imu_fusion_demo` — replay recorded odometry/GPS/IMU samples through deterministic pose fusion without hardware.
 - `motor_test` — motor command and safety smoke test.
 - `odometry_test` — odometry smoke test.

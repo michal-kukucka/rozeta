@@ -64,14 +64,29 @@ Continuation notes for unfinished M1 subtasks:
 
 ### M2 — Mission runtime / supervisor
 
+Status: implemented in `rozeta::runtime::MissionRuntime`.
+
 Goal: cover `main.py` and the orchestration parts of `kvalifikacia_demo.py` with a reusable runtime.
 
-Action points:
-- Add a `runtime` or `mission` module with lifecycle states: init, waiting_for_start, countdown, driving, obstacle_wait, bypass, arrived, shutdown, fault.
-- Provide module health/freshness inputs for motors, GPS, camera, Kinect/depth, map, communication, logging.
-- Add policy hooks for emergency stop, graceful shutdown, and module timeout/fault handling.
-- Provide deterministic tick-based update APIs so the runtime is testable without threads.
-- Add examples showing both a minimal `main.py`-style supervisor and a Robotour qualification loop.
+Delivered coverage:
+- Added `include/rozeta/runtime.hpp` and `src/runtime.cpp` with a deterministic tick-based mission supervisor.
+- Added lifecycle phases: init, waiting_for_start, countdown, driving, obstacle_wait, bypass, arrived, shutdown and fault.
+- Added module health inputs for motors, GPS, camera, depth/Kinect, map, communication and logging.
+- Added policy hooks for stop, emergency stop, obstacle bypass and repeated motor keepalive scheduling.
+- Added `mission_runtime_demo` as a no-hardware executable example of the supervisor loop.
+- Added tests for start/countdown/arrival, unhealthy module faulting, obstacle wait/bypass/resume and motor keepalive timing.
+
+Remaining action points:
+- Integrate `MissionRuntime` into a full Robotour demo loop that combines route following, obstacle sectors and real motor commands.
+- Add per-module freshness timestamps/timeouts once M3/M4/M7 sensor intake APIs expose update times.
+- Add configurable critical/non-critical health policies for optional camera/depth modes.
+
+Continuation notes for unfinished M2 subtasks:
+- M2 is intentionally a deterministic supervisor core only; it does not yet open hardware, own threads, or execute a full Robotour qualification loop.
+- The current motor keepalive output is a policy hook (`resend_last_motor_command`); application code still needs to call `setSpeed(last_safe_command)` and then `markMotorCommandSent(...)`.
+- Module health inputs are boolean for now; future sensor/runtime milestones should add freshness timestamps and per-module timeout configuration.
+- Camera/depth are currently treated as critical when their health flags are false; optional degraded-mode policy should be added before using the runtime with missing non-critical devices.
+- `mission_runtime_demo` is a no-hardware smoke example; a full integration example combining route following, obstacle detection and real/simulated motor commands remains a follow-up.
 
 ### M3 — QR mission target intake
 
