@@ -1,0 +1,5 @@
+schema_version,timestamp_ms,gps_valid,latitude_deg,longitude_deg,altitude_m,pose_x_m,pose_y_m,heading_rad,lidar_front_m,lidar_left_m,lidar_right_m,depth_front_m,nav_target_x_m,nav_target_y_m,expected_reason,expected_emergency_stop,expected_left_speed,expected_right_speed,command_left_speed,command_right_speed
+rozeta.telemetry.v1,0,1,50.0000000,14.0000000,250.0,0.0,0.0,0.0,3.0,3.0,3.0,0.0,5.0,0.0,go to waypoint,0,0.25,0.25,0.25,0.25
+rozeta.telemetry.v1,100,1,50.0000001,14.0000001,250.1,1.0,0.0,0.0,0.6,2.0,2.0,0.0,5.0,0.0,avoid obstacle,0,-0.075,0.25,-0.075,0.25
+rozeta.telemetry.v1,200,1,50.0000002,14.0000002,250.2,2.0,0.0,0.0,0.2,2.0,2.0,0.0,5.0,0.0,obstacle too close,1,0.0,0.0,0.0,0.0
+rozeta.telemetry.v1,300,1,50.0000003,14.0000003,250.3,4.2,0.0,0.0,3.0,3.0,3.0,0.0,5.0,0.0,waypoint reached,0,0.0,0.0,0.0,0.0

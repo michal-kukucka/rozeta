@@ -50,6 +50,7 @@ set(ROZETA_SOURCES
     src/c_api.cpp
     src/core.cpp
     src/logging.cpp
+    src/telemetry.cpp
     src/motors.cpp
     src/gps.cpp
     src/odometry.cpp

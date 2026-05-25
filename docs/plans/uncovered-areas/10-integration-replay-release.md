@@ -4,6 +4,8 @@
 
 **Goal:** Provide end-to-end Robotour demos, replayable telemetry logs, release-quality documentation, and CI checks that prove Rozeta works as a public open-source library.
 
+Status: completed locally. Delivered telemetry schema/parser, replay integration tests, `replay_robotour_log`, release checklist and CI matrix/docs verification updates.
+
 **Architecture:** Build on previous milestones. Use logs/fixtures for deterministic replay so CI can validate autonomy decisions without hardware.
 
 **Tech Stack:** C++17, CSV/JSON logs, CTest, Doxygen, GitHub Actions.

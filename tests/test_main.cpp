@@ -49,6 +49,9 @@ void test_imu_pose_fusion_replays_fixture_samples();
 void test_camera_expected_byte_size_and_shape_for_rgb_frame();
 void test_camera_validates_fake_camera_frame_metadata_and_payload();
 void test_camera_rejects_invalid_metadata_and_payload_size();
+void test_telemetry_parser_loads_robotour_fixture();
+void test_telemetry_parser_rejects_bad_schema_and_rows();
+void test_telemetry_replay_produces_deterministic_navigation_decisions();
 #ifdef ROZETA_WITH_SERIAL_MOTORS
 void test_serial_motor_formats_normalized_speed_commands();
 void test_serial_motor_rejects_invalid_speed_without_writing();
@@ -117,6 +120,9 @@ int main(){
         {"camera_shape", test_camera_expected_byte_size_and_shape_for_rgb_frame},
         {"camera_fake_frame", test_camera_validates_fake_camera_frame_metadata_and_payload},
         {"camera_invalid_frame", test_camera_rejects_invalid_metadata_and_payload_size},
+        {"telemetry_parser_fixture", test_telemetry_parser_loads_robotour_fixture},
+        {"telemetry_parser_errors", test_telemetry_parser_rejects_bad_schema_and_rows},
+        {"telemetry_replay_deterministic", test_telemetry_replay_produces_deterministic_navigation_decisions},
 #ifdef ROZETA_WITH_SERIAL_MOTORS
         {"serial_motor_format", test_serial_motor_formats_normalized_speed_commands},
         {"serial_motor_invalid_speed", test_serial_motor_rejects_invalid_speed_without_writing},

@@ -13,6 +13,7 @@ add_executable(rozeta_tests
     test_navigation.cpp
     test_imu.cpp
     test_camera.cpp
+    test_telemetry.cpp
 )
 if(ROZETA_WITH_SERIAL_MOTORS)
   target_sources(rozeta_tests PRIVATE test_serial_motors.cpp)

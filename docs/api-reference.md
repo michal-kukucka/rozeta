@@ -29,6 +29,7 @@ Current public surface:
 - `include/rozeta/core.hpp` — status/error model including `Timeout`, timestamps, geometry, robot state, config loading, coordinate conversion and lifecycle hooks.
 - `include/rozeta/depth.hpp` — normalized depth-frame and point-cloud data contracts shared by Kinect helpers and obstacle detection.
 - `include/rozeta/logging.hpp` — logger interface plus console/CSV logger implementations.
+- `include/rozeta/telemetry.hpp` — stable `rozeta.telemetry.v1` Robotour replay CSV schema, parser and deterministic navigation replay helpers. The fixture format is intentionally strict comma-delimited text: quoted fields, embedded commas, partial numeric parses and non-finite numbers are rejected so replay logs fail closed in CI.
 - `include/rozeta/motors.hpp` — differential-drive motor control, mock controller, optional serial motor controller, encoder feedback, calibration persistence and emergency stop semantics.
 - `include/rozeta/gps.hpp` — NMEA checksum validation, stream buffering, serial/file GPS receiver, parsed GPS fix model and local conversion helpers.
 - `include/rozeta/odometry.hpp` — differential-drive odometry and pose integration.
@@ -94,6 +95,7 @@ cmake --build /tmp/rozeta-consumer --parallel
 These examples are deliberately small and should stay buildable in CI:
 
 - `robotour_demo` — full autonomous-loop sketch.
+- `replay_robotour_log` — replay a `rozeta.telemetry.v1` CSV fixture through navigation and assert deterministic decisions.
 - `simple_robot_loop` — minimal application loop.
 - `gps_reader` — parse GPS/NMEA data.
 - `gps_serial_reader` — serial GPS receiver with `--device`, `--baud` and sample-file fallback.

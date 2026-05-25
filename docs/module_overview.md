@@ -12,6 +12,10 @@ Shared definitions: `Status`, `ErrorCode`, timestamps, geometry, robot state, co
 
 `logging::Logger` interface plus console and CSV loggers. Intended for sensor readings, motor commands, GPS data, scans, pose, navigation decisions and errors.
 
+## Telemetry
+
+`telemetry::ReplaySample` defines the stable Robotour replay schema for GPS fixes, LiDAR/depth distances, pose, navigation decisions and motor commands. `telemetry::loadReplayLog` parses `rozeta.telemetry.v1` CSV files, and `telemetry::replayNavigation` drives recorded samples back through `navigation::SimpleNavigator` so CI can verify deterministic decisions without hardware.
+
 ## Motors
 
 `motors::MotorController` with differential-drive speed control, stop, emergency stop, encoder feedback and calibration. `MockMotorController` is available for tests and demos.

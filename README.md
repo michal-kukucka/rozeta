@@ -21,6 +21,7 @@ The initial milestone focuses on the foundation, not final hardware drivers:
 - IMU tilt/collision helpers and deterministic pose fusion from odometry, GPS and IMU heading
 - camera frame validation helpers plus optional OpenCV camera backend
 - depth-frame CSV fixtures, point-cloud helpers and obstacle extraction with an optional Kinect/libfreenect flag
+- stable `rozeta.telemetry.v1` Robotour replay logs for GPS, LiDAR/depth, pose, navigation decisions and motor commands
 - examples and standalone C++ test binary
 
 ## Project layout
@@ -143,6 +144,12 @@ Depth obstacle extraction without hardware:
 ./build/examples/depth_obstacle_console --sample tests/fixtures/depth/basic.csv
 ```
 
+Robotour telemetry replay without hardware:
+
+```bash
+./build/examples/replay_robotour_log tests/fixtures/replay/basic_robotour.csv
+```
+
 C ABI smoke example:
 
 ```bash
@@ -157,6 +164,7 @@ Detailed docs are included in `docs/` and are ready to be reused as a future off
 - `docs/diagrams/module-map.html` — interactive module, Robotour and data-flow diagrams
 - `docs/api-reference.md` — code-based documentation workflow using `doxygen Doxyfile`
 - `docs/maintenance.md` — same-commit documentation maintenance contract
+- `docs/release.md` — release and dry-run tag checklist
 - `docs/architecture.md` — library layering, APIs, hardware abstraction and test strategy
 - `docs/module_overview.md` — module-by-module status and responsibilities
 - `docs/motor_module.md` — differential-drive motor API, mock backend and safety behavior
@@ -168,6 +176,7 @@ Detailed docs are included in `docs/` and are ready to be reused as a future off
 - `docs/camera_module.md` — camera frame validation, mock capture and optional OpenCV backend
 - `docs/module_overview.md#kinect` — Kinect/depth frame helpers and depth-derived obstacle sectors
 - `docs/robotour_use_case.md` — Robotour-style autonomous vehicle workflow
+- `examples/replay_robotour_log.cpp` — fixture-driven telemetry replay demo
 
 Documentation is verified from the public code surface:
 
@@ -199,10 +208,11 @@ Covered behavior:
 - optional serial motor command formatting when `ROZETA_WITH_SERIAL_MOTORS=ON`
 - camera frame shape, payload validation and mock capture path
 - configuration loading
+- Robotour telemetry log parsing and deterministic replay decisions
 
 ## Status
 
-Rozeta now includes milestone 1 through milestone 9 foundations: mockable core APIs, an internal POSIX serial transport, motor calibration persistence, optional serial motor, YDLIDAR-style LiDAR, OpenCV camera and libfreenect Kinect flags, a serial/file GPS receiver with robust NMEA validation, offline CSV route loading with monotonic route following, IMU pose fusion, CI-testable depth-to-obstacle processing, an installable CMake package export, and a stable value-type C ABI for version, angle normalization, 2D distance and LiDAR obstacle sector calculation.
+Rozeta now includes milestone 1 through milestone 10 foundations: mockable core APIs, an internal POSIX serial transport, motor calibration persistence, optional serial motor, YDLIDAR-style LiDAR, OpenCV camera and libfreenect Kinect flags, a serial/file GPS receiver with robust NMEA validation, offline CSV route loading with monotonic route following, IMU pose fusion, CI-testable depth-to-obstacle processing, telemetry replay hardening, an installable CMake package export, and a stable value-type C ABI for version, angle normalization, 2D distance and LiDAR obstacle sector calculation.
 
 
 ## License

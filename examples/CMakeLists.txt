@@ -9,6 +9,7 @@ set(ROZETA_EXAMPLES
     route_follower_demo
     imu_fusion_demo
     robotour_demo
+    replay_robotour_log
     depth_obstacle_console
 )
 if(ROZETA_WITH_SERIAL_MOTORS)

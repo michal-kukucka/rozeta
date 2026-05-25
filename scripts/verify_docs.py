@@ -29,6 +29,7 @@ PUBLIC_HEADER_DOCS = {
     "navigation": "docs/navigation.md",
     "obstacle_detection": "docs/navigation.md",
     "odometry": "docs/module_overview.md",
+    "telemetry": "docs/module_overview.md",
 }
 
 REQUIRED_FILES = [
@@ -48,6 +49,7 @@ REQUIRED_SITE_PHRASES = [
     "module-map.html",
     "api-reference.md",
     "maintenance.md",
+    "release.md",
 ]
 
 REQUIRED_DIAGRAM_PHRASES = [

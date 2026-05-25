@@ -306,3 +306,28 @@ cmake --build /tmp/rozeta-consumer --parallel 2
 /tmp/rozeta-consumer/consumer_cpp
 python3 scripts/verify_docs.py
 ```
+
+
+### M10 — Integration demos, replay, telemetry and release hardening
+
+Status: completed locally in this milestone implementation.
+
+Delivered:
+
+- `include/rozeta/telemetry.hpp` and `src/telemetry.cpp` for `rozeta.telemetry.v1` CSV replay logs.
+- `tests/fixtures/replay/basic_robotour.csv` plus parser and deterministic navigation replay tests.
+- `examples/replay_robotour_log.cpp` no-hardware Robotour replay demo that fails on decision drift.
+- Debug/Release GitHub Actions matrix, docs verification and optional Doxygen generation.
+- `docs/release.md` release checklist with safe tag preflight and push dry-run guidance; no release tag is created by this milestone.
+- Docs portal examples/gallery and README/API/use-case docs updated.
+
+Verification commands used:
+
+```bash
+cmake -S . -B build-m10 -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_EXAMPLES=ON
+cmake --build build-m10 --parallel 2
+ctest --test-dir build-m10 --output-on-failure
+./build-m10/examples/replay_robotour_log tests/fixtures/replay/basic_robotour.csv
+python3 scripts/verify_docs.py
+doxygen Doxyfile
+```

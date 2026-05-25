@@ -20,6 +20,7 @@
           <a class="btn alt" href="diagrams/module-map.html">Open module diagrams</a>
           <a class="btn" href="api-reference.md">API reference workflow</a>
           <a class="btn alt" href="maintenance.md">Docs maintenance rules</a>
+          <a class="btn" href="release.md">Release checklist</a>
         </div>
       </div>
       <div class="terminal" aria-label="Rozeta quick start commands"><div class="bar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span></div><pre><code>git clone https://github.com/michal-kukucka/rozeta.git
@@ -28,6 +29,7 @@ cmake -S . -B build -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_EXAMPLES=ON
 cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ./build/examples/c_api_smoke
+./build/examples/replay_robotour_log tests/fixtures/replay/basic_robotour.csv
 cmake --install build --prefix /tmp/rozeta-install
 
 # consume from downstream CMake
@@ -43,6 +45,11 @@ doxygen Doxyfile</code></pre></div>
       <article class="card"><h2>New users</h2><p>Learn the mental model first: core types, sensors, navigation decisions, motor commands, and safety behavior.</p><p><a href="module_overview.md">Module overview</a> · <a href="robotour_use_case.md">Robotour use case</a></p><span class="badge">quick-start</span><span class="badge">examples</span></article>
       <article class="card"><h2>API users</h2><p>Public headers under <code>include/rozeta</code> are the source of truth. Doxygen generates browsable HTML/XML API docs for website publishing and IDE integrations. Installed packages expose <code>find_package(rozeta CONFIG REQUIRED)</code> and <code>rozeta::rozeta</code>.</p><p><a href="api-reference.md">API reference workflow</a></p><span class="badge">Doxygen</span><span class="badge">C++17</span><span class="badge">stable C ABI</span></article>
       <article class="card"><h2>Maintainers</h2><p>Every public header and example is checked by <code>scripts/verify_docs.py</code>. If code changes, update the mapped docs in the same commit.</p><p><a href="maintenance.md">Maintenance contract</a></p><span class="badge">CI verified</span><span class="badge">same commit</span></article>
+    </section>
+
+    <section class="section split">
+      <div><h2>Examples gallery</h2><p class="lead">No-hardware demos are kept buildable in CI so new users can exercise the Robotour stack before connecting sensors.</p><div class="callout">Replay a full telemetry fixture with <code>./build/examples/replay_robotour_log tests/fixtures/replay/basic_robotour.csv</code> to verify deterministic navigation decisions from logged GPS, LiDAR/depth, pose and motor-command expectations.</div></div>
+      <div class="card"><h2>Featured demos</h2><ul><li><strong>robotour_demo:</strong> compact autonomous-loop sketch.</li><li><strong>route_follower_demo:</strong> offline route CSV through waypoint navigation.</li><li><strong>replay_robotour_log:</strong> stable telemetry replay and integration check.</li><li><strong>depth_obstacle_console:</strong> depth fixture to obstacle sectors.</li></ul><p><a href="api-reference.md#examples-as-executable-documentation">Open executable documentation →</a></p></div>
     </section>
 
     <section class="section split">
