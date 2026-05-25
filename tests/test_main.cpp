@@ -52,6 +52,7 @@ void test_camera_rejects_invalid_metadata_and_payload_size();
 void test_telemetry_parser_loads_robotour_fixture();
 void test_telemetry_parser_rejects_bad_schema_and_rows();
 void test_telemetry_replay_produces_deterministic_navigation_decisions();
+void test_telemetry_replay_builds_deterministic_ui_snapshot_sequence();
 void test_ui_map_view_projects_markers_into_viewport();
 void test_ui_map_view_preserves_metric_aspect_ratio_in_wide_viewport();
 void test_ui_map_view_marks_off_axis_point_in_degenerate_bounds_invisible();
@@ -134,6 +135,7 @@ int main(){
         {"telemetry_parser_fixture", test_telemetry_parser_loads_robotour_fixture},
         {"telemetry_parser_errors", test_telemetry_parser_rejects_bad_schema_and_rows},
         {"telemetry_replay_deterministic", test_telemetry_replay_produces_deterministic_navigation_decisions},
+        {"telemetry_ui_snapshots", test_telemetry_replay_builds_deterministic_ui_snapshot_sequence},
         {"ui_map_projection", test_ui_map_view_projects_markers_into_viewport},
         {"ui_metric_aspect", test_ui_map_view_preserves_metric_aspect_ratio_in_wide_viewport},
         {"ui_degenerate_bounds", test_ui_map_view_marks_off_axis_point_in_degenerate_bounds_invisible},

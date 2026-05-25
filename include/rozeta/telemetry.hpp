@@ -4,6 +4,7 @@
 #include <rozeta/gps.hpp>
 #include <rozeta/motors.hpp>
 #include <rozeta/navigation.hpp>
+#include <rozeta/ui.hpp>
 
 #include <cstdint>
 #include <string>
@@ -37,11 +38,20 @@ struct ReplayDecisionResult {
     std::vector<navigation::NavigationDecision> decisions{};
 };
 
+struct ReplayUiResult {
+    Status status{};
+    std::vector<ui::UiSnapshot> snapshots{};
+};
+
 const std::vector<std::string>& replayCsvHeader();
 ReplayLogResult parseReplayLog(const std::string& csv_text);
 ReplayLogResult loadReplayLog(const std::string& path);
 ReplayDecisionResult replayNavigation(
     const std::vector<ReplaySample>& samples,
     navigation::NavigatorConfig config = {});
+ReplayUiResult replayUiSnapshots(
+    const std::vector<ReplaySample>& samples,
+    const maps::OfflineMap& map,
+    const ui::Viewport& viewport);
 
 } // namespace rozeta::telemetry

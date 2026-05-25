@@ -147,6 +147,35 @@ obstacle_detection::ObstacleInfo obstaclesFromSample(const ReplaySample& sample)
     return info;
 }
 
+GeoCoordinate geoFromSample(const ReplaySample& sample) {
+    return {
+        sample.gps.latitude,
+        sample.gps.longitude,
+        sample.gps.altitude_m,
+    };
+}
+
+RobotState robotStateFromSample(const ReplaySample& sample) {
+    RobotState robot;
+    robot.gps = geoFromSample(sample);
+    robot.pose = sample.pose;
+    robot.timestamp = Timestamp{std::chrono::milliseconds(sample.timestamp_ms)};
+    return robot;
+}
+
+std::vector<GeoCoordinate> operationPointsFromSamples(const std::vector<ReplaySample>& samples) {
+    std::vector<GeoCoordinate> operations;
+    if (samples.size() <= 2) {
+        return operations;
+    }
+
+    operations.reserve(samples.size() - 2);
+    for (std::size_t i = 1; i + 1 < samples.size(); ++i) {
+        operations.push_back(geoFromSample(samples[i]));
+    }
+    return operations;
+}
+
 } // namespace
 
 const std::vector<std::string>& replayCsvHeader() {
@@ -247,6 +276,40 @@ ReplayDecisionResult replayNavigation(
         result.decisions.push_back(
             navigator.goToWaypoint(sample.pose, sample.target, obstaclesFromSample(sample)));
     }
+    result.status = Status::okStatus();
+    return result;
+}
+
+ReplayUiResult replayUiSnapshots(
+    const std::vector<ReplaySample>& samples,
+    const maps::OfflineMap& map,
+    const ui::Viewport& viewport) {
+    ReplayUiResult result;
+    if (samples.empty()) {
+        result.status = Status::error(ErrorCode::InvalidArgument, "no replay samples supplied");
+        return result;
+    }
+
+    ui::MissionOverlay overlay;
+    overlay.setStart(geoFromSample(samples.front()));
+    overlay.setOperations(operationPointsFromSamples(samples));
+    overlay.setFinal(geoFromSample(samples.back()));
+
+    ui::SnapshotComposer composer;
+    composer.setMap(map);
+    composer.setOverlay(overlay);
+
+    result.snapshots.reserve(samples.size());
+    for (const auto& sample : samples) {
+        auto snapshot = composer.compose(robotStateFromSample(sample), viewport);
+        if (!snapshot.ok()) {
+            result.status = snapshot.status;
+            result.snapshots.clear();
+            return result;
+        }
+        result.snapshots.push_back(std::move(snapshot.snapshot));
+    }
+
     result.status = Status::okStatus();
     return result;
 }

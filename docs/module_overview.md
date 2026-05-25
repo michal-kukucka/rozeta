@@ -14,7 +14,7 @@ Shared definitions: `Status`, `ErrorCode`, timestamps, geometry, robot state, co
 
 ## Telemetry
 
-`telemetry::ReplaySample` defines the stable Robotour replay schema for GPS fixes, LiDAR/depth distances, pose, navigation decisions and motor commands. `telemetry::loadReplayLog` parses `rozeta.telemetry.v1` CSV files, and `telemetry::replayNavigation` drives recorded samples back through `navigation::SimpleNavigator` so CI can verify deterministic decisions without hardware.
+`telemetry::ReplaySample` defines the stable Robotour replay schema for GPS fixes, LiDAR/depth distances, pose, navigation decisions and motor commands. `telemetry::loadReplayLog` parses `rozeta.telemetry.v1` CSV files, `telemetry::replayNavigation` drives recorded samples back through `navigation::SimpleNavigator`, and `telemetry::replayUiSnapshots` turns the same samples into deterministic `ui::UiSnapshot` frames so CI can verify navigation and UI playback without hardware.
 
 ## Motors
 

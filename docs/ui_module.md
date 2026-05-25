@@ -105,3 +105,15 @@ M3 adds minimal dependency-free interfaces for future GUI/render backends:
 - `ui::renderFrame(renderer, snapshot, sink)` calls the renderer once and forwards the render status to the optional event sink.
 
 Qt, GTK, SDL, OpenCV, web bridges and terminal sinks can now be implemented out-of-tree or behind optional CMake flags while the default Rozeta build stays hardware-free and GUI-free. Mission loops should compose snapshots with `SnapshotComposer`, then deliver each frame through `renderFrame` at the desired mission rate.
+
+## Telemetry replay integration
+
+M4 connects the stable `rozeta.telemetry.v1` replay fixtures to the UI snapshot path. `telemetry::replayUiSnapshots(samples, map, viewport)` builds one `UiSnapshot` per replay sample, preserving the map, deterministic replay timestamp, start marker, intermediate operation markers, final marker and the current robot marker for each timestamp.
+
+The fixture-driven example prints every replayed dashboard frame without camera, Kinect or GUI hardware:
+
+```bash
+./build/examples/replay_ui_snapshots tests/fixtures/replay/basic_robotour.csv
+```
+
+Use this for deterministic CI/local inspection of recorded missions before attaching a richer GUI backend.

@@ -1,7 +1,9 @@
 #include "test_helpers.hpp"
 
+#include <rozeta/maps.hpp>
 #include <rozeta/telemetry.hpp>
 
+#include <chrono>
 #include <string>
 #include <vector>
 
@@ -94,4 +96,43 @@ void test_telemetry_replay_produces_deterministic_navigation_decisions() {
         REQUIRE_NEAR(actual.motor.left_speed, log.samples[i].recorded_motor.left_speed, 1e-9);
         REQUIRE_NEAR(actual.motor.right_speed, log.samples[i].recorded_motor.right_speed, 1e-9);
     }
+}
+
+void test_telemetry_replay_builds_deterministic_ui_snapshot_sequence() {
+    const auto log = rozeta::telemetry::loadReplayLog(fixturePath());
+    REQUIRE_TRUE(log.status.ok());
+
+    rozeta::maps::OfflineMap map;
+    map.paths.push_back({
+        "telemetry",
+        {
+            {50.0000000, 14.0000000, 250.0},
+            {50.0000001, 14.0000001, 250.1},
+            {50.0000002, 14.0000002, 250.2},
+            {50.0000003, 14.0000003, 250.3},
+        },
+    });
+
+    const auto replay = rozeta::telemetry::replayUiSnapshots(log.samples, map, {800, 600, 24});
+
+    REQUIRE_TRUE(replay.status.ok());
+    REQUIRE_EQ(replay.snapshots.size(), log.samples.size());
+    REQUIRE_TRUE(replay.snapshots.front().map_bounds.valid);
+    REQUIRE_NEAR(replay.snapshots.front().robot.gps.latitude, 50.0000000, 1e-9);
+    REQUIRE_NEAR(replay.snapshots.back().robot.gps.latitude, 50.0000003, 1e-9);
+    const auto first_timestamp_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        replay.snapshots.front().robot.timestamp.time_since_epoch()).count();
+    const auto last_timestamp_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        replay.snapshots.back().robot.timestamp.time_since_epoch()).count();
+    REQUIRE_EQ(first_timestamp_ms, 0LL);
+    REQUIRE_EQ(last_timestamp_ms, 300LL);
+    REQUIRE_TRUE(replay.snapshots.front().markers.back().has_heading);
+    REQUIRE_EQ(replay.snapshots.front().markers.front().label, std::string("start"));
+    REQUIRE_EQ(replay.snapshots.front().markers[1].label, std::string("operation 1"));
+    REQUIRE_EQ(replay.snapshots.front().markers[2].label, std::string("operation 2"));
+    REQUIRE_EQ(replay.snapshots.front().markers[3].label, std::string("final"));
+    REQUIRE_EQ(replay.snapshots.front().markers.back().label, std::string("robot"));
+    REQUIRE_TRUE(replay.snapshots.front().markers.back().screen.visible);
+    REQUIRE_TRUE(replay.snapshots.back().markers.back().screen.visible);
+    REQUIRE_TRUE(replay.snapshots.front().markers.back().screen.y > replay.snapshots.back().markers.back().screen.y);
 }

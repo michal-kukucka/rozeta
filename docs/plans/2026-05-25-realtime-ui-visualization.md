@@ -70,7 +70,7 @@
 
 **Acceptance:** `UiRenderer` / `UiEventSink` interfaces can receive snapshots at mission rate; fake renderer tests verify frame delivery and status propagation.
 
-### M4 — Telemetry replay integration
+### M4 — Telemetry replay integration ✅
 
 **Objective:** Connect replay logs to UI snapshots so recorded Robotour missions can be visualized.
 
@@ -94,3 +94,4 @@
 - 2026-05-25: M1 implemented with `rozeta::ui` snapshot composition, mission overlay markers, map projection helpers, stream validation, tests and user docs.
 - 2026-05-25: M2 implemented with `ui::renderTextDashboard`, `examples/mission_ui_dashboard.cpp`, tests and README/user documentation. Verified build, CTest, docs verifier and no-hardware dashboard run.
 - 2026-05-25: M3 implemented with `ui::UiRenderer`, `ui::UiEventSink` and `ui::renderFrame` so optional renderers can receive snapshots and report status without adding GUI dependencies. Verified with fake renderer/event-sink tests.
+- 2026-05-25: M4 implemented with `telemetry::replayUiSnapshots` and `examples/replay_ui_snapshots.cpp` so `rozeta.telemetry.v1` fixture logs produce deterministic UI snapshot sequences with moving robot markers. Verified with CTest and no-hardware replay example.

@@ -151,6 +151,12 @@ Robotour telemetry replay without hardware:
 ./build/examples/replay_robotour_log tests/fixtures/replay/basic_robotour.csv
 ```
 
+Robotour telemetry-to-UI replay without hardware:
+
+```bash
+./build/examples/replay_ui_snapshots tests/fixtures/replay/basic_robotour.csv
+```
+
 Mission UI dashboard without hardware:
 
 ```bash
@@ -185,6 +191,7 @@ Detailed docs are included in `docs/` and are ready to be reused as a future off
 - `docs/module_overview.md#kinect` — Kinect/depth frame helpers and depth-derived obstacle sectors
 - `docs/robotour_use_case.md` — Robotour-style autonomous vehicle workflow
 - `examples/replay_robotour_log.cpp` — fixture-driven telemetry replay demo
+- `examples/replay_ui_snapshots.cpp` — fixture-driven telemetry-to-UI snapshot replay demo
 - `examples/mission_ui_dashboard.cpp` — no-hardware UI dashboard snapshot demo
 
 Documentation is verified from the public code surface:
@@ -219,10 +226,11 @@ Covered behavior:
 - configuration loading
 - Robotour telemetry log parsing and deterministic replay decisions
 - realtime UI snapshot composition, text dashboard rendering and renderer status propagation
+- telemetry replay conversion into deterministic UI snapshot sequences
 
 ## Status
 
-Rozeta now includes milestone 1 through milestone 10 foundations: mockable core APIs, an internal POSIX serial transport, motor calibration persistence, optional serial motor, YDLIDAR-style LiDAR, OpenCV camera and libfreenect Kinect flags, a serial/file GPS receiver with robust NMEA validation, offline CSV route loading with monotonic route following, IMU pose fusion, CI-testable depth-to-obstacle processing, telemetry replay hardening, realtime UI snapshot/dashboard primitives with an optional renderer bridge seam, an installable CMake package export, and a stable value-type C ABI for version, angle normalization, 2D distance and LiDAR obstacle sector calculation.
+Rozeta now includes milestone 1 through milestone 10 foundations: mockable core APIs, an internal POSIX serial transport, motor calibration persistence, optional serial motor, YDLIDAR-style LiDAR, OpenCV camera and libfreenect Kinect flags, a serial/file GPS receiver with robust NMEA validation, offline CSV route loading with monotonic route following, IMU pose fusion, CI-testable depth-to-obstacle processing, telemetry replay hardening with UI snapshot playback, realtime UI snapshot/dashboard primitives with an optional renderer bridge seam, an installable CMake package export, and a stable value-type C ABI for version, angle normalization, 2D distance and LiDAR obstacle sector calculation.
 
 
 ## License
