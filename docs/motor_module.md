@@ -50,22 +50,51 @@ cmake -S . -B build-serial   -DROZETA_BUILD_TESTS=ON   -DROZETA_BUILD_EXAMPLES=O
 cmake --build build-serial --parallel 2
 ```
 
-`SerialMotorController` wraps the M1 POSIX serial transport and converts normalized speed commands to a simple line protocol:
+`SerialMotorController` wraps the M1 POSIX serial transport and converts normalized speed commands to either the default text protocol or the Buchlovice binary packet protocol.
+
+### TextLine protocol
+
+`SerialMotorProtocol::TextLine` writes a simple line protocol:
 
 ```text
 M <left_command> <right_command>
-
 ```
 
 Default behavior:
 
 - command range: `[-max_command, max_command]`, default `255`.
-- default stop command: `M 0 0
-`.
+- default stop command: `M 0 0\n`.
 - input validation rejects non-finite speeds and speeds outside `calibration.max_speed`.
 - `stop()` writes the configured stop command and does not latch emergency state.
 - `emergencyStop()` writes the configured stop command first, then latches the backend so future movement returns `EmergencyStopped` until explicitly cleared.
 - `encoderFeedback()` currently returns an empty feedback snapshot; encoder polling is a later backend milestone.
+
+### BuchloviceBinary protocol
+
+`SerialMotorProtocol::BuchloviceBinary` covers the motor packet used by `/home/michal/projects/buchlovice/motordriver/robot_driver.py`:
+
+```text
+[255, pwm_right, pwm_left, reg, lrc, 13, 10]
+```
+
+Packet rules:
+
+- normalized speed magnitude is converted like Buchlovice percentage PWM: `abs(speed / max_speed) * 254`, clipped to `0..254`.
+- `pwm_right` is serialized before `pwm_left`, matching the Buchlovice controller wiring.
+- REG direction bits use bit 0 for right-forward and bit 1 for left-forward; reverse or stopped speeds leave the bit clear.
+- LRC checksum is the 8-bit two's-complement of `pwm_right + pwm_left + reg`.
+- stop and emergency stop write `[255, 0, 0, 0, 0, 13, 10]` through a minimal stop path that bypasses unrelated motion-command validation.
+- `buchlovice_repeat_interval` defaults to 200 ms. The serial backend exposes this timing as configuration; the M2 mission runtime should own repeated keepalive scheduling so default tests remain thread-free and hardware-free.
+
+Example config:
+
+```cpp
+rozeta::motors::SerialMotorConfig config;
+config.device = "/dev/ttyUSB0";
+config.baud_rate = 9600;
+config.protocol = rozeta::motors::SerialMotorProtocol::BuchloviceBinary;
+config.buchlovice_repeat_interval = std::chrono::milliseconds(200);
+```
 
 Example dry run:
 

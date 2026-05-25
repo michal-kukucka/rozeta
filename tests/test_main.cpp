@@ -73,6 +73,9 @@ void test_serial_motor_clear_emergency_stop_allows_motion();
 void test_serial_motor_emergency_stop_writes_stop_even_when_motion_config_is_invalid();
 void test_serial_motor_rejects_command_prefix_with_control_characters();
 void test_serial_motor_propagates_transport_write_errors();
+void test_serial_motor_formats_buchlovice_binary_packets();
+void test_serial_motor_buchlovice_stop_and_spin_packets();
+void test_serial_motor_buchlovice_emergency_stop_bypasses_invalid_motion_config();
 #endif
 #ifdef ROZETA_WITH_YDLIDAR
 void test_ydlidar_parser_parses_sample_frame();
@@ -156,6 +159,9 @@ int main(){
         {"serial_motor_estop_ignores_motion_config", test_serial_motor_emergency_stop_writes_stop_even_when_motion_config_is_invalid},
         {"serial_motor_prefix_validation", test_serial_motor_rejects_command_prefix_with_control_characters},
         {"serial_motor_write_error", test_serial_motor_propagates_transport_write_errors},
+        {"serial_motor_buchlovice_packet", test_serial_motor_formats_buchlovice_binary_packets},
+        {"serial_motor_buchlovice_stop_spin", test_serial_motor_buchlovice_stop_and_spin_packets},
+        {"serial_motor_buchlovice_estop", test_serial_motor_buchlovice_emergency_stop_bypasses_invalid_motion_config},
 #endif
 #ifdef ROZETA_WITH_YDLIDAR
         {"ydlidar_parse_fixture", test_ydlidar_parser_parses_sample_frame},

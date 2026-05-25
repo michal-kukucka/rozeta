@@ -6,6 +6,7 @@
 #include <cmath>
 #include <cstdint>
 #include <sstream>
+#include <string>
 #include <utility>
 
 namespace rozeta::internal {
@@ -27,12 +28,60 @@ int commandValue(double speed, double max_speed, double scale, int max_command) 
     return static_cast<int>(std::lround(clipped * static_cast<double>(max_command)));
 }
 
+std::uint8_t buchlovicePwm(double speed, double max_speed, double scale) {
+    const double normalized = std::fabs((speed / max_speed) * scale);
+    const double clipped = std::max(0.0, std::min(1.0, normalized));
+    return static_cast<std::uint8_t>(std::floor(clipped * 254.0));
+}
+
+std::uint8_t buchloviceReg(double leftSpeed, double rightSpeed, const motors::MotorCalibration& calibration) {
+    std::uint8_t reg = 0;
+    if (rightSpeed * calibration.right_scale > 0.0) {
+        reg |= 0x01;
+    }
+    if (leftSpeed * calibration.left_scale > 0.0) {
+        reg |= 0x02;
+    }
+    return reg;
+}
+
+std::uint8_t buchloviceLrc(std::uint8_t pwmRight, std::uint8_t pwmLeft, std::uint8_t reg) {
+    const std::uint8_t sum = static_cast<std::uint8_t>(pwmRight + pwmLeft + reg);
+    return static_cast<std::uint8_t>(0U - sum);
+}
+
+std::string buchlovicePacket(std::uint8_t pwmRight, std::uint8_t pwmLeft, std::uint8_t reg) {
+    const std::uint8_t lrc = buchloviceLrc(pwmRight, pwmLeft, reg);
+    const char bytes[] = {
+        static_cast<char>(255),
+        static_cast<char>(pwmRight),
+        static_cast<char>(pwmLeft),
+        static_cast<char>(reg),
+        static_cast<char>(lrc),
+        static_cast<char>(13),
+        static_cast<char>(10),
+    };
+    return std::string(bytes, sizeof(bytes));
+}
+
 } // namespace
 
 SerialMotorBackend::SerialMotorBackend(motors::SerialMotorConfig config, MotorSerialTransport& transport)
     : config_(std::move(config)), transport_(transport) {}
 
 Status SerialMotorBackend::validateConfig() const {
+    if (!std::isfinite(config_.calibration.max_speed) || config_.calibration.max_speed <= 0.0) {
+        return invalid("serial motor calibration max_speed must be positive");
+    }
+    if (!std::isfinite(config_.calibration.left_scale) || !std::isfinite(config_.calibration.right_scale)) {
+        return invalid("serial motor calibration scales must be finite");
+    }
+    if (config_.protocol == motors::SerialMotorProtocol::BuchloviceBinary) {
+        if (config_.buchlovice_repeat_interval.count() <= 0) {
+            return invalid("Buchlovice motor repeat interval must be positive");
+        }
+        return Status::okStatus();
+    }
     if (config_.max_command <= 0) {
         return invalid("serial motor max_command must be positive");
     }
@@ -45,12 +94,6 @@ Status SerialMotorBackend::validateConfig() const {
     if (config_.stop_command.empty()) {
         return invalid("serial motor stop_command is empty");
     }
-    if (!std::isfinite(config_.calibration.max_speed) || config_.calibration.max_speed <= 0.0) {
-        return invalid("serial motor calibration max_speed must be positive");
-    }
-    if (!std::isfinite(config_.calibration.left_scale) || !std::isfinite(config_.calibration.right_scale)) {
-        return invalid("serial motor calibration scales must be finite");
-    }
     return Status::okStatus();
 }
 
@@ -59,6 +102,9 @@ Status SerialMotorBackend::writeCommand(const std::string& command) {
 }
 
 Status SerialMotorBackend::writeStopCommand() {
+    if (config_.protocol == motors::SerialMotorProtocol::BuchloviceBinary) {
+        return writeCommand(buchlovicePacket(0, 0, 0));
+    }
     if (config_.stop_command.empty()) {
         return invalid("serial motor stop_command is empty");
     }
@@ -66,6 +112,19 @@ Status SerialMotorBackend::writeStopCommand() {
 }
 
 std::string SerialMotorBackend::formatSpeedCommand(double leftSpeed, double rightSpeed) const {
+    if (config_.protocol == motors::SerialMotorProtocol::BuchloviceBinary) {
+        const std::uint8_t pwmRight = buchlovicePwm(
+            rightSpeed,
+            config_.calibration.max_speed,
+            config_.calibration.right_scale);
+        const std::uint8_t pwmLeft = buchlovicePwm(
+            leftSpeed,
+            config_.calibration.max_speed,
+            config_.calibration.left_scale);
+        const std::uint8_t reg = buchloviceReg(leftSpeed, rightSpeed, config_.calibration);
+        return buchlovicePacket(pwmRight, pwmLeft, reg);
+    }
+
     const int left = commandValue(leftSpeed, config_.calibration.max_speed, config_.calibration.left_scale, config_.max_command);
     const int right = commandValue(rightSpeed, config_.calibration.max_speed, config_.calibration.right_scale, config_.max_command);
     std::ostringstream out;

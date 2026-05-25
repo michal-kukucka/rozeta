@@ -74,6 +74,11 @@ private:
 
 #ifdef ROZETA_WITH_SERIAL_MOTORS
 
+enum class SerialMotorProtocol {
+    TextLine,
+    BuchloviceBinary,
+};
+
 struct SerialMotorConfig {
     std::string device{};
     int baud_rate{115200};
@@ -83,6 +88,8 @@ struct SerialMotorConfig {
     int max_command{255};
     std::string command_prefix{"M"};
     std::string stop_command{"M 0 0\n"};
+    SerialMotorProtocol protocol{SerialMotorProtocol::TextLine};
+    std::chrono::milliseconds buchlovice_repeat_interval{200};
 };
 
 class SerialMotorController final : public MotorController {

@@ -3,6 +3,7 @@
 #include <rozeta/motors.hpp>
 #include "internal/serial_motor_backend.hpp"
 
+#include <chrono>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -150,4 +151,85 @@ void test_serial_motor_propagates_transport_write_errors() {
 
     backend.emergencyStop();
     REQUIRE_TRUE(backend.isEmergencyStopped());
+}
+
+void test_serial_motor_formats_buchlovice_binary_packets() {
+    FakeMotorTransport transport;
+    auto config = testConfig();
+    config.protocol = rozeta::motors::SerialMotorProtocol::BuchloviceBinary;
+    config.buchlovice_repeat_interval = std::chrono::milliseconds(200);
+    rozeta::internal::SerialMotorBackend backend(config, transport);
+
+    rozeta::Status status = backend.setSpeed(1.0, -0.5);
+
+    REQUIRE_TRUE(status.ok());
+    REQUIRE_EQ(transport.writes.size(), static_cast<std::size_t>(1));
+    const std::string expected{
+        static_cast<char>(255),
+        static_cast<char>(127),
+        static_cast<char>(254),
+        static_cast<char>(2),
+        static_cast<char>(129),
+        static_cast<char>(13),
+        static_cast<char>(10),
+    };
+    REQUIRE_EQ(transport.writes[0], expected);
+}
+
+void test_serial_motor_buchlovice_stop_and_spin_packets() {
+    FakeMotorTransport transport;
+    auto config = testConfig();
+    config.protocol = rozeta::motors::SerialMotorProtocol::BuchloviceBinary;
+    rozeta::internal::SerialMotorBackend backend(config, transport);
+
+    rozeta::Status status = backend.setSpeed(-1.0, 1.0);
+
+    REQUIRE_TRUE(status.ok());
+    const std::string left_spin{
+        static_cast<char>(255),
+        static_cast<char>(254),
+        static_cast<char>(254),
+        static_cast<char>(1),
+        static_cast<char>(3),
+        static_cast<char>(13),
+        static_cast<char>(10),
+    };
+    REQUIRE_EQ(transport.writes[0], left_spin);
+
+    status = backend.stop();
+    REQUIRE_TRUE(status.ok());
+    const std::string stop_packet{
+        static_cast<char>(255),
+        static_cast<char>(0),
+        static_cast<char>(0),
+        static_cast<char>(0),
+        static_cast<char>(0),
+        static_cast<char>(13),
+        static_cast<char>(10),
+    };
+    REQUIRE_EQ(transport.writes[1], stop_packet);
+}
+
+void test_serial_motor_buchlovice_emergency_stop_bypasses_invalid_motion_config() {
+    FakeMotorTransport transport;
+    auto config = testConfig();
+    config.protocol = rozeta::motors::SerialMotorProtocol::BuchloviceBinary;
+    config.max_command = 0;
+    config.calibration.max_speed = -1.0;
+    rozeta::internal::SerialMotorBackend backend(config, transport);
+
+    backend.emergencyStop();
+
+    REQUIRE_TRUE(backend.isEmergencyStopped());
+    const std::string stop_packet{
+        static_cast<char>(255),
+        static_cast<char>(0),
+        static_cast<char>(0),
+        static_cast<char>(0),
+        static_cast<char>(0),
+        static_cast<char>(13),
+        static_cast<char>(10),
+    };
+    REQUIRE_EQ(transport.writes.size(), static_cast<std::size_t>(1));
+    REQUIRE_EQ(transport.writes[0], stop_packet);
 }

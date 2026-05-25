@@ -210,7 +210,7 @@ const ROZETA_MODULE_MODEL = {
         { from: 'headers', to: 'sensors', label: 'Sensor APIs', detail: 'Interfaces and parsed payloads', lx: 455, ly: 305 },
         { from: 'headers', to: 'logic', label: 'Navigation APIs', detail: 'Waypoint and obstacle-aware decisions', lx: 700, ly: 305 },
         { from: 'sensors', to: 'logic', label: 'data-flow', detail: 'GPS fix + LiDAR scan + pose estimate + offline route', lx: 607, ly: 505, hot: true },
-        { from: 'logic', to: 'hardware', label: 'Motor commands', detail: 'Differential-drive commands, calibration scaling and e-stop over mock/serial backend', lx: 915, ly: 300 },
+        { from: 'logic', to: 'hardware', label: 'Motor commands', detail: 'Differential-drive commands, calibration scaling, e-stop, TextLine and BuchloviceBinary serial packets with REG direction bits + LRC checksum', lx: 915, ly: 300 },
         { from: 'tests', to: 'headers', label: 'Contract tests', detail: 'Tests compile against public APIs', lx: 305, ly: 555 }
       ]
     },
@@ -248,7 +248,7 @@ const ROZETA_MODULE_MODEL = {
         { id: 'parse', label: 'Normalize modules', x: 435, y: 80, w: 250, h: 96, color: '#34d399', detail: 'NMEA + YDLIDAR + depth + OpenCV + CSV + odometry' },
         { id: 'model', label: 'Rozeta data model', x: 805, y: 80, w: 240, h: 96, color: '#22d3ee', detail: 'Geo, scan, pose, state' },
         { id: 'decision', label: 'Decision layer', x: 430, y: 320, w: 270, h: 100, color: '#34d399', detail: 'Obstacles + RouteFollower + navigator' },
-        { id: 'act', label: 'Actuation / logging', x: 805, y: 320, w: 240, h: 100, color: '#fb7185', detail: 'Mock/serial motors + logs' },
+        { id: 'act', label: 'Actuation / logging', x: 805, y: 320, w: 240, h: 100, color: '#fb7185', detail: 'Mock/serial motors; Buchlovice packets [255, pwm_right, pwm_left, reg, lrc, 13, 10]; logs' },
         { id: 'docs', label: 'Docs + tests', x: 235, y: 570, w: 280, h: 92, color: '#a78bfa', detail: 'Doxygen + docs verifier + CTest' },
         { id: 'site', label: 'Official-site ready', x: 650, y: 570, w: 280, h: 92, color: '#a78bfa', detail: 'Portal, diagrams, API docs' }
       ],

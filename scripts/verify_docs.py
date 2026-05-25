@@ -88,6 +88,15 @@ REQUIRED_HARDWARE_UI_PHRASES = [
     "default CI stays hardware-free",
 ]
 
+REQUIRED_BUCHLOVICE_M1_PHRASES = [
+    "BuchloviceBinary",
+    "[255, pwm_right, pwm_left, reg, lrc, 13, 10]",
+    "REG direction bits",
+    "LRC checksum",
+    "buchlovice_repeat_interval",
+    "M1 — Buchlovice motor backend",
+]
+
 
 def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
@@ -166,6 +175,17 @@ def main() -> int:
     for phrase in REQUIRED_HARDWARE_UI_PHRASES:
         if phrase not in hardware_ui:
             fail(f"hardware UI backend runbook/smoke hook missing: {phrase}", failures)
+
+    buchlovice_m1_docs = (
+        read("docs/motor_module.md")
+        + "\n"
+        + read("docs/diagrams/module-map.html")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M1_PHRASES:
+        if phrase not in buchlovice_m1_docs:
+            fail(f"Buchlovice M1 documentation/diagram coverage missing: {phrase}", failures)
 
     doxygen = read("Doxyfile")
     for required in ["INPUT                  = include src examples", "OUTPUT_DIRECTORY       = docs/generated", "GENERATE_HTML", "GENERATE_XML", "EXTRACT_ALL"]:
