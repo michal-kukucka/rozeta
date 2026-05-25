@@ -5,65 +5,361 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Rozeta project structure and Robotour scenario graph</title>
 <style>
-:root{color-scheme:dark;--bg:#020617;--panel:#0f172a;--text:#e2e8f0;--muted:#94a3b8;--cyan:#22d3ee;--emerald:#34d399;--violet:#a78bfa;--amber:#fbbf24;--rose:#fb7185;--orange:#fb923c;--slate:#64748b}
-*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.wrap{max-width:1460px;margin:auto;padding:24px}.hero{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;margin-bottom:18px}.dot{width:12px;height:12px;border-radius:50%;background:var(--emerald);box-shadow:0 0 22px var(--emerald);display:inline-block;margin-right:10px}h1{font-size:30px;margin:0 0 8px}.sub{color:var(--muted);max-width:950px;line-height:1.5}.layout{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px}.card{background:rgba(15,23,42,.88);border:1px solid #1e293b;border-radius:16px;padding:16px;box-shadow:0 20px 80px rgba(0,0,0,.28)}svg{width:100%;height:auto;display:block}.node rect.bg{fill:#0f172a}.node text.title{font-size:16px;font-weight:700;fill:#f8fafc}.node text.sub{font-size:12px;fill:#cbd5e1}.edge{fill:none;stroke-width:2.2;opacity:.86}.edge.selected{stroke-width:4;opacity:1}.edge-hotspot{fill:none;stroke:transparent;stroke-width:18;cursor:pointer}.edge-label text{font-size:11px;fill:#e2e8f0}.edge-label rect{fill:#111827;stroke:#334155;rx:6}.edge-label{cursor:pointer}.edge-label.selected rect{fill:#1e293b;stroke:#fbbf24;stroke-width:2}.callout rect{fill:#111827;stroke:#fbbf24;stroke-width:2;rx:10}.callout text{font-size:13px;fill:#f8fafc}.legend{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}.pill{border:1px solid #334155;border-radius:999px;padding:6px 10px;color:#cbd5e1;font-size:12px}.inspector h2{margin:0 0 8px;font-size:20px}.inspector .kv{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#cbd5e1;font-size:13px;line-height:1.55;white-space:pre-wrap}.hint{font-size:13px;color:#94a3b8;margin-top:10px}.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:16px}.cards h3{margin:0 0 8px}.cards ul{margin:0;padding-left:18px;color:#cbd5e1;line-height:1.5}@media(max-width:1000px){.layout{grid-template-columns:1fr}.cards{grid-template-columns:1fr}}
+:root {
+  color-scheme: dark;
+  --bg: #020617;
+  --panel: #0f172a;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --cyan: #22d3ee;
+  --emerald: #34d399;
+  --violet: #a78bfa;
+  --amber: #fbbf24;
+  --rose: #fb7185;
+  --orange: #fb923c;
+  --slate: #64748b;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.wrap {
+  max-width: 1560px;
+  margin: auto;
+  padding: 24px;
+}
+
+.hero {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 18px;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--emerald);
+  box-shadow: 0 0 22px var(--emerald);
+  display: inline-block;
+  margin-right: 10px;
+}
+
+h1 {
+  font-size: 30px;
+  margin: 0 0 8px;
+}
+
+.sub {
+  color: var(--muted);
+  max-width: 980px;
+  line-height: 1.5;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 16px;
+}
+
+.card {
+  background: rgba(15, 23, 42, 0.88);
+  border: 1px solid #1e293b;
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 20px 80px rgba(0, 0, 0, 0.28);
+}
+
+svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.node rect.bg { fill: #0f172a; }
+.node text.title { font-size: 17px; font-weight: 800; fill: #f8fafc; }
+.node text.sub { font-size: 12.5px; fill: #cbd5e1; }
+
+.edge {
+  fill: none;
+  stroke-width: 2.2;
+  opacity: 0.78;
+}
+
+.edge.selected {
+  stroke-width: 4;
+  opacity: 1;
+}
+
+.edge-hotspot {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 22;
+  cursor: pointer;
+}
+
+.edge-label { cursor: pointer; }
+.edge-label text { font-size: 13px; font-weight: 800; fill: #f8fafc; }
+.edge-label rect { fill: #111827; stroke: #475569; rx: 8; opacity: 0.96; }
+.edge-label:hover rect { stroke: #fbbf24; }
+.edge-label.selected rect { fill: #1e293b; stroke: #fbbf24; stroke-width: 2; }
+
+.callout rect {
+  fill: #111827;
+  stroke: #fbbf24;
+  stroke-width: 2;
+  rx: 10;
+}
+
+.callout text {
+  font-size: 13px;
+  fill: #f8fafc;
+}
+
+.legend {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.pill {
+  border: 1px solid #334155;
+  border-radius: 999px;
+  padding: 6px 10px;
+  color: #cbd5e1;
+  font-size: 12px;
+}
+
+.inspector h2 { margin: 0 0 8px; font-size: 20px; }
+
+.inspector .kv {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  color: #cbd5e1;
+  font-size: 13px;
+  line-height: 1.55;
+  white-space: pre-wrap;
+}
+
+.hint {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-top: 10px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.cards h3 { margin: 0 0 8px; }
+.cards ul { margin: 0; padding-left: 18px; color: #cbd5e1; line-height: 1.5; }
+
+@media (max-width: 1000px) {
+  .layout { grid-template-columns: 1fr; }
+  .cards { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
 <div class="wrap">
   <section class="hero">
-    <div><h1><span class="dot"></span>Rozeta project structure + Robotour scenario</h1><div class="sub">Vector HTML/SVG map of the current repository. Boxes show source modules, tests, examples, documentation, CI and installed consumers. Click any relation label/line to inspect payloads and why it matters.</div></div>
+    <div>
+      <h1><span class="dot"></span>Rozeta project structure + Robotour scenario</h1>
+      <div class="sub">Vector HTML/SVG map of the current repository. Boxes show source modules, tests, examples, documentation, CI and installed consumers. Click any relation label/line to inspect payloads and why it matters.</div>
+    </div>
   </section>
+
   <div class="layout">
-    <div class="card"><svg id="diagram" viewBox="0 0 1060 780" role="img" aria-label="Rozeta project structure and Robotour scenario graph"></svg><div class="legend"><span class="pill">cyan: public API</span><span class="pill">emerald: implementation</span><span class="pill">violet: tests/fixtures</span><span class="pill">amber: docs/release</span><span class="pill">orange: scenario flow</span><span class="pill">slate: consumers/CI</span></div></div>
-    <aside class="card inspector"><h2>Line inspector</h2><div id="inspector" class="kv">Click a relation label or line to see full payload and usability notes.</div><div class="hint">Labels are clickable so dense diagram text never has to be tiny or hidden behind boxes.</div></aside>
+    <div class="card">
+      <svg id="diagram" viewBox="0 0 1260 900" role="img" aria-label="Rozeta project structure and Robotour scenario graph"></svg>
+      <div class="legend">
+        <span class="pill">cyan: public API</span>
+        <span class="pill">emerald: implementation</span>
+        <span class="pill">violet: tests/fixtures</span>
+        <span class="pill">amber: docs/release</span>
+        <span class="pill">orange: scenario flow</span>
+        <span class="pill">slate: consumers/CI</span>
+      </div>
+    </div>
+
+    <aside class="card inspector">
+      <h2>Line inspector</h2>
+      <div id="inspector" class="kv">Click a relation label or line to see full payload and usability notes.</div>
+      <div class="hint">Labels are drawn above nodes with large hit targets, so dense diagram text does not sit under boxes or shrink into unreadable pixels.</div>
+    </aside>
   </div>
+
   <div class="cards">
     <div class="card"><h3>Quick usability path</h3><ul><li>Read docs/index.html and this graph.</li><li>Run replay_robotour_log with fixture CSV.</li><li>Use examples/consumer after cmake --install.</li></ul></div>
     <div class="card"><h3>Basic scenario implementation</h3><ul><li>GPS + route + pose + sensors feed navigation.</li><li>Navigation emits motor commands.</li><li>Telemetry captures and replays decisions.</li></ul></div>
     <div class="card"><h3>Quality gates</h3><ul><li>CTest covers unit/integration fixtures.</li><li>verify_docs.py checks docs/header/example links.</li><li>CI runs Debug/Release and optional Doxygen.</li></ul></div>
   </div>
 </div>
+
 <script>
-const FLOW_MODEL={
-  nodes:[
-    ['docs',40,40,210,86,'Docs portal','README, docs/index, release, diagrams','amber'],
-    ['headers',330,35,250,96,'Public headers','include/rozeta/*.hpp + c_api.h','cyan'],
-    ['src',700,35,260,96,'Library sources','src/*.cpp optional backends gated','emerald'],
-    ['fixtures',40,210,230,96,'Fixtures','CSV/NMEA/LiDAR/depth/telemetry','violet'],
-    ['tests',330,205,250,106,'CTest tests','unit + integration + docs contract','violet'],
-    ['examples',700,205,270,106,'Examples','robotour, replay, camera, C API','orange'],
-    ['install',40,390,230,100,'Install package','rozeta::rozeta CMake config','slate'],
-    ['consumer',330,390,250,100,'Downstream consumer','C/C++ find_package fixture','slate'],
-    ['ci',700,390,270,100,'CI / release gate','Debug/Release, docs, Doxygen','slate'],
-    ['scenario',90,580,830,120,'Robotour scenario loop','route + GPS + pose + LiDAR/depth + navigation + motors + telemetry replay','orange']
+const FLOW_MODEL = {
+  nodes: [
+    { id: 'docs', x: 60, y: 50, w: 260, h: 96, title: 'Docs portal', sub: 'README, docs/index, release, diagrams', kind: 'amber' },
+    { id: 'headers', x: 500, y: 50, w: 270, h: 96, title: 'Public headers', sub: 'include/rozeta/*.hpp + c_api.h', kind: 'cyan' },
+    { id: 'src', x: 930, y: 50, w: 270, h: 96, title: 'Library sources', sub: 'src/*.cpp optional backends gated', kind: 'emerald' },
+    { id: 'fixtures', x: 60, y: 260, w: 270, h: 104, title: 'Fixtures', sub: 'CSV/NMEA/LiDAR/depth/telemetry', kind: 'violet' },
+    { id: 'tests', x: 500, y: 260, w: 270, h: 104, title: 'CTest tests', sub: 'unit + integration + docs contract', kind: 'violet' },
+    { id: 'examples', x: 930, y: 260, w: 270, h: 104, title: 'Examples', sub: 'robotour, replay, camera, C API', kind: 'orange' },
+    { id: 'install', x: 60, y: 485, w: 270, h: 104, title: 'Install package', sub: 'rozeta::rozeta CMake config', kind: 'slate' },
+    { id: 'consumer', x: 500, y: 485, w: 270, h: 104, title: 'Downstream consumer', sub: 'C/C++ find_package fixture', kind: 'slate' },
+    { id: 'ci', x: 930, y: 485, w: 270, h: 104, title: 'CI / release gate', sub: 'Debug/Release, docs, Doxygen', kind: 'slate' },
+    { id: 'scenario', x: 180, y: 725, w: 900, h: 116, title: 'Robotour scenario loop', sub: 'route + GPS + pose + LiDAR/depth + navigation + motors + telemetry replay', kind: 'orange' }
   ],
-  edges:[
-    ['e1','docs','headers','documents public API contracts','API/reference docs explain payload types and stable module boundaries'],
-    ['e2','headers','src','declares implemented modules','Headers define value types; sources implement CI-safe logic and optional hardware backends'],
-    ['e3','fixtures','tests','feeds deterministic tests','Fixtures make GPS, LiDAR, depth, IMU and telemetry behavior replayable without hardware'],
-    ['e4','src','tests','validated by CTest','Unit and integration tests check pure logic, parsers, package smoke and replay decisions'],
-    ['e5','src','examples','used by executable docs','Examples show the minimal usable scenario for each module'],
-    ['e6','headers','install','installed API surface','cmake --install copies public headers and exports rozeta::rozeta'],
-    ['e7','install','consumer','find_package integration','Downstream C and C++ fixtures link against installed shared/static packages'],
-    ['e8','tests','ci','protected in automation','CI matrix builds Debug/Release and runs docs verifier plus replay smoke'],
-    ['e9','examples','scenario','basic scenario implementation','replay_robotour_log demonstrates navigation decisions from telemetry fixture rows'],
-    ['e10','scenario','docs','explains usability','Documentation links scenario, release checklist, examples gallery and module relations']
+  edges: [
+    { id: 'e1', from: 'docs', to: 'headers', label: 'documents public API', detail: 'API/reference docs explain payload types and stable module boundaries', lx: 410, ly: 88 },
+    { id: 'e2', from: 'headers', to: 'src', label: 'declares implemented modules', detail: 'Headers define value types; sources implement CI-safe logic and optional hardware backends', lx: 850, ly: 178 },
+    { id: 'e3', from: 'fixtures', to: 'tests', label: 'feeds deterministic tests', detail: 'Fixtures make GPS, LiDAR, depth, IMU and telemetry behavior replayable without hardware', lx: 410, ly: 220 },
+    { id: 'e4', from: 'src', to: 'tests', label: 'validated by CTest', detail: 'Unit and integration tests check pure logic, parsers, package smoke and replay decisions', lx: 825, ly: 205 },
+    { id: 'e5', from: 'src', to: 'examples', label: 'used by executable docs', detail: 'Examples show the minimal usable scenario for each module', lx: 1120, ly: 205 },
+    { id: 'e6', from: 'headers', to: 'install', label: 'installed API surface', detail: 'cmake --install copies public headers and exports rozeta::rozeta', lx: 360, ly: 425 },
+    { id: 'e7', from: 'install', to: 'consumer', label: 'find_package integration', detail: 'Downstream C and C++ fixtures link against installed shared/static packages', lx: 410, ly: 635 },
+    { id: 'e8', from: 'tests', to: 'ci', label: 'protected in automation', detail: 'CI matrix builds Debug/Release and runs docs verifier plus replay smoke', lx: 845, ly: 425 },
+    { id: 'e9', from: 'examples', to: 'scenario', label: 'basic scenario implementation', detail: 'replay_robotour_log demonstrates navigation decisions from telemetry fixture rows', lx: 1010, ly: 675 },
+    { id: 'e10', from: 'scenario', to: 'docs', label: 'explains usability', detail: 'Documentation links scenario, release checklist, examples gallery and module relations', lx: 190, ly: 675 }
   ],
-  colors:{cyan:['rgba(8,51,68,.45)','#22d3ee'],emerald:['rgba(6,78,59,.45)','#34d399'],violet:['rgba(76,29,149,.45)','#a78bfa'],amber:['rgba(120,53,15,.35)','#fbbf24'],orange:['rgba(251,146,60,.30)','#fb923c'],slate:['rgba(30,41,59,.58)','#94a3b8']}
+  colors: {
+    cyan: ['rgba(8,51,68,.45)', '#22d3ee'],
+    emerald: ['rgba(6,78,59,.45)', '#34d399'],
+    violet: ['rgba(76,29,149,.45)', '#a78bfa'],
+    amber: ['rgba(120,53,15,.35)', '#fbbf24'],
+    orange: ['rgba(251,146,60,.30)', '#fb923c'],
+    slate: ['rgba(30,41,59,.58)', '#94a3b8']
+  }
 };
-let selectedEdgeId=null;
-const svg=document.getElementById('diagram'),inspector=document.getElementById('inspector');
-function nodeById(id){return FLOW_MODEL.nodes.find(n=>n[0]===id)}
-function center(n){return [n[1]+n[3]/2,n[2]+n[4]/2]}
-function esc(s){return String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]))}
-function pathFor(a,b){const [ax,ay]=center(a),[bx,by]=center(b);const dx=Math.max(80,Math.abs(bx-ax)*.42);return `M ${ax} ${ay} C ${ax+dx} ${ay}, ${bx-dx} ${by}, ${bx} ${by}`}
-function render(){svg.innerHTML=`<defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M40 0 L0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.6"/></pattern><marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#94a3b8"/></marker></defs><rect width="1060" height="780" fill="url(#grid)"/>`;
-  for(const e of FLOW_MODEL.edges){const a=nodeById(e[1]),b=nodeById(e[2]),p=pathFor(a,b),sel=e[0]===selectedEdgeId;const mx=(center(a)[0]+center(b)[0])/2,my=(center(a)[1]+center(b)[1])/2;svg.insertAdjacentHTML('beforeend',`<path class="edge ${sel?'selected':''}" d="${p}" stroke="${sel?'#fbbf24':'#64748b'}" marker-end="url(#arrow)"/><path class="edge-hotspot" d="${p}" onclick="selectEdge('${e[0]}')"/><g class="edge-label ${sel?'selected':''}" onclick="selectEdge('${e[0]}')"><rect x="${mx-94}" y="${my-15}" width="188" height="30"/><text x="${mx}" y="${my+4}" text-anchor="middle">${esc(e[3])}</text></g>`) }
-  for(const n of FLOW_MODEL.nodes){const c=FLOW_MODEL.colors[n[7]]; }
-  for(const n of FLOW_MODEL.nodes){const c=FLOW_MODEL.colors[n[7]];svg.insertAdjacentHTML('beforeend',`<g class="node"><rect class="bg" x="${n[1]}" y="${n[2]}" width="${n[3]}" height="${n[4]}" rx="12"/><rect x="${n[1]}" y="${n[2]}" width="${n[3]}" height="${n[4]}" rx="12" fill="${c[0]}" stroke="${c[1]}" stroke-width="2"/><text class="title" x="${n[1]+16}" y="${n[2]+32}">${esc(n[5])}</text><text class="sub" x="${n[1]+16}" y="${n[2]+58}">${esc(n[6])}</text><title>${esc(n[5]+': '+n[6])}</title></g>`) }
-  const sel=FLOW_MODEL.edges.find(e=>e[0]===selectedEdgeId);if(sel){const a=nodeById(sel[1]),b=nodeById(sel[2]);svg.insertAdjacentHTML('beforeend',`<g class="callout"><rect x="350" y="715" width="360" height="44"/><text x="530" y="742" text-anchor="middle">${esc(sel[3])}: ${esc(sel[4]).slice(0,54)}</text></g>`);inspector.textContent=`${a[5]} -> ${b[5]}\n\n${sel[3]}\n${sel[4]}`;}else{inspector.textContent='Click a relation label or line to see full payload and usability notes.'}}
-function selectEdge(id){selectedEdgeId=selectedEdgeId===id?null:id;render()}window.selectEdge=selectEdge;render();
+
+let selectedEdgeId = null;
+const svg = document.getElementById('diagram');
+const inspector = document.getElementById('inspector');
+
+function esc(value) {
+  return String(value).replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[char]));
+}
+
+function nodeById(id) {
+  return FLOW_MODEL.nodes.find(node => node.id === id);
+}
+
+function center(node) {
+  return [node.x + node.w / 2, node.y + node.h / 2];
+}
+
+function pathFor(a, b) {
+  const [ax, ay] = center(a);
+  const [bx, by] = center(b);
+  const dx = Math.max(100, Math.abs(bx - ax) * 0.45);
+  return `M ${ax} ${ay} C ${ax + dx} ${ay}, ${bx - dx} ${by}, ${bx} ${by}`;
+}
+
+function addDefsAndBackground() {
+  svg.innerHTML = `
+    <defs>
+      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+        <path d="M40 0 L0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.6"/>
+      </pattern>
+      <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+        <path d="M0 0L10 5L0 10z" fill="#94a3b8"/>
+      </marker>
+    </defs>
+    <rect width="1260" height="900" fill="url(#grid)"/>
+  `;
+}
+
+function renderEdges() {
+  for (const edge of FLOW_MODEL.edges) {
+    const from = nodeById(edge.from);
+    const to = nodeById(edge.to);
+    const selected = edge.id === selectedEdgeId;
+    const path = pathFor(from, to);
+    svg.insertAdjacentHTML('beforeend', `
+      <path class="edge ${selected ? 'selected' : ''}" d="${path}" stroke="${selected ? '#fbbf24' : '#64748b'}" marker-end="url(#arrow)"/>
+      <path class="edge-hotspot" d="${path}" onclick="selectEdge('${edge.id}')"/>
+    `);
+  }
+}
+
+function renderNodes() {
+  for (const node of FLOW_MODEL.nodes) {
+    const [fill, stroke] = FLOW_MODEL.colors[node.kind];
+    svg.insertAdjacentHTML('beforeend', `
+      <g class="node">
+        <rect class="bg" x="${node.x}" y="${node.y}" width="${node.w}" height="${node.h}" rx="14"/>
+        <rect x="${node.x}" y="${node.y}" width="${node.w}" height="${node.h}" rx="14" fill="${fill}" stroke="${stroke}" stroke-width="2"/>
+        <text class="title" x="${node.x + 18}" y="${node.y + 34}">${esc(node.title)}</text>
+        <text class="sub" x="${node.x + 18}" y="${node.y + 63}">${esc(node.sub)}</text>
+        <title>${esc(node.title + ': ' + node.sub)}</title>
+      </g>
+    `);
+  }
+}
+
+function renderLabels() {
+  for (const edge of FLOW_MODEL.edges) {
+    const selected = edge.id === selectedEdgeId;
+    const width = Math.max(180, edge.label.length * 8.4 + 28);
+    svg.insertAdjacentHTML('beforeend', `
+      <g class="edge-label ${selected ? 'selected' : ''}" onclick="selectEdge('${edge.id}')">
+        <rect x="${edge.lx - width / 2}" y="${edge.ly - 17}" width="${width}" height="34"/>
+        <text x="${edge.lx}" y="${edge.ly + 5}" text-anchor="middle">${esc(edge.label)}</text>
+      </g>
+    `);
+  }
+}
+
+function renderSelectedCallout() {
+  const edge = FLOW_MODEL.edges.find(item => item.id === selectedEdgeId);
+  if (!edge) {
+    inspector.textContent = 'Click a relation label or line to see full payload and usability notes.';
+    return;
+  }
+
+  const from = nodeById(edge.from);
+  const to = nodeById(edge.to);
+  inspector.textContent = `${from.title} -> ${to.title}\n\n${edge.label}\n${edge.detail}`;
+  svg.insertAdjacentHTML('beforeend', `
+    <g class="callout">
+      <rect x="370" y="850" width="520" height="36"/>
+      <text x="630" y="873" text-anchor="middle">${esc(edge.label)}: ${esc(edge.detail).slice(0, 72)}</text>
+    </g>
+  `);
+}
+
+function render() {
+  addDefsAndBackground();
+  renderEdges();
+  renderNodes();
+  renderLabels();
+  renderSelectedCallout();
+}
+
+function selectEdge(id) {
+  selectedEdgeId = selectedEdgeId === id ? null : id;
+  render();
+}
+
+window.selectEdge = selectEdge;
+render();
 </script>
 </body>
 </html>

@@ -5,86 +5,443 @@
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Rozeta module map</title>
 <style>
-:root{color-scheme:dark;--bg:#020617;--panel:#0f172a;--text:#e2e8f0;--muted:#94a3b8;--cyan:#22d3ee;--green:#34d399;--amber:#fbbf24;--violet:#a78bfa;--rose:#fb7185;--orange:#fb923c}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif}.page{max-width:1280px;margin:auto;padding:28px}.top{display:flex;justify-content:space-between;gap:18px;align-items:end;flex-wrap:wrap}h1{font-size:clamp(32px,5vw,58px);margin:0;letter-spacing:-.04em}.sub{color:#cbd5e1;font-size:18px;max-width:820px}.tabs{display:flex;gap:10px;flex-wrap:wrap;margin:24px 0}.tabs button{border:1px solid rgba(148,163,184,.25);background:#0f172a;color:#e2e8f0;border-radius:999px;padding:10px 14px;font-weight:800;cursor:pointer}.tabs button.active{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(34,211,238,.13)}.layout{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px}.canvas{border:1px solid rgba(148,163,184,.22);border-radius:22px;overflow:hidden;background:#020617}.inspector{border:1px solid rgba(148,163,184,.22);border-radius:22px;background:#0f172a;padding:18px;min-height:320px}.inspector h2{margin-top:0}.muted{color:var(--muted)}svg{width:100%;height:auto;display:block}.node rect{fill:#0f172a;stroke-width:2}.node text{font-family:ui-monospace,Menlo,monospace}.edge{stroke:#64748b;stroke-width:2.3;fill:none;marker-end:url(#arrow)}.edge.hot{stroke:var(--orange)}.edge.safe{stroke:var(--rose);stroke-dasharray:7 5}.edge-label{cursor:pointer;fill:#dbeafe;font:700 12px ui-monospace,monospace}.edge-label:hover{fill:#fff}.callout{filter:url(#glow)}.legend{display:flex;gap:10px;flex-wrap:wrap;margin-top:15px}.pill{border:1px solid rgba(148,163,184,.25);border-radius:999px;padding:6px 9px;color:#cbd5e1;font:12px ui-monospace,monospace}@media(max-width:980px){.layout{grid-template-columns:1fr}}
+:root {
+  color-scheme: dark;
+  --bg: #020617;
+  --panel: #0f172a;
+  --text: #e2e8f0;
+  --muted: #94a3b8;
+  --cyan: #22d3ee;
+  --green: #34d399;
+  --amber: #fbbf24;
+  --violet: #a78bfa;
+  --rose: #fb7185;
+  --orange: #fb923c;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.page {
+  max-width: 1440px;
+  margin: auto;
+  padding: 28px;
+}
+
+.top {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+h1 {
+  font-size: clamp(32px, 5vw, 58px);
+  margin: 0;
+  letter-spacing: -0.04em;
+}
+
+.sub {
+  color: #cbd5e1;
+  font-size: 18px;
+  max-width: 860px;
+}
+
+.tabs {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 24px 0;
+}
+
+.tabs button {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 999px;
+  padding: 10px 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tabs button.active {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.13);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 18px;
+}
+
+.canvas {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 22px;
+  overflow: hidden;
+  background: #020617;
+}
+
+.inspector {
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 22px;
+  background: #0f172a;
+  padding: 18px;
+  min-height: 320px;
+}
+
+.inspector h2 { margin-top: 0; }
+.inspector p { line-height: 1.55; }
+.muted { color: var(--muted); }
+
+svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.node rect.back { fill: #0f172a; stroke-width: 2; }
+.node text { font-family: ui-monospace, Menlo, monospace; }
+.node .title { fill: #f8fafc; font-size: 15px; font-weight: 800; }
+.node .detail { fill: #cbd5e1; font-size: 12px; }
+
+.edge {
+  stroke: #64748b;
+  stroke-width: 2.3;
+  fill: none;
+  marker-end: url(#arrow);
+  opacity: 0.72;
+}
+
+.edge.hot { stroke: var(--orange); opacity: 0.9; }
+.edge.safe { stroke: var(--rose); stroke-dasharray: 7 5; opacity: 0.95; }
+.edge.selected { stroke: var(--amber); stroke-width: 4; opacity: 1; }
+
+.edge-hotspot {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 22;
+  cursor: pointer;
+}
+
+.edge-label { cursor: pointer; }
+.edge-label rect { fill: #0f172a; stroke: #475569; opacity: 0.98; }
+.edge-label text { fill: #dbeafe; font: 800 13px ui-monospace, monospace; }
+.edge-label:hover rect { stroke: var(--amber); }
+.edge-label.selected rect { stroke: var(--amber); stroke-width: 2; }
+.edge-label.safe rect { stroke: var(--rose); }
+.edge-label.hot rect { stroke: var(--orange); }
+
+.legend {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 15px;
+}
+
+.pill {
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  border-radius: 999px;
+  padding: 6px 9px;
+  color: #cbd5e1;
+  font: 12px ui-monospace, monospace;
+}
+
+@media (max-width: 980px) {
+  .layout { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
 <div class="page">
-  <div class="top"><div><h1>Rozeta module map</h1><p class="sub">Module-based diagrams for basic user cases. Click any flow label to inspect payloads and responsibilities.</p></div><a href="../index.html" style="color:#22d3ee">Back to docs portal</a></div>
+  <div class="top">
+    <div>
+      <h1>Rozeta module map</h1>
+      <p class="sub">Module-based diagrams for basic user cases. Click any flow label or line to inspect payloads and responsibilities.</p>
+    </div>
+    <a href="../index.html" style="color:#22d3ee">Back to docs portal</a>
+  </div>
+
   <div class="tabs" id="tabs"></div>
-  <div class="layout"><div class="canvas"><svg id="diagram" viewBox="0 0 960 620" role="img" aria-label="Rozeta module diagram"></svg></div><aside class="inspector" id="data-inspector"><h2>Inspector</h2><p class="muted">Select a view or click a data-flow label.</p></aside></div>
-  <div class="legend"><span class="pill">cyan: public API</span><span class="pill">green: implementation</span><span class="pill">violet: tests/examples</span><span class="pill">orange: runtime data-flow</span><span class="pill">rose: safety flow</span></div>
+
+  <div class="layout">
+    <div class="canvas">
+      <svg id="diagram" viewBox="0 0 1120 760" role="img" aria-label="Rozeta module diagram"></svg>
+    </div>
+    <aside class="inspector" id="data-inspector">
+      <h2>Inspector</h2>
+      <p class="muted">Select a view or click a data-flow label.</p>
+    </aside>
+  </div>
+
+  <div class="legend">
+    <span class="pill">cyan: public API</span>
+    <span class="pill">green: implementation</span>
+    <span class="pill">violet: tests/examples</span>
+    <span class="pill">orange: runtime data-flow</span>
+    <span class="pill">rose: safety flow</span>
+  </div>
 </div>
+
 <script>
 const ROZETA_MODULE_MODEL = {
   views: {
     architecture: {
       title: 'Module architecture',
       nodes: [
-        ['app','User application / examples',380,35,210,62,'#a78bfa','robotour, replay, routes, motors'],
-        ['headers','Public headers include/rozeta',335,130,300,70,'#22d3ee','core, sensors, navigation, motors, C API'],
-        ['core','Core types',70,250,170,62,'#22d3ee','Status, ErrorCode, Pose2D, RobotState, Config, geoToLocal'],
-        ['sensors','Sensor modules',280,250,180,62,'#34d399','GPS fix, LiDAR scan, depth frame, camera frame, odometry pose, IMU heading'],
-        ['logic','Navigation logic',505,250,180,62,'#34d399','maps, routes, obstacles, motors'],
-        ['hardware','Hardware adapters',720,250,170,62,'#94a3b8','Serial IO, motors, GPS, YDLIDAR, OpenCV camera, libfreenect'],
-        ['tests','Dependency-free tests',370,405,220,62,'#a78bfa','CTest executable verifies parsing, odometry, coordinates, motors, obstacles, depth, config'],
+        { id: 'app', label: 'User application / examples', x: 430, y: 40, w: 260, h: 78, color: '#a78bfa', detail: 'robotour, replay, routes, motors' },
+        { id: 'headers', label: 'Public headers include/rozeta', x: 390, y: 165, w: 340, h: 88, color: '#22d3ee', detail: 'core, sensors, navigation, motors, C API' },
+        { id: 'core', label: 'Core types', x: 60, y: 350, w: 220, h: 94, color: '#22d3ee', detail: 'Status, ErrorCode, Pose2D, RobotState, Config, geoToLocal' },
+        { id: 'sensors', label: 'Sensor modules', x: 330, y: 350, w: 250, h: 104, color: '#34d399', detail: 'GPS fix, LiDAR scan, depth frame, camera frame, odometry pose, IMU heading' },
+        { id: 'logic', label: 'Navigation logic', x: 635, y: 350, w: 230, h: 96, color: '#34d399', detail: 'maps, routes, obstacles, motors' },
+        { id: 'hardware', label: 'Hardware adapters', x: 910, y: 350, w: 190, h: 116, color: '#94a3b8', detail: 'Serial IO, motors, GPS, YDLIDAR, OpenCV camera, libfreenect' },
+        { id: 'tests', label: 'Dependency-free tests', x: 420, y: 585, w: 300, h: 96, color: '#a78bfa', detail: 'CTest executable verifies parsing, odometry, coordinates, motors, obstacles, depth, config' }
       ],
       edges: [
-        ['app','headers','API calls','Public headers are the stable contract'], ['headers','core','Core data model','Shared types used by every module'], ['headers','sensors','Sensor APIs','Interfaces and parsed payloads'], ['headers','logic','Navigation APIs','Waypoint and obstacle-aware decisions'], ['sensors','logic','data-flow','GPS fix + LiDAR scan + pose estimate + offline route'], ['logic','hardware','Motor commands','Differential-drive commands, calibration scaling and e-stop over mock/serial backend'], ['tests','headers','Contract tests','Tests compile against public APIs']
+        { from: 'app', to: 'headers', label: 'API calls', detail: 'Public headers are the stable contract', lx: 560, ly: 140 },
+        { from: 'headers', to: 'core', label: 'Core data model', detail: 'Shared types used by every module', lx: 225, ly: 285 },
+        { from: 'headers', to: 'sensors', label: 'Sensor APIs', detail: 'Interfaces and parsed payloads', lx: 455, ly: 305 },
+        { from: 'headers', to: 'logic', label: 'Navigation APIs', detail: 'Waypoint and obstacle-aware decisions', lx: 700, ly: 305 },
+        { from: 'sensors', to: 'logic', label: 'data-flow', detail: 'GPS fix + LiDAR scan + pose estimate + offline route', lx: 607, ly: 505, hot: true },
+        { from: 'logic', to: 'hardware', label: 'Motor commands', detail: 'Differential-drive commands, calibration scaling and e-stop over mock/serial backend', lx: 915, ly: 300 },
+        { from: 'tests', to: 'headers', label: 'Contract tests', detail: 'Tests compile against public APIs', lx: 305, ly: 555 }
       ]
     },
     robotour: {
       title: 'Robotour autonomous loop',
       nodes: [
-        ['gps','GPS module',80,80,170,62,'#34d399','Serial/file NMEA + checksum to GPS fix'],
-        ['maps','Maps module',80,190,170,62,'#34d399','CSV route to sorted offline paths'],
-        ['lidar','LiDAR module',80,300,170,62,'#34d399','YDLIDAR/sample bytes to ScanPoint ranges'],
-        ['depth','Kinect/depth',300,320,170,62,'#34d399','Depth CSV/libfreenect to metric frames'],
-        ['odom','Odometry',80,415,170,62,'#34d399','Wheel ticks to Pose2D'],
-        ['imu','IMU module',300,415,170,62,'#34d399','Tilt/collision helpers + heading sample'],
-        ['state','Pose fusion state',365,215,210,82,'#22d3ee','Pose2D blended from odometry, GPS and IMU heading'],
-        ['obstacles','Obstacle detection',650,145,190,62,'#34d399','LiDAR/depth sectors + nearest distance'],
-        ['nav','RouteFollower + Navigator',650,285,220,70,'#34d399','Route progress + avoidance'],
-        ['motors','Motor controller',650,430,190,62,'#fb7185','Speed, calibration, stop, e-stop'],
+        { id: 'gps', label: 'GPS module', x: 70, y: 70, w: 210, h: 88, color: '#34d399', detail: 'Serial/file NMEA + checksum to GPS fix' },
+        { id: 'maps', label: 'Maps module', x: 70, y: 205, w: 210, h: 88, color: '#34d399', detail: 'CSV route to sorted offline paths' },
+        { id: 'lidar', label: 'LiDAR module', x: 70, y: 345, w: 210, h: 88, color: '#34d399', detail: 'YDLIDAR/sample bytes to ScanPoint ranges' },
+        { id: 'depth', label: 'Kinect/depth', x: 350, y: 390, w: 220, h: 88, color: '#34d399', detail: 'Depth CSV/libfreenect to metric frames' },
+        { id: 'odom', label: 'Odometry', x: 70, y: 515, w: 210, h: 88, color: '#34d399', detail: 'Wheel ticks to Pose2D' },
+        { id: 'imu', label: 'IMU module', x: 350, y: 540, w: 220, h: 88, color: '#34d399', detail: 'Tilt/collision helpers + heading sample' },
+        { id: 'state', label: 'Pose fusion state', x: 410, y: 205, w: 270, h: 106, color: '#22d3ee', detail: 'Pose2D blended from odometry, GPS and IMU heading' },
+        { id: 'obstacles', label: 'Obstacle detection', x: 810, y: 130, w: 230, h: 96, color: '#34d399', detail: 'LiDAR/depth sectors + nearest distance' },
+        { id: 'nav', label: 'RouteFollower + Navigator', x: 800, y: 325, w: 260, h: 100, color: '#34d399', detail: 'Route progress + avoidance' },
+        { id: 'motors', label: 'Motor controller', x: 820, y: 555, w: 230, h: 90, color: '#fb7185', detail: 'Speed, calibration, stop, e-stop' }
       ],
       edges: [
-        ['gps','state','GPS fix','validated latitude, longitude, altitude, speed, course, satellites'], ['maps','state','Offline route','CSV path_id, seq, latitude, longitude, altitude_m'], ['lidar','obstacles','LiDAR scan','angle_deg, distance_m, valid flags'], ['depth','obstacles','Depth frame','width, height and metric depth pixels reduced to obstacle sectors'], ['odom','state','Pose estimate','x, y, heading from encoder ticks'], ['imu','state','IMU heading','heading_rad plus accelerometer tilt/collision checks'], ['state','nav','Robot state','pose, gps, velocities, timestamp'], ['obstacles','nav','Obstacle sectors','ahead/left/right flags, nearest_distance_m'], ['nav','motors','Motor commands','linear/angular decision mapped to left/right speeds'], ['nav','motors','Emergency stop','safe halt when waypoint/obstacle logic requires it','safe']
+        { from: 'gps', to: 'state', label: 'GPS fix', detail: 'validated latitude, longitude, altitude, speed, course, satellites', lx: 345, ly: 120 },
+        { from: 'maps', to: 'state', label: 'Offline route', detail: 'CSV path_id, seq, latitude, longitude, altitude_m', lx: 330, ly: 245 },
+        { from: 'lidar', to: 'obstacles', label: 'LiDAR scan', detail: 'angle_deg, distance_m, valid flags', lx: 345, ly: 350 },
+        { from: 'depth', to: 'obstacles', label: 'Depth frame', detail: 'width, height and metric depth pixels reduced to obstacle sectors', lx: 660, ly: 345 },
+        { from: 'odom', to: 'state', label: 'Pose estimate', detail: 'x, y, heading from encoder ticks', lx: 310, ly: 510 },
+        { from: 'imu', to: 'state', label: 'IMU heading', detail: 'heading_rad plus accelerometer tilt/collision checks', lx: 600, ly: 520 },
+        { from: 'state', to: 'nav', label: 'Robot state', detail: 'pose, gps, velocities, timestamp', lx: 745, ly: 270 },
+        { from: 'obstacles', to: 'nav', label: 'Obstacle sectors', detail: 'ahead/left/right flags, nearest_distance_m', lx: 955, ly: 270 },
+        { from: 'nav', to: 'motors', label: 'Motor commands', detail: 'linear/angular decision mapped to left/right speeds', lx: 890, ly: 495 },
+        { from: 'nav', to: 'motors', label: 'Emergency stop', detail: 'safe halt when waypoint/obstacle logic requires it', lx: 1050, ly: 495, safe: true }
       ]
     },
     dataflow: {
       title: 'data-flow payload view',
       nodes: [
-        ['raw','Raw hardware + files',70,80,190,70,'#94a3b8','NMEA + YDLIDAR + depth CSV + camera + route CSV + ticks'],
-        ['parse','Normalize modules',365,80,210,70,'#34d399','NMEA + YDLIDAR + depth + OpenCV + CSV + odometry'],
-        ['model','Rozeta data model',670,80,200,70,'#22d3ee','Geo, scan, pose, state'],
-        ['decision','Decision layer',365,270,210,78,'#34d399','Obstacles + RouteFollower + navigator'],
-        ['act','Actuation / logging',670,270,200,78,'#fb7185','Mock/serial motors + logs'],
-        ['docs','Docs + tests',205,450,235,70,'#a78bfa','Doxygen + docs verifier + CTest'],
-        ['site','Official-site ready',535,450,235,70,'#a78bfa','Portal, diagrams, API docs'],
+        { id: 'raw', label: 'Raw hardware + files', x: 70, y: 80, w: 240, h: 96, color: '#94a3b8', detail: 'NMEA + YDLIDAR + depth CSV + camera + route CSV + ticks' },
+        { id: 'parse', label: 'Normalize modules', x: 435, y: 80, w: 250, h: 96, color: '#34d399', detail: 'NMEA + YDLIDAR + depth + OpenCV + CSV + odometry' },
+        { id: 'model', label: 'Rozeta data model', x: 805, y: 80, w: 240, h: 96, color: '#22d3ee', detail: 'Geo, scan, pose, state' },
+        { id: 'decision', label: 'Decision layer', x: 430, y: 320, w: 270, h: 100, color: '#34d399', detail: 'Obstacles + RouteFollower + navigator' },
+        { id: 'act', label: 'Actuation / logging', x: 805, y: 320, w: 240, h: 100, color: '#fb7185', detail: 'Mock/serial motors + logs' },
+        { id: 'docs', label: 'Docs + tests', x: 235, y: 570, w: 280, h: 92, color: '#a78bfa', detail: 'Doxygen + docs verifier + CTest' },
+        { id: 'site', label: 'Official-site ready', x: 650, y: 570, w: 280, h: 92, color: '#a78bfa', detail: 'Portal, diagrams, API docs' }
       ],
       edges: [
-        ['raw','parse','Raw samples','serial bytes → NMEA + YDLIDAR packets, depth CSV, BGR frames, route CSV, ticks'], ['parse','model','Typed payloads','GPS, scan, depth frame, camera frame, offline route, pose'], ['model','decision','data-flow','RobotState + obstacles + route waypoint'], ['decision','act','Motor commands','left/right speed, calibration, stop, emergency stop'], ['model','docs','Documented structs','Public headers feed Doxygen'], ['docs','site','Generated reference','HTML/XML API output and verified static pages']
+        { from: 'raw', to: 'parse', label: 'Raw samples', detail: 'serial bytes → NMEA + YDLIDAR packets, depth CSV, BGR frames, route CSV, ticks', lx: 373, ly: 88 },
+        { from: 'parse', to: 'model', label: 'Typed payloads', detail: 'GPS, scan, depth frame, camera frame, offline route, pose', lx: 745, ly: 88 },
+        { from: 'model', to: 'decision', label: 'data-flow', detail: 'RobotState + obstacles + route waypoint', lx: 715, ly: 260, hot: true },
+        { from: 'decision', to: 'act', label: 'Motor commands', detail: 'left/right speed, calibration, stop, emergency stop', lx: 750, ly: 475 },
+        { from: 'model', to: 'docs', label: 'Documented structs', detail: 'Public headers feed Doxygen', lx: 385, ly: 500 },
+        { from: 'docs', to: 'site', label: 'Generated reference', detail: 'HTML/XML API output and verified static pages', lx: 590, ly: 705 }
       ]
     }
   }
 };
+
 const svg = document.getElementById('diagram');
 const inspector = document.getElementById('data-inspector');
 const tabs = document.getElementById('tabs');
 let active = 'architecture';
-function nodeMap(view){return Object.fromEntries(view.nodes.map(n=>[n[0],{id:n[0],label:n[1],x:n[2],y:n[3],w:n[4],h:n[5],color:n[6],detail:n[7]}]));}
-function edgePath(a,b){const ax=a.x+a.w/2, ay=a.y+a.h/2, bx=b.x+b.w/2, by=b.y+b.h/2; return `M ${ax} ${ay} C ${(ax+bx)/2} ${ay}, ${(ax+bx)/2} ${by}, ${bx} ${by}`;}
-function inspect(title,body){inspector.innerHTML=`<h2>${title}</h2><p>${body}</p><p class="muted">Update this model when code, payloads or examples change. Verified by scripts/verify_docs.py.</p>`;}
-function render(){
-const view=ROZETA_MODULE_MODEL.views[active], nodes=nodeMap(view), edgeLabels=[];
-svg.innerHTML=`<defs><pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.6"/></pattern><marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#94a3b8"/></marker><filter id="glow"><feGaussianBlur stdDeviation="3" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs><rect width="960" height="620" fill="url(#grid)"/>`;
-view.edges.forEach((e,i)=>{const a=nodes[e[0]], b=nodes[e[1]], label=e[2], detail=e[3], kind=e[4]||''; const d=edgePath(a,b); let mx=(a.x+a.w/2+b.x+b.w/2)/2, my=(a.y+a.h/2+b.y+b.h/2)/2; if(active==='architecture'){const offsets={1:[-72,-28],2:[-96,36],3:[98,34],4:[-8,-42],5:[52,-50],6:[105,42]}; const o=offsets[i]||[0,0]; mx+=o[0]; my+=o[1];} if(active==='robotour'){const offsets={0:[-8,-28],1:[25,-70],2:[-105,34],3:[-20,25],4:[-18,32],5:[75,-70],6:[88,-28],7:[45,-26],8:[86,34]}; const o=offsets[i]||[0,0]; mx+=o[0]; my+=o[1];} if(active==='dataflow'){const offsets={0:[0,-34],1:[0,-34],2:[0,28],3:[0,-36],4:[-160,72],5:[118,34]}; const o=offsets[i]||[0,0]; mx+=o[0]; my+=o[1];} svg.insertAdjacentHTML('beforeend',`<path class="edge ${label==='data-flow'?'hot':''} ${kind}" d="${d}"/>`); edgeLabels.push({label,detail,mx,my,kind});});
-view.nodes.forEach(n=>{const detail=String(n[7]); const compact=detail.length>54?detail.slice(0,51)+'…':detail; const y=n[3]+48; svg.insertAdjacentHTML('beforeend',`<g class="node"><title>${detail}</title><rect x="${n[2]}" y="${n[3]}" width="${n[4]}" height="${n[5]}" rx="14" fill="#0f172a" stroke="${n[6]}"/><text x="${n[2]+16}" y="${n[3]+26}" fill="#f8fafc" font-size="15" font-weight="800">${n[1]}</text><text x="${n[2]+16}" y="${y}" fill="#94a3b8" font-size="11">${compact}</text></g>`);});
-edgeLabels.forEach(({label,detail,mx,my,kind})=>{const w=Math.max(124,label.length*9+24); svg.insertAdjacentHTML('beforeend',`<g class="callout"><rect x="${mx-w/2}" y="${my-14}" width="${w}" height="26" rx="13" fill="#0f172a" stroke="${kind==='safe'?'#fb7185':'#334155'}"/><text class="edge-label" data-label="${label}" data-detail="${detail}" x="${mx}" y="${my+5}" text-anchor="middle">${label}</text></g>`);});
-svg.querySelectorAll('.edge-label').forEach(el=>el.addEventListener('click',()=>inspect(el.dataset.label,el.dataset.detail)));
-inspect(view.title, 'Click any line label to inspect concrete payloads and module responsibilities.');
+let selectedEdgeKey = null;
+
+function esc(value) {
+  return String(value).replace(/[&<>"']/g, char => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;'
+  }[char]));
 }
-Object.keys(ROZETA_MODULE_MODEL.views).forEach(k=>{const b=document.createElement('button'); b.textContent=ROZETA_MODULE_MODEL.views[k].title; b.onclick=()=>{active=k; document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('active')); b.classList.add('active'); render();}; tabs.appendChild(b); if(k===active)b.classList.add('active');});
+
+function inspect(title, body) {
+  inspector.innerHTML = `
+    <h2>${esc(title)}</h2>
+    <p>${esc(body)}</p>
+    <p class="muted">Update this model when code, payloads or examples change. Verified by scripts/verify_docs.py.</p>
+  `;
+}
+
+function nodeMap(view) {
+  return Object.fromEntries(view.nodes.map(node => [node.id, node]));
+}
+
+function center(node) {
+  return [node.x + node.w / 2, node.y + node.h / 2];
+}
+
+function edgePath(a, b) {
+  const [ax, ay] = center(a);
+  const [bx, by] = center(b);
+  const midX = (ax + bx) / 2;
+  return `M ${ax} ${ay} C ${midX} ${ay}, ${midX} ${by}, ${bx} ${by}`;
+}
+
+function addBackground() {
+  svg.innerHTML = `
+    <defs>
+      <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+        <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e293b" stroke-width="0.6"/>
+      </pattern>
+      <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L9,3 z" fill="#94a3b8"/>
+      </marker>
+    </defs>
+    <rect width="1120" height="760" fill="url(#grid)"/>
+  `;
+}
+
+function addWrappedText(parent, text, x, y, maxChars, lineHeight, className) {
+  const words = String(text).split(/\s+/);
+  const lines = [];
+  let current = '';
+
+  for (const word of words) {
+    const candidate = current ? `${current} ${word}` : word;
+    if (candidate.length > maxChars && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) {
+    lines.push(current);
+  }
+
+  const safeLines = lines.slice(0, 3);
+  if (lines.length > 3) {
+    safeLines[2] = safeLines[2].replace(/\s+\S*$/, '') + ' …';
+  }
+
+  parent.insertAdjacentHTML('beforeend', `
+    <text class="${className}" x="${x}" y="${y}">
+      ${safeLines.map((line, index) => `<tspan x="${x}" dy="${index === 0 ? 0 : lineHeight}">${esc(line)}</tspan>`).join('')}
+    </text>
+  `);
+}
+
+function renderEdges(view, nodes) {
+  view.edges.forEach((edge, index) => {
+    const from = nodes[edge.from];
+    const to = nodes[edge.to];
+    const key = `${active}-${index}`;
+    const selected = key === selectedEdgeKey;
+    const path = edgePath(from, to);
+    const classes = [
+      'edge',
+      edge.hot ? 'hot' : '',
+      edge.safe ? 'safe' : '',
+      selected ? 'selected' : ''
+    ].filter(Boolean).join(' ');
+
+    svg.insertAdjacentHTML('beforeend', `
+      <path class="${classes}" d="${path}"/>
+      <path class="edge-hotspot" d="${path}" onclick="selectEdge(${index})"/>
+    `);
+  });
+}
+
+function renderNodes(view) {
+  view.nodes.forEach(node => {
+    const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    group.setAttribute('class', 'node');
+    group.innerHTML = `
+      <title>${esc(node.label + ': ' + node.detail)}</title>
+      <rect class="back" x="${node.x}" y="${node.y}" width="${node.w}" height="${node.h}" rx="14" stroke="${node.color}"/>
+      <text class="title" x="${node.x + 16}" y="${node.y + 27}">${esc(node.label)}</text>
+    `;
+    svg.appendChild(group);
+    addWrappedText(group, node.detail, node.x + 16, node.y + 52, Math.max(20, Math.floor((node.w - 34) / 7)), 16, 'detail');
+  });
+}
+
+function renderLabels(view) {
+  view.edges.forEach((edge, index) => {
+    const key = `${active}-${index}`;
+    const selected = key === selectedEdgeKey;
+    const width = Math.max(128, edge.label.length * 8.6 + 32);
+    const classes = [
+      'edge-label',
+      edge.hot ? 'hot' : '',
+      edge.safe ? 'safe' : '',
+      selected ? 'selected' : ''
+    ].filter(Boolean).join(' ');
+
+    svg.insertAdjacentHTML('beforeend', `
+      <g class="${classes}" onclick="selectEdge(${index})">
+        <rect x="${edge.lx - width / 2}" y="${edge.ly - 17}" width="${width}" height="34" rx="17"/>
+        <text x="${edge.lx}" y="${edge.ly + 5}" text-anchor="middle">${esc(edge.label)}</text>
+      </g>
+    `);
+  });
+}
+
+function render() {
+  const view = ROZETA_MODULE_MODEL.views[active];
+  const nodes = nodeMap(view);
+
+  addBackground();
+  renderEdges(view, nodes);
+  renderNodes(view);
+  renderLabels(view);
+  inspect(view.title, 'Click any line label or line to inspect concrete payloads and module responsibilities.');
+}
+
+function selectEdge(index) {
+  const key = `${active}-${index}`;
+  selectedEdgeKey = selectedEdgeKey === key ? null : key;
+  render();
+
+  if (selectedEdgeKey) {
+    const edge = ROZETA_MODULE_MODEL.views[active].edges[index];
+    inspect(edge.label, edge.detail);
+  }
+}
+
+Object.keys(ROZETA_MODULE_MODEL.views).forEach(key => {
+  const button = document.createElement('button');
+  button.textContent = ROZETA_MODULE_MODEL.views[key].title;
+  button.onclick = () => {
+    active = key;
+    selectedEdgeKey = null;
+    document.querySelectorAll('.tabs button').forEach(tab => tab.classList.remove('active'));
+    button.classList.add('active');
+    render();
+  };
+  tabs.appendChild(button);
+  if (key === active) {
+    button.classList.add('active');
+  }
+});
+
+window.selectEdge = selectEdge;
 render();
 </script>
 </body>
