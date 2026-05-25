@@ -95,6 +95,18 @@ private:
     double current_heading_rad_{0.0};
 };
 
+class UiRenderer {
+public:
+    virtual ~UiRenderer() = default;
+    virtual Status render(const UiSnapshot& snapshot) = 0;
+};
+
+class UiEventSink {
+public:
+    virtual ~UiEventSink() = default;
+    virtual void onRenderStatus(const Status& status) = 0;
+};
+
 class SnapshotComposer {
 public:
     void setMap(maps::OfflineMap map);
@@ -128,6 +140,7 @@ Status validateViewport(const Viewport& viewport);
 Status validateDepthFrame(const depth::DepthFrame& frame);
 StreamStatus cameraStreamStatus(const camera::Frame& frame, const std::string& label);
 StreamStatus depthStreamStatus(const depth::DepthFrame& frame, const std::string& label);
+Status renderFrame(UiRenderer& renderer, const UiSnapshot& snapshot, UiEventSink* event_sink = nullptr);
 std::string renderTextDashboard(const UiSnapshot& snapshot);
 
 } // namespace rozeta::ui

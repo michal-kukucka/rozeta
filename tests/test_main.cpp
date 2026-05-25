@@ -61,6 +61,8 @@ void test_ui_snapshot_composer_reports_invalid_stream_payloads();
 void test_ui_snapshot_composer_reports_invalid_kinect_depth_payloads();
 void test_ui_viewport_validation_rejects_excessive_padding_without_overflow();
 void test_ui_text_dashboard_renders_mission_stream_and_marker_summary();
+void test_ui_renderer_interface_receives_snapshots_at_mission_rate();
+void test_ui_renderer_interface_propagates_render_failures_to_event_sink();
 #ifdef ROZETA_WITH_SERIAL_MOTORS
 void test_serial_motor_formats_normalized_speed_commands();
 void test_serial_motor_rejects_invalid_speed_without_writing();
@@ -141,6 +143,8 @@ int main(){
         {"ui_invalid_depth", test_ui_snapshot_composer_reports_invalid_kinect_depth_payloads},
         {"ui_invalid_viewport", test_ui_viewport_validation_rejects_excessive_padding_without_overflow},
         {"ui_text_dashboard", test_ui_text_dashboard_renders_mission_stream_and_marker_summary},
+        {"ui_renderer_frames", test_ui_renderer_interface_receives_snapshots_at_mission_rate},
+        {"ui_renderer_status", test_ui_renderer_interface_propagates_render_failures_to_event_sink},
 #ifdef ROZETA_WITH_SERIAL_MOTORS
         {"serial_motor_format", test_serial_motor_formats_normalized_speed_commands},
         {"serial_motor_invalid_speed", test_serial_motor_rejects_invalid_speed_without_writing},

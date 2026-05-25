@@ -61,7 +61,7 @@
 
 **Acceptance:** Example runs without hardware from existing fixtures and shows map, current/start/operation/final markers, camera stream status and Kinect/depth stream status.
 
-### M3 — Optional render-backend bridge seam
+### M3 — Optional render-backend bridge seam ✅
 
 **Objective:** Add backend interfaces for future Qt/GTK/SDL/OpenCV renderers without making them mandatory.
 
@@ -93,3 +93,4 @@
 - 2026-05-25: Plan created after checking clean `main`, existing modules and Buchlovice map UI inspiration.
 - 2026-05-25: M1 implemented with `rozeta::ui` snapshot composition, mission overlay markers, map projection helpers, stream validation, tests and user docs.
 - 2026-05-25: M2 implemented with `ui::renderTextDashboard`, `examples/mission_ui_dashboard.cpp`, tests and README/user documentation. Verified build, CTest, docs verifier and no-hardware dashboard run.
+- 2026-05-25: M3 implemented with `ui::UiRenderer`, `ui::UiEventSink` and `ui::renderFrame` so optional renderers can receive snapshots and report status without adding GUI dependencies. Verified with fake renderer/event-sink tests.

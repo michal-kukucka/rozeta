@@ -212,3 +212,69 @@ void test_ui_text_dashboard_renders_mission_stream_and_marker_summary() {
     REQUIRE_TRUE(text.find("operation 1") != std::string::npos);
     REQUIRE_TRUE(text.find("robot") != std::string::npos);
 }
+
+void test_ui_renderer_interface_receives_snapshots_at_mission_rate() {
+    class FakeRenderer final : public rozeta::ui::UiRenderer {
+    public:
+        rozeta::Status render(const rozeta::ui::UiSnapshot& snapshot) override {
+            ++frames;
+            last_marker_count = snapshot.markers.size();
+            return rozeta::Status::okStatus();
+        }
+
+        int frames{0};
+        std::size_t last_marker_count{0};
+    };
+
+    class FakeEventSink final : public rozeta::ui::UiEventSink {
+    public:
+        void onRenderStatus(const rozeta::Status& status) override {
+            ++statuses;
+            last_status = status;
+        }
+
+        int statuses{0};
+        rozeta::Status last_status{};
+    };
+
+    rozeta::ui::UiSnapshot snapshot;
+    snapshot.markers.push_back({rozeta::ui::MarkerKind::Robot, "robot", {48.0, 17.0, 0.0}});
+    FakeRenderer renderer;
+    FakeEventSink sink;
+
+    REQUIRE_TRUE(rozeta::ui::renderFrame(renderer, snapshot, &sink).ok());
+    REQUIRE_TRUE(rozeta::ui::renderFrame(renderer, snapshot, &sink).ok());
+    REQUIRE_TRUE(rozeta::ui::renderFrame(renderer, snapshot, &sink).ok());
+
+    REQUIRE_EQ(renderer.frames, 3);
+    REQUIRE_EQ(renderer.last_marker_count, static_cast<std::size_t>(1));
+    REQUIRE_EQ(sink.statuses, 3);
+    REQUIRE_TRUE(sink.last_status.ok());
+}
+
+void test_ui_renderer_interface_propagates_render_failures_to_event_sink() {
+    class FailingRenderer final : public rozeta::ui::UiRenderer {
+    public:
+        rozeta::Status render(const rozeta::ui::UiSnapshot&) override {
+            return rozeta::Status::error(rozeta::ErrorCode::IoError, "renderer failed");
+        }
+    };
+
+    class FakeEventSink final : public rozeta::ui::UiEventSink {
+    public:
+        void onRenderStatus(const rozeta::Status& status) override {
+            last_status = status;
+        }
+
+        rozeta::Status last_status{};
+    };
+
+    FailingRenderer renderer;
+    FakeEventSink sink;
+
+    const auto status = rozeta::ui::renderFrame(renderer, {}, &sink);
+
+    REQUIRE_TRUE(!status.ok());
+    REQUIRE_EQ(static_cast<int>(status.code), static_cast<int>(rozeta::ErrorCode::IoError));
+    REQUIRE_EQ(static_cast<int>(sink.last_status.code), static_cast<int>(rozeta::ErrorCode::IoError));
+}

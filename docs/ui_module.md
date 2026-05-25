@@ -95,3 +95,13 @@ Default CI uses fake/fixture frames. Real OpenCV camera and libfreenect Kinect i
 ```
 
 Use this example as the first integration checkpoint before connecting a real Qt/GTK/SDL/OpenCV renderer.
+
+## Optional renderer bridge seam
+
+M3 adds minimal dependency-free interfaces for future GUI/render backends:
+
+- `ui::UiRenderer` receives a complete `UiSnapshot` through `render(snapshot)`.
+- `ui::UiEventSink` receives the `Status` produced by each render attempt.
+- `ui::renderFrame(renderer, snapshot, sink)` calls the renderer once and forwards the render status to the optional event sink.
+
+Qt, GTK, SDL, OpenCV, web bridges and terminal sinks can now be implemented out-of-tree or behind optional CMake flags while the default Rozeta build stays hardware-free and GUI-free. Mission loops should compose snapshots with `SnapshotComposer`, then deliver each frame through `renderFrame` at the desired mission rate.

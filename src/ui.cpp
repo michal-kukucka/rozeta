@@ -311,6 +311,14 @@ StreamStatus depthStreamStatus(const depth::DepthFrame& frame, const std::string
     };
 }
 
+Status renderFrame(UiRenderer& renderer, const UiSnapshot& snapshot, UiEventSink* event_sink) {
+    const auto status = renderer.render(snapshot);
+    if (event_sink != nullptr) {
+        event_sink->onRenderStatus(status);
+    }
+    return status;
+}
+
 std::string renderTextDashboard(const UiSnapshot& snapshot) {
     std::ostringstream out;
     out << std::fixed << std::setprecision(2);
