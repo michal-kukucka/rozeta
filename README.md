@@ -7,8 +7,8 @@ Rozeta is a Linux-first modular robotics framework for autonomous vehicles and o
 
 The initial milestone focuses on the foundation, not final hardware drivers:
 
-- CMake project building static and shared libraries
-- C++17 public headers plus a small C ABI seed
+- CMake project building static/shared libraries plus installable package exports
+- C++17 public headers plus a stable value-type C ABI for core math and obstacle sectors
 - core types, status/error handling, configuration loading, math helpers and geo-local conversion
 - logging interface with console and CSV file logger
 - differential-drive motor interface with mock implementation, calibration persistence, optional serial backend and emergency stop
@@ -53,6 +53,35 @@ cmake .. -DROZETA_WITH_OPENCV=ON   # optional OpenCV camera backend
 cmake .. -DROZETA_WITH_SERIAL_MOTORS=ON   # optional POSIX serial motor backend
 cmake .. -DROZETA_WITH_YDLIDAR=ON   # optional YDLIDAR-style serial LiDAR backend
 cmake .. -DROZETA_WITH_KINECT=ON   # optional libfreenect Kinect backend
+```
+
+## Install and consume
+
+Install Rozeta from source into a prefix:
+
+```bash
+cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/tmp/rozeta-install \
+  -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_EXAMPLES=ON
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
+cmake --install build
+```
+
+Downstream CMake projects can consume the installed package with
+`find_package(rozeta CONFIG REQUIRED)` and link `rozeta::rozeta`:
+
+```cmake
+find_package(rozeta CONFIG REQUIRED)
+add_executable(app main.c)
+target_link_libraries(app PRIVATE rozeta::rozeta)
+```
+
+For a complete C and C++ consumer fixture, see `examples/consumer`:
+
+```bash
+cmake -S examples/consumer -B /tmp/rozeta-consumer \
+  -DCMAKE_PREFIX_PATH=/tmp/rozeta-install
+cmake --build /tmp/rozeta-consumer --parallel
 ```
 
 ## Quick usage
@@ -114,6 +143,12 @@ Depth obstacle extraction without hardware:
 ./build/examples/depth_obstacle_console --sample tests/fixtures/depth/basic.csv
 ```
 
+C ABI smoke example:
+
+```bash
+./build/examples/c_api_smoke
+```
+
 ## Documentation
 
 Detailed docs are included in `docs/` and are ready to be reused as a future official website:
@@ -167,7 +202,7 @@ Covered behavior:
 
 ## Status
 
-Rozeta now includes milestone 1 through milestone 8 foundations: mockable core APIs, an internal POSIX serial transport, motor calibration persistence, optional serial motor, YDLIDAR-style LiDAR, OpenCV camera and libfreenect Kinect flags, a serial/file GPS receiver with robust NMEA validation, offline CSV route loading with monotonic route following, IMU pose fusion, and CI-testable depth-to-obstacle processing. Wider C ABI packaging remains future optional work behind the existing APIs.
+Rozeta now includes milestone 1 through milestone 9 foundations: mockable core APIs, an internal POSIX serial transport, motor calibration persistence, optional serial motor, YDLIDAR-style LiDAR, OpenCV camera and libfreenect Kinect flags, a serial/file GPS receiver with robust NMEA validation, offline CSV route loading with monotonic route following, IMU pose fusion, CI-testable depth-to-obstacle processing, an installable CMake package export, and a stable value-type C ABI for version, angle normalization, 2D distance and LiDAR obstacle sector calculation.
 
 
 ## License

@@ -1,6 +1,9 @@
 cmake_minimum_required(VERSION 3.16)
 project(rozeta VERSION 0.1.0 LANGUAGES C CXX)
 
+include(CMakePackageConfigHelpers)
+include(GNUInstallDirs)
+
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -44,6 +47,7 @@ if(DOXYGEN_FOUND)
 endif()
 
 set(ROZETA_SOURCES
+    src/c_api.cpp
     src/core.cpp
     src/logging.cpp
     src/motors.cpp
@@ -75,8 +79,17 @@ endif()
 add_library(rozeta_static STATIC
     ${ROZETA_SOURCES}
 )
-target_include_directories(rozeta_static PUBLIC include PRIVATE src)
+target_include_directories(rozeta_static
+    PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+    PRIVATE src)
 target_compile_options(rozeta_static PRIVATE -Wall -Wextra -Wpedantic)
+target_compile_features(rozeta_static PUBLIC cxx_std_17)
+target_compile_definitions(rozeta_static PRIVATE ROZETA_VERSION_STRING="${PROJECT_VERSION}")
+if(UNIX AND NOT APPLE)
+  target_link_libraries(rozeta_static PUBLIC m stdc++)
+endif()
 if(ROZETA_WITH_SERIAL_MOTORS)
   target_compile_definitions(rozeta_static PUBLIC ROZETA_WITH_SERIAL_MOTORS)
 endif()
@@ -93,14 +106,20 @@ if(ROZETA_WITH_KINECT)
   target_include_directories(rozeta_static PRIVATE ${FREENECT_INCLUDE_DIR})
   target_link_libraries(rozeta_static PUBLIC ${FREENECT_LIBRARY})
 endif()
-set_target_properties(rozeta_static PROPERTIES OUTPUT_NAME rozeta)
+set_target_properties(rozeta_static PROPERTIES OUTPUT_NAME rozeta EXPORT_NAME rozeta)
 
 if(ROZETA_BUILD_SHARED)
   add_library(rozeta_shared SHARED
       ${ROZETA_SOURCES}
   )
-  target_include_directories(rozeta_shared PUBLIC include PRIVATE src)
+  target_include_directories(rozeta_shared
+      PUBLIC
+          $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+          $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
+      PRIVATE src)
   target_compile_options(rozeta_shared PRIVATE -Wall -Wextra -Wpedantic)
+  target_compile_features(rozeta_shared PUBLIC cxx_std_17)
+  target_compile_definitions(rozeta_shared PRIVATE ROZETA_VERSION_STRING="${PROJECT_VERSION}")
   if(ROZETA_WITH_SERIAL_MOTORS)
     target_compile_definitions(rozeta_shared PUBLIC ROZETA_WITH_SERIAL_MOTORS)
   endif()
@@ -117,8 +136,41 @@ if(ROZETA_BUILD_SHARED)
     target_include_directories(rozeta_shared PRIVATE ${FREENECT_INCLUDE_DIR})
     target_link_libraries(rozeta_shared PUBLIC ${FREENECT_LIBRARY})
   endif()
-  set_target_properties(rozeta_shared PROPERTIES OUTPUT_NAME rozeta)
+  set_target_properties(rozeta_shared PROPERTIES
+      OUTPUT_NAME rozeta
+      EXPORT_NAME rozeta
+      VERSION ${PROJECT_VERSION}
+      SOVERSION ${PROJECT_VERSION_MAJOR})
 endif()
+
+if(ROZETA_BUILD_SHARED)
+  set(ROZETA_INSTALL_TARGET rozeta_shared)
+else()
+  set(ROZETA_INSTALL_TARGET rozeta_static)
+endif()
+
+install(TARGETS ${ROZETA_INSTALL_TARGET}
+    EXPORT rozetaTargets
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/rozetaConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY SameMajorVersion)
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/rozetaConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/rozetaConfig.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/rozeta)
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/rozetaConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/rozetaConfigVersion.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/rozeta)
+install(EXPORT rozetaTargets
+    NAMESPACE rozeta::
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/rozeta)
 
 if(ROZETA_BUILD_EXAMPLES)
   add_subdirectory(examples)

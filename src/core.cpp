@@ -112,7 +112,3 @@ Status initialize() {
 void shutdown() {}
 
 } // namespace rozeta
-
-extern "C" const char* rozeta_version(void) {
-    return "0.1.0";
-}

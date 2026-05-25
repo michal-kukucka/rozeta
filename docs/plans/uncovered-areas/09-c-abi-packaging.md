@@ -4,6 +4,8 @@
 
 **Goal:** Make Rozeta consumable by C and downstream CMake projects with install targets, exported package config, versioning, and a broader stable C ABI.
 
+Status: completed locally. Delivered expanded value-type C ABI helpers, C smoke tests/examples, install/export CMake package config and downstream consumer verification.
+
 **Architecture:** Keep C++ as primary implementation. C ABI functions wrap stable, value-type operations only; avoid exposing C++ ownership or templates through C.
 
 **Tech Stack:** CMake install/export, CPack optional, C ABI smoke tests, Doxygen.

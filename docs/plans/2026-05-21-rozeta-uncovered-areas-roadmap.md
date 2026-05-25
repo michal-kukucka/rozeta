@@ -278,3 +278,31 @@ ctest --test-dir build-m8 --output-on-failure
 ./build-m8/examples/depth_obstacle_console --sample tests/fixtures/depth/basic.csv
 python3 scripts/verify_docs.py
 ```
+
+
+### M9 — Stable C ABI, install/export packaging
+
+Status: completed locally in this milestone implementation.
+
+Delivered:
+
+- Expanded `include/rozeta/c_api.h` with value-type wrappers for version, angle normalization, 2D distance and LiDAR obstacle sectors.
+- `src/c_api.cpp` implementation with exported C symbols and dependency-free C smoke coverage.
+- `examples/c_api_smoke.c` and `examples/consumer/` downstream `find_package(rozeta CONFIG REQUIRED)` fixtures.
+- CMake install/export packaging with generated `rozetaConfig.cmake`, `rozetaConfigVersion.cmake` and `rozeta::rozeta` target.
+- Install/from-source docs, C API reference docs, docs portal and Doxygen patterns updated.
+
+Verification commands used:
+
+```bash
+cmake -S . -B build-m9 -DCMAKE_INSTALL_PREFIX=/tmp/rozeta-install -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_EXAMPLES=ON
+cmake --build build-m9 --parallel 2
+ctest --test-dir build-m9 --output-on-failure
+./build-m9/examples/c_api_smoke
+cmake --install build-m9
+cmake -S examples/consumer -B /tmp/rozeta-consumer -DCMAKE_PREFIX_PATH=/tmp/rozeta-install
+cmake --build /tmp/rozeta-consumer --parallel 2
+/tmp/rozeta-consumer/consumer_c
+/tmp/rozeta-consumer/consumer_cpp
+python3 scripts/verify_docs.py
+```

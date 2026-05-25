@@ -39,7 +39,55 @@ Current public surface:
 - `include/rozeta/kinect.hpp` — depth-frame model, CSV fixture loader, point-cloud conversion helpers and optional libfreenect runtime probe.
 - `include/rozeta/imu.hpp` — inertial samples, tilt/collision helpers and deterministic odometry/GPS/IMU pose fusion.
 - `include/rozeta/maps.hpp` — offline CSV route loader, `OfflineMap` paths, explicit load results and nearest-path lookup.
-- `include/rozeta/c_api.h` — initial C ABI seed for non-C++ integrations.
+- `include/rozeta/c_api.h` — stable C ABI for value-type integrations: library version, angle normalization, 2D distance and LiDAR obstacle sector calculation.
+
+## Stable C ABI
+
+The C ABI intentionally wraps only pure, value-type operations that do not expose
+C++ ownership, templates or exceptions. Include `rozeta/c_api.h` from C or C++
+and link the installed `rozeta::rozeta` CMake target.
+
+Available C entry points:
+
+- `rozeta_version()` returns the library version string.
+- `rozeta_normalize_angle(double radians)` normalizes radians into `[-pi, pi]`.
+- `rozeta_distance_2d(ax, ay, bx, by)` computes planar distance.
+- `rozeta_obstacles_from_lidar(points, count, threshold_m)` maps C scan points to
+  ahead/left/right obstacle sectors and nearest valid distance.
+
+The smoke example is executable documentation:
+
+```bash
+cmake -S . -B build -DROZETA_BUILD_EXAMPLES=ON
+cmake --build build --target c_api_smoke
+./build/examples/c_api_smoke
+```
+
+## Installed CMake package
+
+Install from source:
+
+```bash
+cmake -S . -B build -DCMAKE_INSTALL_PREFIX=/tmp/rozeta-install
+cmake --build build --parallel
+cmake --install build
+```
+
+Consume from a downstream project:
+
+```cmake
+find_package(rozeta CONFIG REQUIRED)
+add_executable(app main.c)
+target_link_libraries(app PRIVATE rozeta::rozeta)
+```
+
+The checked consumer fixture validates both C and C++ downstream usage:
+
+```bash
+cmake -S examples/consumer -B /tmp/rozeta-consumer \
+  -DCMAKE_PREFIX_PATH=/tmp/rozeta-install
+cmake --build /tmp/rozeta-consumer --parallel
+```
 
 ## Examples as executable documentation
 
@@ -57,6 +105,7 @@ These examples are deliberately small and should stay buildable in CI:
 - `odometry_test` — odometry smoke test.
 - `camera_capture` — camera capture smoke example with dependency-free `--mock` mode and optional `--opencv` mode.
 - `depth_obstacle_console` — replay a depth CSV fixture through Kinect helpers and obstacle sector extraction.
+- `c_api_smoke` — compile and run a C translation unit against `rozeta/c_api.h`.
 - `serial_motor_calibrate` — dry-run calibration helper for the optional serial motor backend.
 
 ## Website integration plan

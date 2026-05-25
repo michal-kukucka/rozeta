@@ -22,3 +22,7 @@ foreach(example ${ROZETA_EXAMPLES})
   target_link_libraries(${example} PRIVATE rozeta_static)
   target_compile_options(${example} PRIVATE -Wall -Wextra -Wpedantic)
 endforeach()
+
+add_executable(c_api_smoke c_api_smoke.c)
+target_link_libraries(c_api_smoke PRIVATE rozeta_static)
+target_compile_options(c_api_smoke PRIVATE -Wall -Wextra -Wpedantic)

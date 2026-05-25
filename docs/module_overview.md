@@ -4,6 +4,10 @@
 
 Shared definitions: `Status`, `ErrorCode`, timestamps, geometry, robot state, config loader, coordinate conversion and math helpers.
 
+## C ABI
+
+`rozeta/c_api.h` exposes the stable value-type C ABI for non-C++ consumers: `rozeta_version`, angle normalization, 2D distance and LiDAR obstacle sector calculation. It avoids C++ ownership and template types so C applications can compile with `cc` and link the installed package target.
+
 ## Logging
 
 `logging::Logger` interface plus console and CSV loggers. Intended for sensor readings, motor commands, GPS data, scans, pose, navigation decisions and errors.
