@@ -53,4 +53,6 @@ When adding a real hardware backend, keep the M1 transport contract intact:
 - Map failures to `Status` and `ErrorCode`; do not throw across public module APIs.
 - Use finite timeouts for serial reads/writes and document default values.
 - Document Linux permissions, udev recommendations and hardware-unavailable behavior in the matching module doc.
+- Add or update an opt-in smoke hook such as `scripts/smoke_ui_backends.sh`; default CI must still pass without hardware.
+- Compile optional public headers with feature macros when practical, even if local libraries/devices are absent.
 - Update `docs/diagrams/module-map.html` whenever a backend changes module relationships or data flow.

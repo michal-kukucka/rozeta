@@ -79,7 +79,7 @@
 
 **Acceptance:** Fixture replay produces deterministic UI snapshot sequence with current robot position moving on the map.
 
-### M5 — Optional real hardware backend documentation and smoke hooks
+### M5 — Optional real hardware backend documentation and smoke hooks ✅
 
 **Objective:** Document how Linux operators wire OpenCV camera and libfreenect Kinect streams into the UI snapshot loop.
 
@@ -95,3 +95,4 @@
 - 2026-05-25: M2 implemented with `ui::renderTextDashboard`, `examples/mission_ui_dashboard.cpp`, tests and README/user documentation. Verified build, CTest, docs verifier and no-hardware dashboard run.
 - 2026-05-25: M3 implemented with `ui::UiRenderer`, `ui::UiEventSink` and `ui::renderFrame` so optional renderers can receive snapshots and report status without adding GUI dependencies. Verified with fake renderer/event-sink tests.
 - 2026-05-25: M4 implemented with `telemetry::replayUiSnapshots` and `examples/replay_ui_snapshots.cpp` so `rozeta.telemetry.v1` fixture logs produce deterministic UI snapshot sequences with moving robot markers. Verified with CTest and no-hardware replay example.
+- 2026-05-25: M5 documented the opt-in OpenCV/libfreenect UI backend path in `docs/hardware_ui_backends.md`, added `scripts/smoke_ui_backends.sh`, and added `rozeta_optional_backend_header_smoke` so optional public backend declarations stay syntax-checked without hardware.

@@ -187,6 +187,7 @@ Detailed docs are included in `docs/` and are ready to be reused as a future off
 - `docs/navigation.md` — waypoint navigation, route following and obstacle-aware decisions
 - `docs/imu_module.md` — IMU thresholds, pose fusion and sample replay
 - `docs/camera_module.md` — camera frame validation, mock capture and optional OpenCV backend
+- `docs/hardware_ui_backends.md` — optional OpenCV/libfreenect UI backend runbook and smoke hooks
 - `docs/ui_module.md` — realtime mission UI snapshots, text dashboard and optional renderer bridge seam
 - `docs/module_overview.md#kinect` — Kinect/depth frame helpers and depth-derived obstacle sectors
 - `docs/robotour_use_case.md` — Robotour-style autonomous vehicle workflow
@@ -226,6 +227,7 @@ Covered behavior:
 - configuration loading
 - Robotour telemetry log parsing and deterministic replay decisions
 - realtime UI snapshot composition, text dashboard rendering and renderer status propagation
+- hardware-free optional backend header smoke coverage for OpenCV/Kinect UI declarations
 - telemetry replay conversion into deterministic UI snapshot sequences
 
 ## Status

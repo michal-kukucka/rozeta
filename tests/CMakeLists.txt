@@ -33,6 +33,13 @@ target_link_libraries(rozeta_c_api_smoke PRIVATE rozeta_static)
 target_compile_options(rozeta_c_api_smoke PRIVATE -Wall -Wextra -Wpedantic)
 add_test(NAME rozeta_c_api_smoke COMMAND rozeta_c_api_smoke)
 
+add_executable(rozeta_optional_backend_header_smoke optional_backend_header_smoke.cpp)
+target_link_libraries(rozeta_optional_backend_header_smoke PRIVATE rozeta_static)
+target_compile_definitions(rozeta_optional_backend_header_smoke
+    PRIVATE ROZETA_WITH_OPENCV ROZETA_WITH_KINECT)
+target_compile_options(rozeta_optional_backend_header_smoke PRIVATE -Wall -Wextra -Wpedantic)
+add_test(NAME rozeta_optional_backend_header_smoke COMMAND rozeta_optional_backend_header_smoke)
+
 find_package(Python3 COMPONENTS Interpreter)
 if(Python3_Interpreter_FOUND)
   add_test(NAME rozeta_docs_contract COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/verify_docs.py)

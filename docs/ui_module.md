@@ -117,3 +117,7 @@ The fixture-driven example prints every replayed dashboard frame without camera,
 ```
 
 Use this for deterministic CI/local inspection of recorded missions before attaching a richer GUI backend.
+
+## Hardware backend runbook
+
+M5 documents the opt-in Linux hardware path in `docs/hardware_ui_backends.md`. The default UI, dashboard and replay examples remain hardware-free. Operators who have OpenCV or libfreenect installed can run `scripts/smoke_ui_backends.sh opencv` or `scripts/smoke_ui_backends.sh kinect` to configure dependency-enabled builds before wiring captured frames into `SnapshotComposer`.

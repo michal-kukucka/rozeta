@@ -39,6 +39,7 @@ REQUIRED_FILES = [
     "docs/api-reference.md",
     "docs/architecture.md",
     "docs/maintenance.md",
+    "docs/hardware_ui_backends.md",
     "docs/ui_module.md",
     "docs/diagrams/module-map.html",
     "docs/diagrams/project-structure.html",
@@ -76,6 +77,15 @@ REQUIRED_PROJECT_STRUCTURE_PHRASES = [
     "replay_robotour_log",
     "rozeta::rozeta",
     "selectEdge",
+]
+
+REQUIRED_HARDWARE_UI_PHRASES = [
+    "ROZETA_WITH_OPENCV=ON",
+    "ROZETA_WITH_KINECT=ON",
+    "scripts/smoke_ui_backends.sh",
+    "camera_capture --opencv",
+    "HardwareUnavailable",
+    "default CI stays hardware-free",
 ]
 
 
@@ -151,6 +161,11 @@ def main() -> int:
     project_structure_doc = read("docs/diagrams/project-structure.md")
     if "project-structure.html" not in project_structure_doc:
         fail("project structure companion doc does not link the HTML graph", failures)
+
+    hardware_ui = read("docs/hardware_ui_backends.md") + "\n" + read("scripts/smoke_ui_backends.sh")
+    for phrase in REQUIRED_HARDWARE_UI_PHRASES:
+        if phrase not in hardware_ui:
+            fail(f"hardware UI backend runbook/smoke hook missing: {phrase}", failures)
 
     doxygen = read("Doxyfile")
     for required in ["INPUT                  = include src examples", "OUTPUT_DIRECTORY       = docs/generated", "GENERATE_HTML", "GENERATE_XML", "EXTRACT_ALL"]:
