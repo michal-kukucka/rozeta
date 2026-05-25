@@ -85,3 +85,13 @@ while (mission_running) {
 ```
 
 Default CI uses fake/fixture frames. Real OpenCV camera and libfreenect Kinect integration stays behind the existing optional `ROZETA_WITH_OPENCV` and `ROZETA_WITH_KINECT` flags.
+
+## No-hardware dashboard example
+
+`ui::renderTextDashboard` converts a `UiSnapshot` into a deterministic text dashboard for development, SSH sessions and CI logs. The `mission_ui_dashboard` example loads an optional route CSV, builds fake camera/Kinect streams and prints the map, stream and marker summary without requiring real hardware:
+
+```bash
+./build/examples/mission_ui_dashboard tests/fixtures/maps/robotour_route.csv
+```
+
+Use this example as the first integration checkpoint before connecting a real Qt/GTK/SDL/OpenCV renderer.

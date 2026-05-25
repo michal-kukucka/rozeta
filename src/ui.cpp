@@ -2,7 +2,9 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
 #include <limits>
+#include <sstream>
 #include <string>
 #include <utility>
 
@@ -307,6 +309,60 @@ StreamStatus depthStreamStatus(const depth::DepthFrame& frame, const std::string
         frame.depth_m.size(),
         label,
     };
+}
+
+std::string renderTextDashboard(const UiSnapshot& snapshot) {
+    std::ostringstream out;
+    out << std::fixed << std::setprecision(2);
+    out << "Rozeta mission UI\n";
+    out << "map paths: " << snapshot.map.paths.size() << "\n";
+    out << "viewport: " << snapshot.viewport.width << "x" << snapshot.viewport.height << "\n";
+    out << "camera: ";
+    if (snapshot.camera.available) {
+        out << snapshot.camera.width << "x" << snapshot.camera.height
+            << " fps=" << snapshot.camera.fps
+            << " payload=" << snapshot.camera.payload_elements;
+    } else {
+        out << "unavailable";
+    }
+    out << "\n";
+
+    out << "kinect rgb: ";
+    if (snapshot.kinect_rgb.available) {
+        out << snapshot.kinect_rgb.width << "x" << snapshot.kinect_rgb.height
+            << " fps=" << snapshot.kinect_rgb.fps
+            << " payload=" << snapshot.kinect_rgb.payload_elements;
+    } else {
+        out << "unavailable";
+    }
+    out << "\n";
+
+    out << "kinect depth: ";
+    if (snapshot.kinect_depth.available) {
+        out << snapshot.kinect_depth.width << "x" << snapshot.kinect_depth.height
+            << " fps=" << snapshot.kinect_depth.fps
+            << " payload=" << snapshot.kinect_depth.payload_elements;
+    } else {
+        out << "unavailable";
+    }
+    out << "\n";
+
+    out << "robot: lat=" << snapshot.robot.gps.latitude
+        << " lon=" << snapshot.robot.gps.longitude
+        << " heading=" << snapshot.robot.pose.heading << "\n";
+    out << "markers:\n";
+    for (const auto& marker : snapshot.markers) {
+        out << "- " << marker.label
+            << " lat=" << marker.geo.latitude
+            << " lon=" << marker.geo.longitude
+            << " screen=(" << marker.screen.x << "," << marker.screen.y << ")"
+            << (marker.screen.visible ? " visible" : " hidden");
+        if (marker.has_heading) {
+            out << " heading=" << marker.heading_rad;
+        }
+        out << "\n";
+    }
+    return out.str();
 }
 
 } // namespace rozeta::ui

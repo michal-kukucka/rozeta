@@ -183,3 +183,32 @@ void test_ui_viewport_validation_rejects_excessive_padding_without_overflow() {
     REQUIRE_TRUE(!status.ok());
     REQUIRE_EQ(static_cast<int>(status.code), static_cast<int>(rozeta::ErrorCode::InvalidArgument));
 }
+
+void test_ui_text_dashboard_renders_mission_stream_and_marker_summary() {
+    rozeta::ui::MissionOverlay overlay;
+    overlay.setStart({48.0000, 17.0000, 200.0});
+    overlay.setOperations({{48.0004, 17.0004, 200.0}});
+    overlay.setFinal({48.0010, 17.0010, 200.0});
+
+    rozeta::ui::SnapshotComposer composer;
+    composer.setMap(sampleMap());
+    composer.setOverlay(overlay);
+    composer.setCameraFrame(rgbFrame(2, 2));
+    composer.setKinectDepthFrame(depthFrame(3, 2));
+
+    rozeta::RobotState robot;
+    robot.gps = {48.0005, 17.0005, 200.0};
+    robot.pose.heading = 0.5;
+
+    const auto result = composer.compose(robot, {640, 480, 12});
+    REQUIRE_TRUE(result.ok());
+
+    const auto text = rozeta::ui::renderTextDashboard(result.snapshot);
+
+    REQUIRE_TRUE(text.find("Rozeta mission UI") != std::string::npos);
+    REQUIRE_TRUE(text.find("map paths: 1") != std::string::npos);
+    REQUIRE_TRUE(text.find("camera: 2x2 fps=30") != std::string::npos);
+    REQUIRE_TRUE(text.find("kinect depth: 3x2 fps=30") != std::string::npos);
+    REQUIRE_TRUE(text.find("operation 1") != std::string::npos);
+    REQUIRE_TRUE(text.find("robot") != std::string::npos);
+}

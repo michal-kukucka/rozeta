@@ -50,7 +50,7 @@
 
 **Acceptance:** Tests prove map bounds, geo-to-screen projection, marker labeling, camera/depth stream validation and snapshot composition from existing module types.
 
-### M2 — Mission dashboard sink and no-hardware example
+### M2 — Mission dashboard sink and no-hardware example ✅
 
 **Objective:** Provide a Linux example that consumes `UiSnapshot` and prints a deterministic realtime dashboard frame for mission replay/development.
 
@@ -92,3 +92,4 @@
 
 - 2026-05-25: Plan created after checking clean `main`, existing modules and Buchlovice map UI inspiration.
 - 2026-05-25: M1 implemented with `rozeta::ui` snapshot composition, mission overlay markers, map projection helpers, stream validation, tests and user docs.
+- 2026-05-25: M2 implemented with `ui::renderTextDashboard`, `examples/mission_ui_dashboard.cpp`, tests and README/user documentation. Verified build, CTest, docs verifier and no-hardware dashboard run.

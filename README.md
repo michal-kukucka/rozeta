@@ -151,6 +151,12 @@ Robotour telemetry replay without hardware:
 ./build/examples/replay_robotour_log tests/fixtures/replay/basic_robotour.csv
 ```
 
+Mission UI dashboard without hardware:
+
+```bash
+./build/examples/mission_ui_dashboard tests/fixtures/maps/robotour_route.csv
+```
+
 C ABI smoke example:
 
 ```bash
@@ -179,6 +185,7 @@ Detailed docs are included in `docs/` and are ready to be reused as a future off
 - `docs/module_overview.md#kinect` — Kinect/depth frame helpers and depth-derived obstacle sectors
 - `docs/robotour_use_case.md` — Robotour-style autonomous vehicle workflow
 - `examples/replay_robotour_log.cpp` — fixture-driven telemetry replay demo
+- `examples/mission_ui_dashboard.cpp` — no-hardware UI dashboard snapshot demo
 
 Documentation is verified from the public code surface:
 

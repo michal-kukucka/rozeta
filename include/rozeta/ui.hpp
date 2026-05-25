@@ -128,5 +128,6 @@ Status validateViewport(const Viewport& viewport);
 Status validateDepthFrame(const depth::DepthFrame& frame);
 StreamStatus cameraStreamStatus(const camera::Frame& frame, const std::string& label);
 StreamStatus depthStreamStatus(const depth::DepthFrame& frame, const std::string& label);
+std::string renderTextDashboard(const UiSnapshot& snapshot);
 
 } // namespace rozeta::ui
