@@ -39,6 +39,8 @@ REQUIRED_FILES = [
     "docs/architecture.md",
     "docs/maintenance.md",
     "docs/diagrams/module-map.html",
+    "docs/diagrams/project-structure.html",
+    "docs/diagrams/project-structure.md",
     "docs/diagrams/README.md",
     "Doxyfile",
 ]
@@ -62,6 +64,16 @@ REQUIRED_DIAGRAM_PHRASES = [
     "GPS fix",
     "LiDAR scan",
     "Obstacle sectors",
+]
+
+REQUIRED_PROJECT_STRUCTURE_PHRASES = [
+    "const FLOW_MODEL",
+    "Line inspector",
+    "project structure",
+    "basic scenario implementation",
+    "replay_robotour_log",
+    "rozeta::rozeta",
+    "selectEdge",
 ]
 
 
@@ -128,6 +140,15 @@ def main() -> int:
     for phrase in REQUIRED_DIAGRAM_PHRASES:
         if phrase not in diagram:
             fail(f"module diagram missing: {phrase}", failures)
+
+    project_structure = read("docs/diagrams/project-structure.html")
+    for phrase in REQUIRED_PROJECT_STRUCTURE_PHRASES:
+        if phrase not in project_structure:
+            fail(f"project structure graph missing: {phrase}", failures)
+
+    project_structure_doc = read("docs/diagrams/project-structure.md")
+    if "project-structure.html" not in project_structure_doc:
+        fail("project structure companion doc does not link the HTML graph", failures)
 
     doxygen = read("Doxyfile")
     for required in ["INPUT                  = include src examples", "OUTPUT_DIRECTORY       = docs/generated", "GENERATE_HTML", "GENERATE_XML", "EXTRACT_ALL"]:
