@@ -22,6 +22,7 @@ The initial milestone focuses on the foundation, not final hardware drivers:
 - camera frame validation helpers plus optional OpenCV camera backend
 - depth-frame CSV fixtures, point-cloud helpers and obstacle extraction with an optional Kinect/libfreenect flag
 - stable `rozeta.telemetry.v1` Robotour replay logs for GPS, LiDAR/depth, pose, navigation decisions and motor commands
+- realtime UI snapshot composition for map, camera, Kinect/depth and mission markers
 - examples and standalone C++ test binary
 
 ## Project layout
@@ -34,7 +35,7 @@ tests/                Dependency-free unit tests, one executable via CTest
 docs/                 Architecture and per-module documentation
 ```
 
-Planned logical modules match the requested robotics structure: core, motors, camera, kinect, lidar, odometry, gps, maps, obstacle_detection, imu, navigation, logging, examples, tests and docs.
+Planned logical modules match the requested robotics structure: core, motors, camera, kinect, lidar, odometry, gps, maps, obstacle_detection, imu, navigation, ui, logging, examples, tests and docs.
 
 ## Build
 
@@ -174,6 +175,7 @@ Detailed docs are included in `docs/` and are ready to be reused as a future off
 - `docs/navigation.md` — waypoint navigation, route following and obstacle-aware decisions
 - `docs/imu_module.md` — IMU thresholds, pose fusion and sample replay
 - `docs/camera_module.md` — camera frame validation, mock capture and optional OpenCV backend
+- `docs/ui_module.md` — realtime mission UI snapshots for map, camera, Kinect/depth and robot markers
 - `docs/module_overview.md#kinect` — Kinect/depth frame helpers and depth-derived obstacle sectors
 - `docs/robotour_use_case.md` — Robotour-style autonomous vehicle workflow
 - `examples/replay_robotour_log.cpp` — fixture-driven telemetry replay demo

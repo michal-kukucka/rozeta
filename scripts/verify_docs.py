@@ -30,6 +30,7 @@ PUBLIC_HEADER_DOCS = {
     "obstacle_detection": "docs/navigation.md",
     "odometry": "docs/module_overview.md",
     "telemetry": "docs/module_overview.md",
+    "ui": "docs/ui_module.md",
 }
 
 REQUIRED_FILES = [
@@ -38,6 +39,7 @@ REQUIRED_FILES = [
     "docs/api-reference.md",
     "docs/architecture.md",
     "docs/maintenance.md",
+    "docs/ui_module.md",
     "docs/diagrams/module-map.html",
     "docs/diagrams/project-structure.html",
     "docs/diagrams/project-structure.md",

@@ -37,7 +37,7 @@
 
 ## Milestones
 
-### M1 — Core UI snapshot model and mission overlay
+### M1 — Core UI snapshot model and mission overlay ✅
 
 **Objective:** Add dependency-free classes/methods that connect `maps`, `camera`, `kinect/depth` and robot mission state into a single realtime UI snapshot.
 
@@ -91,3 +91,4 @@
 ## Progress log
 
 - 2026-05-25: Plan created after checking clean `main`, existing modules and Buchlovice map UI inspiration.
+- 2026-05-25: M1 implemented with `rozeta::ui` snapshot composition, mission overlay markers, map projection helpers, stream validation, tests and user docs.

@@ -52,6 +52,14 @@ void test_camera_rejects_invalid_metadata_and_payload_size();
 void test_telemetry_parser_loads_robotour_fixture();
 void test_telemetry_parser_rejects_bad_schema_and_rows();
 void test_telemetry_replay_produces_deterministic_navigation_decisions();
+void test_ui_map_view_projects_markers_into_viewport();
+void test_ui_map_view_preserves_metric_aspect_ratio_in_wide_viewport();
+void test_ui_map_view_marks_off_axis_point_in_degenerate_bounds_invisible();
+void test_ui_mission_overlay_classifies_start_operation_current_and_final_positions();
+void test_ui_snapshot_composer_connects_map_camera_kinect_and_robot_state();
+void test_ui_snapshot_composer_reports_invalid_stream_payloads();
+void test_ui_snapshot_composer_reports_invalid_kinect_depth_payloads();
+void test_ui_viewport_validation_rejects_excessive_padding_without_overflow();
 #ifdef ROZETA_WITH_SERIAL_MOTORS
 void test_serial_motor_formats_normalized_speed_commands();
 void test_serial_motor_rejects_invalid_speed_without_writing();
@@ -123,6 +131,14 @@ int main(){
         {"telemetry_parser_fixture", test_telemetry_parser_loads_robotour_fixture},
         {"telemetry_parser_errors", test_telemetry_parser_rejects_bad_schema_and_rows},
         {"telemetry_replay_deterministic", test_telemetry_replay_produces_deterministic_navigation_decisions},
+        {"ui_map_projection", test_ui_map_view_projects_markers_into_viewport},
+        {"ui_metric_aspect", test_ui_map_view_preserves_metric_aspect_ratio_in_wide_viewport},
+        {"ui_degenerate_bounds", test_ui_map_view_marks_off_axis_point_in_degenerate_bounds_invisible},
+        {"ui_mission_overlay", test_ui_mission_overlay_classifies_start_operation_current_and_final_positions},
+        {"ui_snapshot_composer", test_ui_snapshot_composer_connects_map_camera_kinect_and_robot_state},
+        {"ui_invalid_stream", test_ui_snapshot_composer_reports_invalid_stream_payloads},
+        {"ui_invalid_depth", test_ui_snapshot_composer_reports_invalid_kinect_depth_payloads},
+        {"ui_invalid_viewport", test_ui_viewport_validation_rejects_excessive_padding_without_overflow},
 #ifdef ROZETA_WITH_SERIAL_MOTORS
         {"serial_motor_format", test_serial_motor_formats_normalized_speed_commands},
         {"serial_motor_invalid_speed", test_serial_motor_rejects_invalid_speed_without_writing},

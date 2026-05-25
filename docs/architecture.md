@@ -8,7 +8,7 @@ Rozeta is designed as a modular C/C++ robotics library for Linux robots. The arc
 
 ## Design principles
 
-1. **Hardware abstraction** — applications depend on interfaces such as `MotorController`, `GpsReceiver`, `LidarScanner`, `Camera` or `ImuSensor`.
+1. **Hardware abstraction** — applications depend on interfaces such as `MotorController`, `GpsReceiver`, `LidarScanner`, `Camera`, `KinectSensor` or `ImuSensor`.
 2. **Dependency injection** — Robotour loops receive concrete modules, allowing mocks in tests and real devices in deployment.
 3. **Linux-first** — CMake, POSIX-friendly examples and serial-device naming are assumed first.
 4. **Minimal dependencies** — milestone 1 only needs a C++17 compiler and CMake.
@@ -21,7 +21,11 @@ Rozeta is designed as a modular C/C++ robotics library for Linux robots. The arc
 Sensors -> normalized data structures -> RobotState/Pose -> Navigation -> MotorCommand -> MotorController
              |                                      |
              +-------------- Logging ---------------+
+             |
+             +-> UI SnapshotComposer -> renderer/dashboard
 ```
+
+`ui::SnapshotComposer` is deliberately render-backend neutral. It receives existing map, camera, Kinect/depth and robot-state values and produces a `UiSnapshot` for Linux dashboards without pulling GUI dependencies into the default library.
 
 ## Adding a backend
 

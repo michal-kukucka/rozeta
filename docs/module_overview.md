@@ -61,3 +61,9 @@ See `docs/camera_module.md` for mock and OpenCV capture usage.
 ## Kinect
 
 `kinect::DepthFrame` stores normalized metric depth samples with image metadata. `kinect::loadDepthCsv` loads no-hardware fixtures, `kinect::depthFrameToPointCloud` projects valid pixels into a point cloud, and `obstacle_detection::fromDepthFrame` converts depth images into ahead/left/right obstacle sectors. Optional libfreenect probing is isolated behind `ROZETA_WITH_KINECT=ON`; the default build has no Kinect dependency.
+
+## UI
+
+`ui::SnapshotComposer` connects `maps::OfflineMap`, camera RGB frames, Kinect RGB/depth frames and `RobotState` into a render-backend-neutral realtime `UiSnapshot`. The UI module also provides mission overlays for start, operation, final and current robot markers plus viewport projection helpers for drawing the robot position on the active map.
+
+See `docs/ui_module.md` for realtime mission visualization usage.
