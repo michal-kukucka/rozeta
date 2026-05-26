@@ -122,6 +122,14 @@ REQUIRED_BUCHLOVICE_M3_PHRASES = [
     "OpenCV QR",
 ]
 
+REQUIRED_BUCHLOVICE_M4_PHRASES = [
+    "M4 — Network GPS receivers",
+    "NetworkGpsReceiver",
+    "parseGpsPayload",
+    "gps_network_reader",
+    "TCP/UDP",
+]
+
 
 def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
@@ -235,6 +243,19 @@ def main() -> int:
     for phrase in REQUIRED_BUCHLOVICE_M3_PHRASES:
         if phrase not in buchlovice_m3_docs:
             fail(f"Buchlovice M3 mission documentation/diagram coverage missing: {phrase}", failures)
+
+    buchlovice_m4_docs = (
+        read("docs/gps_module.md")
+        + "\n"
+        + read("docs/module_overview.md")
+        + "\n"
+        + read("docs/diagrams/module-map.html")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M4_PHRASES:
+        if phrase not in buchlovice_m4_docs:
+            fail(f"Buchlovice M4 network GPS documentation/diagram coverage missing: {phrase}", failures)
 
     doxygen = read("Doxyfile")
     for required in ["INPUT                  = include src examples", "OUTPUT_DIRECTORY       = docs/generated", "GENERATE_HTML", "GENERATE_XML", "EXTRACT_ALL"]:

@@ -8,7 +8,7 @@ Rozeta is inspired by the Buchlovice/Robotour style workflow, but rebuilt as C/C
 `examples/route_follower_demo.cpp` demonstrates the M5 offline route-loading path. `examples/replay_robotour_log.cpp` replays the stable `rozeta.telemetry.v1` fixture through navigation so the same decisions are testable in CI. `examples/replay_ui_snapshots.cpp` converts the same fixture into deterministic `ui::UiSnapshot` frames so recorded robot movement can be inspected through the dashboard path. Together they show the intended sequence:
 
 1. Load an offline CSV route with `maps::CsvMapLoader`.
-2. Read checksum-validated GPS fixes from sample files or serial NMEA devices.
+2. Read checksum-validated GPS fixes from sample files, serial NMEA devices, or M4 TCP/UDP iPhone-style feeds.
 3. Convert route GPS coordinates to local waypoints with `geoToLocal`.
 4. Read odometry.
 5. Read normalized LiDAR scans from mock data, sample replay or optional YDLIDAR serial devices.
@@ -44,3 +44,8 @@ Run `examples/robotour_buchlovice_demo.cpp` via `./build/examples/robotour_buchl
 ## QR mission target intake
 
 Use `mission::parseMissionTarget` to convert QR payload text such as `geo:lat,lon` or `N 48.333 E 17.444` into a validated mission target before building a route. `mission::QrDecoder` lets applications provide an OpenCV QR or platform-specific decoder without making default CI depend on camera libraries.
+
+
+## M4 network GPS receiver
+
+`gps::NetworkGpsReceiver` covers Buchlovice `SimpleGPSReceiver`/`SimpleGPSClientTCP` style inputs. It accepts UDP packet feeds and TCP newline feeds, parses NMEA, JSON `{ "lat": ..., "lon": ... }`, and plain `lat,lon`, and exposes `GpsReceiverStats`/`lastStatus()` for timeout, parse and reconnect diagnostics. Use `gps_network_reader` for a no-hardware payload smoke or a one-fix TCP/UDP read.

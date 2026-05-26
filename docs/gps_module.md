@@ -2,7 +2,7 @@
 
 Public header: `include/rozeta/gps.hpp`
 
-The GPS module now covers the full lightweight Robotour path from serial/file NMEA input to validated `GpsFix` data. It stays dependency-free and uses the M1 POSIX serial transport for hardware reads.
+The GPS module now covers the full lightweight Robotour path from serial/file/network GPS input to validated `GpsFix` data. It stays dependency-free and uses POSIX serial and loopback-testable TCP/UDP sockets for hardware-adjacent reads.
 
 ## Supported sentences
 
@@ -23,7 +23,17 @@ if (!validation.ok()) {
 }
 ```
 
-Receiver-mode parsing requires checksummed sentences. Invalid checksums are rejected and counted by `GpsReceiverStats::checksum_failures`.
+Receiver-mode NMEA parsing requires checksummed sentences. Invalid checksums are rejected and counted by `GpsReceiverStats::checksum_failures`.
+
+## Network payload parsing
+
+M4 adds `gps::parseGpsPayload` for iPhone-style GPS feeds that do not always send NMEA. The parser normalizes all successful inputs into `GpsFix`:
+
+- NMEA `$GPGGA` / `$GPRMC` lines with checksums,
+- JSON packets like `{ "lat": 48.333, "lon": 17.444 }`,
+- plain decimal coordinate lines like `48.333,17.444`.
+
+All non-NMEA formats still validate latitude in `[-90, 90]` and longitude in `[-180, 180]`.
 
 ## Stream buffering
 
@@ -55,7 +65,38 @@ Default serial settings target common GPS modules: 9600 baud, 8N1 raw POSIX mode
 
 `readFix()` returns `std::nullopt` on timeout, parse errors or hardware errors. Inspect `lastStatus()` and `stats()` for diagnostics.
 
+## Network receiver
+
+`NetworkGpsReceiver` covers the Buchlovice iPhone TCP/UDP paths without pulling networking into the parser. Configure the protocol, IPv4 host and port, then call `readFix()` with finite timeouts:
+
+```cpp
+rozeta::gps::NetworkGpsReceiverConfig config;
+config.protocol = rozeta::gps::NetworkGpsProtocol::Udp;
+config.host = "127.0.0.1";
+config.port = 5005;
+
+rozeta::gps::NetworkGpsReceiver receiver(config);
+if (receiver.open().ok()) {
+    auto fix = receiver.readFix();
+}
+```
+
+TCP feeds are line-buffered so fragmented newline-delimited messages can arrive across multiple packets. UDP treats each datagram as one GPS payload. TCP sockets close and can reconnect after `reconnect_backoff`; UDP reads return `Timeout` when no packet arrives before `read_timeout`.
+
 ## Example usage
+
+Payload mode works without GPS hardware or sockets:
+
+```bash
+./build/examples/gps_network_reader --payload '{"lat": 48.1486, "lon": 17.1077}'
+```
+
+TCP/UDP modes listen/read one fix from an iPhone-style feed:
+
+```bash
+./build/examples/gps_network_reader --udp 127.0.0.1:5005
+./build/examples/gps_network_reader --tcp 127.0.0.1:5005
+```
 
 Sample-file mode works without GPS hardware:
 

@@ -12,7 +12,7 @@ The initial milestone focuses on the foundation, not final hardware drivers:
 - core types, status/error handling, configuration loading, math helpers and geo-local conversion
 - logging interface with console and CSV file logger
 - differential-drive motor interface with mock implementation, calibration persistence, optional serial backend and emergency stop
-- NMEA GPS parser/validator for GGA/RMC plus serial receiver with stream buffering
+- NMEA GPS parser/validator for GGA/RMC plus serial and M4 TCP/UDP network receivers with stream buffering
 - differential-drive odometry
 - LiDAR interface, filtering, console visualization and optional YDLIDAR-style packet parser/backend
 - offline CSV maps/route loading with explicit status errors
@@ -24,6 +24,7 @@ The initial milestone focuses on the foundation, not final hardware drivers:
 - stable `rozeta.telemetry.v1` Robotour replay logs for GPS, LiDAR/depth, pose, navigation decisions and motor commands
 - realtime UI snapshot composition for map, camera, Kinect/depth and mission markers
 - mission target parser for QR payload text such as `geo:lat,lon`, `gps lat,lon`, labeled lat/lon and hemisphere formats
+- iPhone-style GPS payload parsing for NMEA, JSON `{ "lat": ..., "lon": ... }`, and plain `lat,lon` TCP/UDP feeds
 - examples and standalone C++ test binary
 
 ## Project layout
@@ -114,6 +115,12 @@ GPS serial reader sample mode without hardware:
 
 ```bash
 ./build/examples/gps_serial_reader --sample tests/fixtures/gps/robotour_sample.nmea
+```
+
+GPS network payload parser without sockets:
+
+```bash
+./build/examples/gps_network_reader --payload '{"lat": 48.1486, "lon": 17.1077}'
 ```
 
 YDLIDAR sample replay without hardware:

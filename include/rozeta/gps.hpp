@@ -60,6 +60,7 @@ struct NmeaParseResult {
 };
 
 NmeaValidationResult validateNmeaSentence(const std::string& sentence);
+NmeaParseResult parseGpsPayload(const std::string& payload);
 
 class NmeaStreamBuffer {
 public:
@@ -110,6 +111,39 @@ public:
 
     Status open();
     Status open(const std::string& device) override;
+    std::optional<GpsFix> readFix() override;
+    void close() noexcept;
+    bool isOpen() const;
+    Status lastStatus() const;
+    const GpsReceiverStats& stats() const;
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+};
+
+enum class NetworkGpsProtocol {
+    Tcp,
+    Udp,
+};
+
+struct NetworkGpsReceiverConfig {
+    NetworkGpsProtocol protocol{NetworkGpsProtocol::Udp};
+    std::string host{"127.0.0.1"};
+    int port{5005};
+    std::chrono::milliseconds read_timeout{100};
+    std::chrono::milliseconds reconnect_backoff{500};
+    std::size_t read_buffer_size{512};
+    std::size_t max_packet_length{2048};
+};
+
+class NetworkGpsReceiver final : public GpsReceiver {
+public:
+    explicit NetworkGpsReceiver(NetworkGpsReceiverConfig config = {});
+    ~NetworkGpsReceiver() override;
+
+    Status open();
+    Status open(const std::string& endpoint) override;
     std::optional<GpsFix> readFix() override;
     void close() noexcept;
     bool isOpen() const;

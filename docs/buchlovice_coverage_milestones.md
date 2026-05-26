@@ -107,14 +107,20 @@ Remaining action points:
 
 ### M4 — Network GPS receivers
 
+Status: implemented in `rozeta::gps::NetworkGpsReceiver`.
+
 Goal: cover the iPhone GPS paths in `SimpleGPSReceiver` and `SimpleGPSClientTCP`.
 
-Action points:
-- Add TCP and UDP GPS receiver backends that can parse newline or packet-based feeds.
-- Support NMEA, JSON `{ "lat": ..., "lon": ... }`, and plain `lat,lon` formats.
-- Reuse `gps::GpsFix` and `NmeaParser` for normalized output.
-- Add reconnect/backoff behavior for TCP and non-blocking/timeout behavior for UDP.
-- Add tests using local loopback sockets or injectable byte streams.
+Delivered coverage:
+- Added TCP and UDP GPS receiver backends that parse newline-delimited TCP feeds and packet-based UDP feeds.
+- Added `gps::parseGpsPayload` for NMEA, JSON `{ "lat": ..., "lon": ... }`, and plain `lat,lon` formats.
+- Reuses `gps::GpsFix`, `NmeaParser`, `NmeaParseResult`, and `GpsReceiverStats` for normalized output and diagnostics.
+- TCP closes stale sockets and observes `reconnect_backoff`; UDP reads use finite `read_timeout` and report `Timeout` without blocking CI.
+- Added local loopback socket tests for UDP packets, TCP fragmentation, parser formats, timeouts and invalid config.
+- Added `gps_network_reader` as a no-hardware payload smoke and optional one-fix TCP/UDP reader.
+
+Remaining action points:
+- Real iPhone field networking was intentionally not exercised; M4 is covered by loopback sockets and payload parser tests.
 
 ### M5 — Graph routing over Buchlovice/OSM footways
 

@@ -14,6 +14,14 @@ void test_gps_serial_receiver_reads_fragmented_fix_from_pty();
 void test_gps_serial_receiver_skips_bad_checksum_then_returns_good_fix();
 void test_gps_serial_receiver_timeout_reports_status();
 void test_gps_serial_receiver_rejects_invalid_config();
+void test_network_gps_parser_accepts_plain_json_and_nmea_payloads();
+void test_network_gps_parser_rejects_malformed_json_payloads();
+void test_network_gps_udp_receiver_reads_single_packet_fix();
+void test_network_gps_tcp_receiver_handles_fragmented_newline_feed();
+void test_network_gps_receiver_reports_timeout_and_invalid_config();
+void test_network_gps_tcp_open_uses_configured_finite_timeout();
+void test_network_gps_tcp_read_has_overall_deadline_without_newline();
+void test_network_gps_tcp_read_uses_remaining_deadline_after_partial_payload();
 void test_odometry_differential_drive_forward_and_turn();
 void test_coordinate_local_conversion();
 void test_obstacle_sector_calculation();
@@ -110,6 +118,14 @@ int main(){
         {"gps_serial_skip_bad", test_gps_serial_receiver_skips_bad_checksum_then_returns_good_fix},
         {"gps_serial_timeout", test_gps_serial_receiver_timeout_reports_status},
         {"gps_serial_invalid_config", test_gps_serial_receiver_rejects_invalid_config},
+        {"network_gps_payload_parse", test_network_gps_parser_accepts_plain_json_and_nmea_payloads},
+        {"network_gps_json_rejects_malformed", test_network_gps_parser_rejects_malformed_json_payloads},
+        {"network_gps_udp_packet", test_network_gps_udp_receiver_reads_single_packet_fix},
+        {"network_gps_tcp_fragmented", test_network_gps_tcp_receiver_handles_fragmented_newline_feed},
+        {"network_gps_timeout_config", test_network_gps_receiver_reports_timeout_and_invalid_config},
+        {"network_gps_tcp_open_timeout", test_network_gps_tcp_open_uses_configured_finite_timeout},
+        {"network_gps_tcp_read_deadline", test_network_gps_tcp_read_has_overall_deadline_without_newline},
+        {"network_gps_tcp_partial_deadline", test_network_gps_tcp_read_uses_remaining_deadline_after_partial_payload},
         {"odometry", test_odometry_differential_drive_forward_and_turn},
         {"coordinates", test_coordinate_local_conversion},
         {"obstacles", test_obstacle_sector_calculation},

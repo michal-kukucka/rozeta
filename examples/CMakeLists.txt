@@ -2,6 +2,7 @@ set(ROZETA_EXAMPLES
     motor_test
     gps_reader
     gps_serial_reader
+    gps_network_reader
     lidar_scan_console
     camera_capture
     odometry_test

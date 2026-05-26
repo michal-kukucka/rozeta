@@ -32,7 +32,7 @@ See `docs/runtime_module.md` for M2 supervisor usage.
 
 ## GPS
 
-`gps::NmeaParser` supports GGA/RMC latitude, longitude, altitude, speed, course, fix quality and satellites. Local conversion delegates to core geo helpers.
+`gps::NmeaParser` supports GGA/RMC latitude, longitude, altitude, speed, course, fix quality and satellites. `gps::parseGpsPayload` and M4 `gps::NetworkGpsReceiver` cover TCP/UDP iPhone-style feeds in NMEA, JSON `lat`/`lon`, and plain `lat,lon` formats with finite timeouts and TCP reconnect backoff. Local conversion delegates to core geo helpers.
 
 ## Odometry
 
