@@ -25,6 +25,7 @@ The initial milestone focuses on the foundation, not final hardware drivers:
 - realtime UI snapshot composition for map, camera, Kinect/depth and mission markers
 - mission target parser for QR payload text such as `geo:lat,lon`, `gps lat,lon`, labeled lat/lon and hemisphere formats
 - iPhone-style GPS payload parsing for NMEA, JSON `{ "lat": ..., "lon": ... }`, and plain `lat,lon` TCP/UDP feeds
+- RGB path and grass perception helpers for camera frames, with dependency-free HSV masks plus optional OpenCV capture feeding the same API
 - examples and standalone C++ test binary
 
 ## Project layout
@@ -208,6 +209,7 @@ Detailed docs are included in `docs/` and are ready to be reused as a future off
 - `docs/navigation.md` — waypoint navigation, route following and obstacle-aware decisions
 - `docs/imu_module.md` — IMU thresholds, pose fusion and sample replay
 - `docs/camera_module.md` — camera frame validation, mock capture and optional OpenCV backend
+- `docs/perception_module.md` — M7 RGB path/grass masks, `detectRgbPath` and `measureSideCoverage`
 - `docs/hardware_ui_backends.md` — optional OpenCV/libfreenect UI backend runbook and smoke hooks
 - `docs/buchlovice_motor_hardware_smoke.md` — M1 Buchlovice motor hardware smoke runbook
 - `docs/ui_module.md` — realtime mission UI snapshots, text dashboard and optional renderer bridge seam

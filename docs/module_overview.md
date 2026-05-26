@@ -68,6 +68,12 @@ Combines normalized sensor results into `ObstacleInfo` with ahead/left/right fla
 
 See `docs/camera_module.md` for mock and OpenCV capture usage.
 
+## Perception
+
+`perception::detectRgbPath` and `perception::measureSideCoverage` analyze packed RGB8 camera frames with dependency-free HSV-style masks. M7 — RGB path and grass perception reports path left/center/right direction, normalized center offset, confidence, green coverage and dark-side coverage without owning cameras or motor decisions.
+
+See `docs/perception_module.md` for M7 RGB perception usage.
+
 ## Kinect
 
 `kinect::DepthFrame` stores normalized metric depth samples with image metadata. `kinect::loadDepthCsv` loads no-hardware fixtures, `kinect::depthFrameToPointCloud` projects valid pixels into a point cloud, and `obstacle_detection::fromDepthFrame` converts depth images into ahead/left/right obstacle sectors. Optional libfreenect probing is isolated behind `ROZETA_WITH_KINECT=ON`; the default build has no Kinect dependency.

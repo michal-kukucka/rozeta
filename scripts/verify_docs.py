@@ -31,6 +31,7 @@ PUBLIC_HEADER_DOCS = {
     "navigation": "docs/navigation.md",
     "obstacle_detection": "docs/navigation.md",
     "odometry": "docs/module_overview.md",
+    "perception": "docs/perception_module.md",
     "telemetry": "docs/module_overview.md",
     "ui": "docs/ui_module.md",
 }
@@ -146,6 +147,14 @@ REQUIRED_BUCHLOVICE_M6_PHRASES = [
     "bearingToAheadPoint",
     "turnAhead",
     "detectWrongDirection",
+]
+
+REQUIRED_BUCHLOVICE_M7_PHRASES = [
+    "M7 — RGB path and grass perception",
+    "RgbPathConfig",
+    "detectRgbPath",
+    "measureSideCoverage",
+    "green coverage",
 ]
 
 
@@ -302,6 +311,21 @@ def main() -> int:
     for phrase in REQUIRED_BUCHLOVICE_M6_PHRASES:
         if phrase not in buchlovice_m6_docs:
             fail(f"Buchlovice M6 route-cue documentation/diagram coverage missing: {phrase}", failures)
+
+    buchlovice_m7_docs = (
+        read("docs/perception_module.md")
+        + "\n"
+        + read("docs/api-reference.md")
+        + "\n"
+        + read("docs/robotour_use_case.md")
+        + "\n"
+        + read("docs/diagrams/module-map.html")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M7_PHRASES:
+        if phrase not in buchlovice_m7_docs:
+            fail(f"Buchlovice M7 RGB perception documentation/diagram coverage missing: {phrase}", failures)
 
     doxygen = read("Doxyfile")
     for required in ["INPUT                  = include src examples", "OUTPUT_DIRECTORY       = docs/generated", "GENERATE_HTML", "GENERATE_XML", "EXTRACT_ALL"]:

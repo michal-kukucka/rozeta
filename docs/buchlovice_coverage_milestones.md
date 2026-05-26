@@ -8,9 +8,9 @@ Source audited:
 
 ## High-level conclusion
 
-Rozeta can already cover a meaningful foundation of the Buchlovice Robotour stack: differential-drive motor commands, emergency stop, NMEA GPS parsing, serial/network GPS reads, camera capture lifecycle, depth/Kinect frame contracts, obstacle sectors from depth/LiDAR, offline CSV route loading, Buchlovice footway graph routing, route resampling/reuse, bearing/turn-ahead/wrong-direction route cues, simple route following, logging, telemetry replay, and mission UI snapshots.
+Rozeta can already cover a meaningful foundation of the Buchlovice Robotour stack: differential-drive motor commands, emergency stop, NMEA GPS parsing, serial/network GPS reads, camera capture lifecycle, M7 RGB path and grass perception, depth/Kinect frame contracts, obstacle sectors from depth/LiDAR, offline CSV route loading, Buchlovice footway graph routing, route resampling/reuse, bearing/turn-ahead/wrong-direction route cues, simple route following, logging, telemetry replay, and mission UI snapshots.
 
-Rozeta cannot yet replace the Buchlovice application end-to-end because `kvalifikacia_demo.py` still contains application-specific behaviors that are outside Rozeta's reusable core: OpenCV path/grass/ROI vision, pulse-based bypass maneuver execution, operator wizard/keyboard/beeper workflow, and a Python-friendly integration surface.
+Rozeta cannot yet replace the Buchlovice application end-to-end because `kvalifikacia_demo.py` still contains application-specific behaviors that are outside Rozeta's reusable core: RGB obstacle ROI/hysteresis, pulse-based bypass maneuver execution, operator wizard/keyboard/beeper workflow, and a Python-friendly integration surface.
 
 ## Coverage map
 
@@ -23,10 +23,8 @@ Rozeta cannot yet replace the Buchlovice application end-to-end because `kvalifi
 | iPhone GPS via TCP/UDP JSON, `lat,lon`, NMEA | Partial: NMEA serial/file parser only | No TCP/UDP GPS receiver and no JSON/plain coordinate parser receiver |
 | Buchlovice OSM footway CSV graph, Dijkstra, route resampling | Implemented: `BuchloviceFootwayGraphLoader`, `FootwayGraph`, `shortestPath`, `sampleRoute`, and `shouldReuseRoute` | Optional full OSM/PBF import remains future scope |
 | Haversine/bearing/turn-ahead/wrong-direction checks | Implemented: `haversineDistance`, `initialBearing`, `bearingToAheadPoint`, `turnAhead`, and `detectWrongDirection` | Field HUD/telemetry rendering of cues remains future UI scope |
-| Camera OpenCV capture | Partial: optional `OpenCvCamera` | No path/grass/QR/ROI perception algorithms on RGB frames |
-| `CameraModule.detect_path` HSV road/green segmentation | None | No RGB path-center detector with confidence/direction output |
-| `detect_simple_obstacle` dark ROI + hysteresis | None | Obstacle detection supports depth/LiDAR sectors, not RGB ROI/hysteresis |
-| `compute_green_side_coverage` and side dark coverage | None | No image side-coverage feature extraction helpers |
+| Camera OpenCV capture and RGB path/grass feature extraction | Implemented: optional `OpenCvCamera`, `RgbPathConfig`, `detectRgbPath`, and `measureSideCoverage` | Contour geometry beyond center offset remains future tuning scope |
+| RGB obstacle ROI / hysteresis | None | Obstacle detection supports depth/LiDAR sectors, not RGB ROI/hysteresis |
 | Kinect Linux/Windows adapter probing and profile XML/runtime JSON bridge | Partial: `KinectSensor`, `FreenectKinectSensor`, depth obstacle extraction | No profile schema, backend selection/fallback policy, Buchlovice-compatible object summaries |
 | Wait 10s after obstacle, resume if clear, otherwise bypass | Partial: emergency stop/navigation decision exists | No obstacle behavior state machine or bypass maneuver primitive |
 | Pulse-based bypass and path following using differential drive | Partial: motor commands can express differential speeds | No reusable maneuver planner or pulse executor with safety checks |
@@ -159,14 +157,21 @@ Remaining action points:
 
 ### M7 — RGB path and grass perception
 
+Status: implemented in `rozeta::perception`.
+
 Goal: cover the camera-only functionality used for road/path following.
 
-Action points:
-- Add an optional OpenCV RGB perception module for path detection using HSV masks and contour center offset.
-- Return a stable result type: direction, confidence, path center offset, and diagnostic masks/coverage values.
-- Add green side coverage and dark side coverage helpers with configurable thresholds.
-- Add frame fixtures or synthetic images for path centered, path left/right, grass center, grass left/right, and low-confidence scenes.
-- Keep this separate from generic `camera::Camera`; camera captures frames, perception analyzes frames.
+Delivered coverage:
+- Added `include/rozeta/perception.hpp` and `src/perception.cpp` with dependency-free RGB8 analysis helpers.
+- Added `RgbPathConfig`, `RgbPathResult`, `SideCoverageResult` and `PathDirection` stable result types.
+- Added `detectRgbPath` for HSV-style path masking, lower-ROI center offset, direction and confidence.
+- Added `measureSideCoverage` for left/center/right green coverage and dark coverage diagnostics.
+- Added synthetic RGB tests for centered/left/right paths, grass coverage, all-dark low-confidence frames, invalid payloads and config-safe validation.
+- Updated perception/API/Robotour docs, docs verifier phrases and interactive diagrams.
+
+Remaining action points:
+- OpenCV remains a capture backend only; M7 perception itself stays dependency-free and does not implement contour shapes beyond path center offset.
+- RGB obstacle ROI hysteresis remains M8 scope.
 
 ### M8 — RGB obstacle ROI with hysteresis
 

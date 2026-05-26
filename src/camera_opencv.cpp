@@ -54,21 +54,22 @@ Frame OpenCvCamera::capture() {
         return frame;
     }
 
-    cv::Mat contiguous_bgr;
+    cv::Mat rgb;
     if (bgr.channels() == 3) {
-        contiguous_bgr = bgr.isContinuous() ? bgr : bgr.clone();
+        cv::cvtColor(bgr, rgb, cv::COLOR_BGR2RGB);
     } else if (bgr.channels() == 4) {
-        cv::cvtColor(bgr, contiguous_bgr, cv::COLOR_BGRA2BGR);
+        cv::cvtColor(bgr, rgb, cv::COLOR_BGRA2RGB);
     } else if (bgr.channels() == 1) {
-        cv::cvtColor(bgr, contiguous_bgr, cv::COLOR_GRAY2BGR);
+        cv::cvtColor(bgr, rgb, cv::COLOR_GRAY2RGB);
     } else {
         return frame;
     }
 
-    const auto byte_count = contiguous_bgr.total() * contiguous_bgr.elemSize();
-    frame.bytes.assign(contiguous_bgr.data, contiguous_bgr.data + byte_count);
-    frame.metadata.width = contiguous_bgr.cols;
-    frame.metadata.height = contiguous_bgr.rows;
+    const cv::Mat contiguous_rgb = rgb.isContinuous() ? rgb : rgb.clone();
+    const auto byte_count = contiguous_rgb.total() * contiguous_rgb.elemSize();
+    frame.bytes.assign(contiguous_rgb.data, contiguous_rgb.data + byte_count);
+    frame.metadata.width = contiguous_rgb.cols;
+    frame.metadata.height = contiguous_rgb.rows;
     frame.metadata.fps = impl_->config.fps;
     frame.metadata.timestamp = now();
     return frame;

@@ -81,6 +81,10 @@ void test_imu_pose_fusion_replays_fixture_samples();
 void test_camera_expected_byte_size_and_shape_for_rgb_frame();
 void test_camera_validates_fake_camera_frame_metadata_and_payload();
 void test_camera_rejects_invalid_metadata_and_payload_size();
+void test_perception_detects_centered_left_and_right_paths();
+void test_perception_grass_and_dark_side_coverage_helpers();
+void test_perception_low_confidence_invalid_config_and_invalid_frames_fail_safe();
+void test_perception_side_coverage_handles_narrow_frames();
 void test_telemetry_parser_loads_robotour_fixture();
 void test_telemetry_parser_rejects_bad_schema_and_rows();
 void test_telemetry_replay_produces_deterministic_navigation_decisions();
@@ -199,6 +203,10 @@ int main(){
         {"camera_shape", test_camera_expected_byte_size_and_shape_for_rgb_frame},
         {"camera_fake_frame", test_camera_validates_fake_camera_frame_metadata_and_payload},
         {"camera_invalid_frame", test_camera_rejects_invalid_metadata_and_payload_size},
+        {"perception_path", test_perception_detects_centered_left_and_right_paths},
+        {"perception_coverage", test_perception_grass_and_dark_side_coverage_helpers},
+        {"perception_invalid", test_perception_low_confidence_invalid_config_and_invalid_frames_fail_safe},
+        {"perception_narrow", test_perception_side_coverage_handles_narrow_frames},
         {"telemetry_parser_fixture", test_telemetry_parser_loads_robotour_fixture},
         {"telemetry_parser_errors", test_telemetry_parser_rejects_bad_schema_and_rows},
         {"telemetry_replay_deterministic", test_telemetry_replay_produces_deterministic_navigation_decisions},

@@ -16,6 +16,7 @@ add_executable(rozeta_tests
     test_mission.cpp
     test_imu.cpp
     test_camera.cpp
+    test_perception.cpp
     test_telemetry.cpp
     test_ui.cpp
 )
