@@ -84,3 +84,65 @@ void test_maps_csv_loader_reports_empty_route() {
     REQUIRE_TRUE(!result.ok());
     REQUIRE_EQ(static_cast<int>(result.status.code), static_cast<int>(rozeta::ErrorCode::InvalidArgument));
 }
+
+void test_maps_buchlovice_graph_loader_builds_bidirectional_edges() {
+    rozeta::maps::BuchloviceFootwayGraphLoader loader;
+
+    auto result = loader.loadDetailed(fixturePath("buchlovice_park_footways.csv"));
+
+    REQUIRE_TRUE(result.ok());
+    REQUIRE_EQ(result.graph.vertices.size(), static_cast<std::size_t>(5));
+    REQUIRE_EQ(result.graph.edges.size(), static_cast<std::size_t>(8));
+    REQUIRE_NEAR(result.graph.vertices[0].coordinate.latitude, 49.1000000, 1e-9);
+}
+
+void test_maps_buchlovice_graph_loader_reports_invalid_rows() {
+    rozeta::maps::BuchloviceFootwayGraphLoader loader;
+
+    auto result = loader.loadDetailed(fixturePath("invalid_footways.csv"));
+
+    REQUIRE_TRUE(!result.ok());
+    REQUIRE_EQ(static_cast<int>(result.status.code), static_cast<int>(rozeta::ErrorCode::ParseError));
+}
+
+void test_maps_graph_nearest_vertex_and_shortest_path() {
+    rozeta::maps::BuchloviceFootwayGraphLoader loader;
+    auto result = loader.loadDetailed(fixturePath("buchlovice_park_footways.csv"));
+    REQUIRE_TRUE(result.ok());
+
+    const auto start = rozeta::maps::nearestVertexIndex(result.graph, {49.1000000, 17.3900001, 0.0});
+    const auto goal = rozeta::maps::nearestVertexIndex(result.graph, {49.1001000, 17.3902000, 0.0});
+    auto route = rozeta::maps::shortestPath(result.graph, start, goal);
+
+    REQUIRE_TRUE(route.ok());
+    REQUIRE_EQ(route.points.size(), static_cast<std::size_t>(4));
+    REQUIRE_TRUE(route.distance_m > 25.0);
+    REQUIRE_TRUE(route.distance_m < 40.0);
+}
+
+void test_maps_graph_sample_route_adds_spacing_points() {
+    std::vector<rozeta::GeoCoordinate> route = {
+        {49.1000000, 17.3900000, 0.0},
+        {49.1000000, 17.3902000, 0.0},
+    };
+
+    auto sampled = rozeta::maps::sampleRoute(route, 5.0);
+
+    REQUIRE_TRUE(sampled.size() >= static_cast<std::size_t>(4));
+    REQUIRE_NEAR(sampled.front().longitude, route.front().longitude, 1e-9);
+    REQUIRE_NEAR(sampled.back().longitude, route.back().longitude, 1e-9);
+}
+
+void test_maps_route_reuse_decision_uses_distance_from_current_route() {
+    std::vector<rozeta::GeoCoordinate> route = {
+        {49.1000000, 17.3900000, 0.0},
+        {49.1000000, 17.3902000, 0.0},
+    };
+
+    auto near_decision = rozeta::maps::shouldReuseRoute(route, {49.1000002, 17.3901000, 0.0}, 5.0);
+    auto far_decision = rozeta::maps::shouldReuseRoute(route, {49.1010000, 17.3901000, 0.0}, 5.0);
+
+    REQUIRE_TRUE(near_decision.reuse_existing);
+    REQUIRE_TRUE(!far_decision.reuse_existing);
+    REQUIRE_TRUE(far_decision.distance_from_route_m > near_decision.distance_from_route_m);
+}

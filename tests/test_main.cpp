@@ -42,6 +42,11 @@ void test_maps_csv_loader_loads_multiple_paths();
 void test_maps_csv_loader_reports_missing_file();
 void test_maps_csv_loader_reports_invalid_row();
 void test_maps_csv_loader_reports_empty_route();
+void test_maps_buchlovice_graph_loader_builds_bidirectional_edges();
+void test_maps_buchlovice_graph_loader_reports_invalid_rows();
+void test_maps_graph_nearest_vertex_and_shortest_path();
+void test_maps_graph_sample_route_adds_spacing_points();
+void test_maps_route_reuse_decision_uses_distance_from_current_route();
 void test_navigation_go_to_waypoint_stops_inside_tolerance();
 void test_navigation_route_follower_advances_waypoints();
 void test_navigation_route_follower_finishes_route();
@@ -146,6 +151,11 @@ int main(){
         {"maps_missing_file", test_maps_csv_loader_reports_missing_file},
         {"maps_invalid_row", test_maps_csv_loader_reports_invalid_row},
         {"maps_empty_route", test_maps_csv_loader_reports_empty_route},
+        {"maps_buchlovice_graph", test_maps_buchlovice_graph_loader_builds_bidirectional_edges},
+        {"maps_buchlovice_graph_invalid", test_maps_buchlovice_graph_loader_reports_invalid_rows},
+        {"maps_graph_shortest_path", test_maps_graph_nearest_vertex_and_shortest_path},
+        {"maps_graph_sample_route", test_maps_graph_sample_route_adds_spacing_points},
+        {"maps_graph_route_reuse", test_maps_route_reuse_decision_uses_distance_from_current_route},
         {"navigation_waypoint_tolerance", test_navigation_go_to_waypoint_stops_inside_tolerance},
         {"navigation_route_advance", test_navigation_route_follower_advances_waypoints},
         {"navigation_route_complete", test_navigation_route_follower_finishes_route},

@@ -124,14 +124,21 @@ Remaining action points:
 
 ### M5 — Graph routing over Buchlovice/OSM footways
 
+Status: implemented in `rozeta::maps`.
+
 Goal: cover `OsMapHelper` beyond Rozeta’s current flat CSV route loading.
 
-Action points:
-- Extend `maps` with a graph representation: vertices, weighted bidirectional edges, paths/segments, and coordinate bounds.
-- Add a loader for Buchlovice-style CSV columns: `way_id`, `point_index`, `lat`, `lon`.
-- Implement nearest vertex, Dijkstra shortest path, route distance, and sampled route points with configurable spacing.
-- Add route reuse/recalculation based on distance from current route.
-- Add fixtures using `buchlovice_park_footways.csv` or a minimized equivalent test graph.
+Delivered coverage:
+- Added `maps::FootwayGraph`, `GraphVertex`, `GraphEdge`, `GraphLoadResult`, `GraphRouteResult` and `RouteReuseDecision` public types.
+- Added `maps::BuchloviceFootwayGraphLoader` for Buchlovice-style `way_id`, `point_index`, `lat`, `lon` CSV exports.
+- Graph loading sorts points by `point_index`, de-duplicates shared coordinates and creates weighted bidirectional edges between consecutive way points.
+- Added `nearestVertexIndex`, Dijkstra `shortestPath`, `routeDistance`, `sampleRoute`, and `shouldReuseRoute` helpers.
+- Added `tests/fixtures/maps/buchlovice_park_footways.csv` and `invalid_footways.csv` with deterministic graph routing, invalid-row, route sampling and route-reuse tests.
+- Added `buchlovice_graph_route` no-hardware example.
+- Updated maps/API/Robotour docs and interactive diagrams.
+
+Remaining action points:
+- Optional full OSM/PBF import remains future scope; M5 intentionally stabilizes the Buchlovice CSV graph contract first.
 
 ### M6 — Route cues: bearing, turn-ahead, wrong-direction
 

@@ -58,6 +58,28 @@ follower.setRoute(route);
 
 See `examples/route_follower_demo.cpp` for a complete no-hardware replay path.
 
+## Buchlovice footway graph routing
+
+Buchlovice M5 adds `BuchloviceFootwayGraphLoader` for OSM/footway exports with columns:
+
+```csv
+way_id,point_index,lat,lon
+main,0,49.1000000,17.3900000
+main,1,49.1000000,17.3901000
+```
+
+Rows are grouped by `way_id`, sorted by `point_index`, de-duplicated by coordinate and connected as weighted bidirectional graph edges. The graph API deliberately stays in `maps` instead of `navigation` so applications can decide when to recalculate or reuse a route.
+
+Core graph helpers:
+
+- `nearestVertexIndex(graph, position)` snaps GPS/current position to the closest graph vertex.
+- `shortestPath(graph, start, goal)` runs Dijkstra over weighted footway edges and returns ordered `GeoCoordinate` route points plus distance.
+- `routeDistance(route)` sums route length in meters.
+- `sampleRoute(route, spacing_m)` resamples sparse graph paths into denser waypoints for `RouteFollower`.
+- `shouldReuseRoute(route, current_position, max_distance_from_route_m)` checks distance from the current polyline so a robot can reuse the current route or recalculate when it drifts too far away.
+
+`examples/buchlovice_graph_route.cpp` is executable documentation for loading a Buchlovice-style graph, snapping start/goal points, computing the shortest path and resampling it without hardware.
+
 ## Verification fixtures
 
 M5 fixtures live under `tests/fixtures/maps/`:
@@ -66,3 +88,5 @@ M5 fixtures live under `tests/fixtures/maps/`:
 - `multiple_paths.csv` — two named paths in one file.
 - `invalid_route.csv` — malformed numeric data.
 - `empty_route.csv` — comment-only file with explicit empty-route error.
+- `buchlovice_park_footways.csv` — minimized connected footway graph for Dijkstra, nearest vertex and route sampling.
+- `invalid_footways.csv` — malformed Buchlovice graph row with explicit parse error.

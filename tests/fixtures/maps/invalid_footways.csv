@@ -1,0 +1,4 @@
+# buchlovice_footways_csv_v1
+way_id,point_index,lat,lon
+main,0,49.1000000,17.3900000
+main,1,not-a-number,17.3901000

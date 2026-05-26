@@ -40,7 +40,7 @@ Current public surface:
 - `include/rozeta/camera.hpp` — camera interface, frame-shape/byte-size validation helpers and optional OpenCV capture backend.
 - `include/rozeta/kinect.hpp` — depth-frame model, CSV fixture loader, point-cloud conversion helpers and optional libfreenect runtime probe.
 - `include/rozeta/imu.hpp` — inertial samples, tilt/collision helpers and deterministic odometry/GPS/IMU pose fusion.
-- `include/rozeta/maps.hpp` — offline CSV route loader, `OfflineMap` paths, explicit load results and nearest-path lookup.
+- `include/rozeta/maps.hpp` — offline CSV route loader, `OfflineMap` paths, Buchlovice footway graph loader, Dijkstra `shortestPath`, route sampling/reuse helpers, explicit load results and nearest-path/vertex lookup.
 - `include/rozeta/c_api.h` — stable C ABI for value-type integrations: library version, angle normalization, 2D distance and LiDAR obstacle sector calculation.
 
 ## Stable C ABI
@@ -104,6 +104,7 @@ These examples are deliberately small and should stay buildable in CI:
 - `lidar_scan_console` — work with LiDAR scan structures.
 - `ydlidar_scan_console` — replay a YDLIDAR-style binary fixture or read a serial YDLIDAR device when `ROZETA_WITH_YDLIDAR=ON`.
 - `route_follower_demo` — load an offline CSV route and drive it through `navigation::RouteFollower` without hardware.
+- `buchlovice_graph_route` — load Buchlovice-style footway CSV, snap start/goal vertices, run graph `shortestPath`, and `sampleRoute` for route-following waypoints.
 - `mission_runtime_demo` — deterministic, tick-based MissionRuntime supervisor flow with module health, ObstacleWait/Bypass and motor keepalive hooks.
 - `imu_fusion_demo` — replay recorded odometry/GPS/IMU samples through deterministic pose fusion without hardware.
 - `motor_test` — motor command and safety smoke test.

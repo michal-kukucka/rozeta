@@ -15,6 +15,7 @@ set(ROZETA_EXAMPLES
     mission_ui_dashboard
     mission_runtime_demo
     robotour_buchlovice_demo
+    buchlovice_graph_route
     depth_obstacle_console
 )
 if(ROZETA_WITH_SERIAL_MOTORS)

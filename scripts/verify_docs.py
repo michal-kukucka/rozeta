@@ -130,6 +130,15 @@ REQUIRED_BUCHLOVICE_M4_PHRASES = [
     "TCP/UDP",
 ]
 
+REQUIRED_BUCHLOVICE_M5_PHRASES = [
+    "M5 — Graph routing over Buchlovice/OSM footways",
+    "BuchloviceFootwayGraphLoader",
+    "shortestPath",
+    "sampleRoute",
+    "shouldReuseRoute",
+    "buchlovice_graph_route",
+]
+
 
 def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
@@ -256,6 +265,19 @@ def main() -> int:
     for phrase in REQUIRED_BUCHLOVICE_M4_PHRASES:
         if phrase not in buchlovice_m4_docs:
             fail(f"Buchlovice M4 network GPS documentation/diagram coverage missing: {phrase}", failures)
+
+    buchlovice_m5_docs = (
+        read("docs/maps_module.md")
+        + "\n"
+        + read("docs/api-reference.md")
+        + "\n"
+        + read("docs/diagrams/module-map.html")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M5_PHRASES:
+        if phrase not in buchlovice_m5_docs:
+            fail(f"Buchlovice M5 graph routing documentation/diagram coverage missing: {phrase}", failures)
 
     doxygen = read("Doxyfile")
     for required in ["INPUT                  = include src examples", "OUTPUT_DIRECTORY       = docs/generated", "GENERATE_HTML", "GENERATE_XML", "EXTRACT_ALL"]:
