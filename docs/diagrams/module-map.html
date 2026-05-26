@@ -208,7 +208,7 @@ const ROZETA_MODULE_MODEL = {
         { from: 'app', to: 'headers', label: 'API calls', detail: 'Public headers are the stable contract', lx: 560, ly: 140 },
         { from: 'headers', to: 'core', label: 'Core data model', detail: 'Shared types used by every module', lx: 225, ly: 285 },
         { from: 'headers', to: 'sensors', label: 'Sensor APIs', detail: 'Interfaces and parsed payloads', lx: 455, ly: 305 },
-        { from: 'headers', to: 'logic', label: 'Runtime + Navigation APIs', detail: 'MissionRuntime tick-based supervisor, module health, waypoint and obstacle-aware decisions', lx: 700, ly: 305 },
+        { from: 'headers', to: 'logic', label: 'Runtime + Navigation APIs', detail: 'MissionRuntime tick-based supervisor, module health, optional degraded mode, freshness timeout, waypoint and obstacle-aware decisions', lx: 700, ly: 305 },
         { from: 'sensors', to: 'logic', label: 'data-flow', detail: 'GPS fix + LiDAR scan + pose estimate + offline route', lx: 607, ly: 505, hot: true },
         { from: 'logic', to: 'hardware', label: 'Motor commands', detail: 'Differential-drive commands, calibration scaling, e-stop, TextLine and BuchloviceBinary serial packets with REG direction bits + LRC checksum', lx: 915, ly: 300 },
         { from: 'tests', to: 'headers', label: 'Contract tests', detail: 'Tests compile against public APIs', lx: 305, ly: 555 }
@@ -225,7 +225,7 @@ const ROZETA_MODULE_MODEL = {
         { id: 'imu', label: 'IMU module', x: 350, y: 540, w: 220, h: 88, color: '#34d399', detail: 'Tilt/collision helpers + heading sample' },
         { id: 'state', label: 'Pose fusion state', x: 410, y: 205, w: 270, h: 106, color: '#22d3ee', detail: 'Pose2D blended from odometry, GPS and IMU heading' },
         { id: 'obstacles', label: 'Obstacle detection', x: 810, y: 130, w: 230, h: 96, color: '#34d399', detail: 'LiDAR/depth sectors + nearest distance' },
-        { id: 'nav', label: 'MissionRuntime + Navigator', x: 800, y: 325, w: 260, h: 100, color: '#34d399', detail: 'Runtime phases, module health, motor keepalive + route progress + avoidance' },
+        { id: 'nav', label: 'MissionRuntime + Navigator', x: 800, y: 325, w: 260, h: 100, color: '#34d399', detail: 'Runtime phases, module health/freshness, motor keepalive + route progress + avoidance' },
         { id: 'motors', label: 'Motor controller', x: 820, y: 555, w: 230, h: 90, color: '#fb7185', detail: 'Speed, calibration, stop, e-stop' }
       ],
       edges: [
@@ -237,7 +237,7 @@ const ROZETA_MODULE_MODEL = {
         { from: 'imu', to: 'state', label: 'IMU heading', detail: 'heading_rad plus accelerometer tilt/collision checks', lx: 600, ly: 520 },
         { from: 'state', to: 'nav', label: 'Robot state', detail: 'pose, gps, velocities, timestamp', lx: 745, ly: 270 },
         { from: 'obstacles', to: 'nav', label: 'Obstacle sectors', detail: 'ahead/left/right flags, nearest_distance_m', lx: 955, ly: 270 },
-        { from: 'nav', to: 'motors', label: 'Motor commands + keepalive', detail: 'linear/angular decision mapped to left/right speeds; MissionRuntime resends last command when motor keepalive is due', lx: 890, ly: 495 },
+        { from: 'nav', to: 'motors', label: 'Motor commands + keepalive', detail: 'linear/angular decision mapped to left/right speeds; MissionRuntime requests keepalive resend when due; robotour_buchlovice_demo wires this into mock/real motor policy', lx: 890, ly: 495 },
         { from: 'nav', to: 'motors', label: 'Emergency stop', detail: 'safe halt when waypoint/obstacle logic requires it', lx: 1050, ly: 495, safe: true }
       ]
     },

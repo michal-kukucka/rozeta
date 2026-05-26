@@ -43,6 +43,8 @@ void test_runtime_countdown_start_and_arrival_flow_is_deterministic();
 void test_runtime_faults_on_unhealthy_critical_module();
 void test_runtime_obstacle_wait_bypass_and_resume_flow();
 void test_runtime_motor_keepalive_due_uses_deterministic_ticks();
+void test_runtime_allows_optional_camera_depth_degraded_mode();
+void test_runtime_faults_on_stale_module_freshness();
 void test_imu_tilt_detects_lateral_acceleration_threshold();
 void test_imu_collision_detects_total_acceleration_spike();
 void test_imu_pose_fusion_normalizes_heading_and_blends_gps_correction();
@@ -133,6 +135,8 @@ int main(){
         {"runtime_fault_unhealthy_module", test_runtime_faults_on_unhealthy_critical_module},
         {"runtime_obstacle_bypass", test_runtime_obstacle_wait_bypass_and_resume_flow},
         {"runtime_motor_keepalive", test_runtime_motor_keepalive_due_uses_deterministic_ticks},
+        {"runtime_optional_degraded", test_runtime_allows_optional_camera_depth_degraded_mode},
+        {"runtime_stale_module", test_runtime_faults_on_stale_module_freshness},
         {"imu_tilt", test_imu_tilt_detects_lateral_acceleration_threshold},
         {"imu_collision", test_imu_collision_detects_total_acceleration_spike},
         {"imu_pose_fusion", test_imu_pose_fusion_normalizes_heading_and_blends_gps_correction},

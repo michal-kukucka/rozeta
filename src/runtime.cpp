@@ -9,8 +9,14 @@ bool invalidTicks(int value) {
     return value < 0;
 }
 
-bool invalidInterval(std::chrono::milliseconds value) {
+bool invalidKeepaliveInterval(std::chrono::milliseconds value) {
     return value.count() <= 0;
+}
+
+bool stale(std::chrono::milliseconds last_update,
+           std::chrono::milliseconds timeout,
+           std::chrono::milliseconds now_ms) {
+    return timeout.count() > 0 && now_ms - last_update > timeout;
 }
 
 } // namespace
@@ -26,7 +32,7 @@ MissionRuntime::MissionRuntime(RuntimeConfig config)
     if (invalidTicks(config_.bypass_ticks)) {
         config_.bypass_ticks = 0;
     }
-    if (invalidInterval(config_.motor_keepalive_interval)) {
+    if (invalidKeepaliveInterval(config_.motor_keepalive_interval)) {
         config_.motor_keepalive_interval = std::chrono::milliseconds(200);
     }
 }
@@ -47,9 +53,13 @@ void MissionRuntime::markMotorCommandSent(std::chrono::milliseconds now_ms) noex
 
 RuntimeOutput MissionRuntime::tick(const RuntimeInputs& inputs, std::chrono::milliseconds now_ms) {
     std::string failed_module;
-    if (!criticalModulesHealthy(inputs, failed_module)) {
+    bool stale_module = false;
+    if (!criticalModulesHealthy(inputs, now_ms, failed_module, stale_module)) {
         enterPhase(MissionPhase::Fault);
-        RuntimeOutput out = output("critical module unhealthy: " + failed_module);
+        const std::string reason = stale_module
+            ? "critical module stale: " + failed_module
+            : "critical module unhealthy: " + failed_module;
+        RuntimeOutput out = output(reason);
         out.emergency_stop = true;
         return out;
     }
@@ -184,34 +194,46 @@ RuntimeOutput MissionRuntime::output(std::string reason) const {
     return out;
 }
 
-bool MissionRuntime::criticalModulesHealthy(const RuntimeInputs& inputs, std::string& failed_module) const {
-    if (!inputs.motors_healthy) {
-        failed_module = "motors";
-        return false;
-    }
-    if (!inputs.gps_healthy) {
-        failed_module = "gps";
-        return false;
-    }
-    if (!inputs.camera_healthy) {
-        failed_module = "camera";
-        return false;
-    }
-    if (!inputs.depth_healthy) {
-        failed_module = "depth";
-        return false;
-    }
-    if (!inputs.map_healthy) {
-        failed_module = "map";
-        return false;
-    }
-    if (!inputs.communication_healthy) {
-        failed_module = "communication";
-        return false;
-    }
-    if (!inputs.logging_healthy) {
-        failed_module = "logging";
-        return false;
+bool MissionRuntime::criticalModulesHealthy(const RuntimeInputs& inputs,
+                                            std::chrono::milliseconds now_ms,
+                                            std::string& failed_module,
+                                            bool& stale_module) const {
+    stale_module = false;
+    struct ModuleCheck {
+        const char* name;
+        bool healthy;
+        bool critical;
+        std::chrono::milliseconds last_update;
+        std::chrono::milliseconds timeout;
+    };
+
+    const ModuleCheck modules[] = {
+        {"motors", inputs.motors_healthy, config_.motors_critical, inputs.motors_last_update, config_.motors_timeout},
+        {"gps", inputs.gps_healthy, config_.gps_critical, inputs.gps_last_update, config_.gps_timeout},
+        {"camera", inputs.camera_healthy, config_.camera_critical, inputs.camera_last_update, config_.camera_timeout},
+        {"depth", inputs.depth_healthy, config_.depth_critical, inputs.depth_last_update, config_.depth_timeout},
+        {"map", inputs.map_healthy, config_.map_critical, inputs.map_last_update, config_.map_timeout},
+        {"communication",
+         inputs.communication_healthy,
+         config_.communication_critical,
+         inputs.communication_last_update,
+         config_.communication_timeout},
+        {"logging", inputs.logging_healthy, config_.logging_critical, inputs.logging_last_update, config_.logging_timeout},
+    };
+
+    for (const auto& module : modules) {
+        if (!module.critical) {
+            continue;
+        }
+        if (!module.healthy) {
+            failed_module = module.name;
+            return false;
+        }
+        if (stale(module.last_update, module.timeout, now_ms)) {
+            failed_module = module.name;
+            stale_module = true;
+            return false;
+        }
     }
     return true;
 }

@@ -32,7 +32,7 @@ This maps the old script-level flow into a small state machine without hiding ha
 - communication
 - logging
 
-Any unhealthy critical module transitions to `Fault`, requests stop, and requests emergency stop with a reason such as `critical module unhealthy: gps`.
+Any unhealthy critical module transitions to `Fault`, requests stop, and requests emergency stop with a reason such as `critical module unhealthy: gps`. M2 now also supports optional degraded mode by setting `camera_critical` or `depth_critical` false for field runs without those devices. Freshness timeout fields such as `gps_timeout` fault with `critical module stale: gps` when a critical stream stops updating. Callers should set each `*_last_update` timestamp to the last successful update time; a timeout of zero disables stale checks for that stream.
 
 ## Tick-based policy hooks
 
@@ -88,5 +88,17 @@ The module is covered by `tests/test_runtime.cpp`:
 - fault transition on unhealthy critical module.
 - obstacle wait, bypass, and driving resume flow.
 - motor keepalive scheduling using explicit tick timestamps.
+- optional degraded mode for non-critical camera/depth modules.
+- freshness timeout faulting for critical stale streams.
 
 Default CI uses fake inputs only; no motors, cameras, GPS, Kinect, communication links or timers are opened by the runtime tests.
+
+## Full Robotour smoke loop
+
+`examples/robotour_buchlovice_demo.cpp` demonstrates a no-hardware Robotour integration loop that combines `MissionRuntime`, route following, obstacle facts, mock motors, optional degraded camera/depth policy, and freshness timeout inputs. Run it with:
+
+```bash
+./build/examples/robotour_buchlovice_demo
+```
+
+This keeps the runtime deterministic while showing where application code sends stop, bypass, route-following and motor keepalive commands.

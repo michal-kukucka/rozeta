@@ -13,6 +13,7 @@ set(ROZETA_EXAMPLES
     replay_ui_snapshots
     mission_ui_dashboard
     mission_runtime_demo
+    robotour_buchlovice_demo
     depth_obstacle_console
 )
 if(ROZETA_WITH_SERIAL_MOTORS)

@@ -41,6 +41,7 @@ REQUIRED_FILES = [
     "docs/architecture.md",
     "docs/maintenance.md",
     "docs/hardware_ui_backends.md",
+    "docs/buchlovice_motor_hardware_smoke.md",
     "docs/ui_module.md",
     "docs/diagrams/module-map.html",
     "docs/diagrams/project-structure.html",
@@ -96,6 +97,8 @@ REQUIRED_BUCHLOVICE_M1_PHRASES = [
     "LRC checksum",
     "buchlovice_repeat_interval",
     "M1 — Buchlovice motor backend",
+    "hardware smoke runbook",
+    "serial_motor_calibrate --buchlovice-binary",
 ]
 
 REQUIRED_BUCHLOVICE_M2_PHRASES = [
@@ -105,6 +108,9 @@ REQUIRED_BUCHLOVICE_M2_PHRASES = [
     "ObstacleWait",
     "motor keepalive",
     "M2 — Mission runtime / supervisor",
+    "optional degraded mode",
+    "freshness timeout",
+    "robotour_buchlovice_demo",
 ]
 
 

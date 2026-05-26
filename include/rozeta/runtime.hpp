@@ -24,6 +24,20 @@ struct RuntimeConfig {
     int obstacle_wait_ticks{50};
     int bypass_ticks{10};
     std::chrono::milliseconds motor_keepalive_interval{200};
+    bool motors_critical{true};
+    bool gps_critical{true};
+    bool camera_critical{true};
+    bool depth_critical{true};
+    bool map_critical{true};
+    bool communication_critical{true};
+    bool logging_critical{true};
+    std::chrono::milliseconds motors_timeout{0};
+    std::chrono::milliseconds gps_timeout{0};
+    std::chrono::milliseconds camera_timeout{0};
+    std::chrono::milliseconds depth_timeout{0};
+    std::chrono::milliseconds map_timeout{0};
+    std::chrono::milliseconds communication_timeout{0};
+    std::chrono::milliseconds logging_timeout{0};
 };
 
 struct RuntimeInputs {
@@ -38,6 +52,13 @@ struct RuntimeInputs {
     bool map_healthy{true};
     bool communication_healthy{true};
     bool logging_healthy{true};
+    std::chrono::milliseconds motors_last_update{0};
+    std::chrono::milliseconds gps_last_update{0};
+    std::chrono::milliseconds camera_last_update{0};
+    std::chrono::milliseconds depth_last_update{0};
+    std::chrono::milliseconds map_last_update{0};
+    std::chrono::milliseconds communication_last_update{0};
+    std::chrono::milliseconds logging_last_update{0};
 };
 
 struct RuntimeOutput {
@@ -60,7 +81,11 @@ public:
 
 private:
     RuntimeOutput output(std::string reason) const;
-    bool criticalModulesHealthy(const RuntimeInputs& inputs, std::string& failed_module) const;
+    bool criticalModulesHealthy(
+        const RuntimeInputs& inputs,
+        std::chrono::milliseconds now_ms,
+        std::string& failed_module,
+        bool& stale) const;
     void enterPhase(MissionPhase phase) noexcept;
     void updateKeepalive(RuntimeOutput& out, std::chrono::milliseconds now_ms) const;
 

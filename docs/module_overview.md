@@ -18,7 +18,7 @@ Shared definitions: `Status`, `ErrorCode`, timestamps, geometry, robot state, co
 
 ## Runtime
 
-`runtime::MissionRuntime` is the deterministic, tick-based M2 supervisor for Buchlovice/Robotour loops. It models mission phases (`WaitingForStart`, `Countdown`, `Driving`, `ObstacleWait`, `Bypass`, `Arrived`, `Shutdown`, `Fault`), consumes module health inputs for motors, GPS, camera, depth, map, communication and logging, and returns policy hooks for stop, emergency stop, bypass and motor keepalive actions without opening hardware or starting threads.
+`runtime::MissionRuntime` is the deterministic, tick-based M2 supervisor for Buchlovice/Robotour loops. It models mission phases (`WaitingForStart`, `Countdown`, `Driving`, `ObstacleWait`, `Bypass`, `Arrived`, `Shutdown`, `Fault`), consumes module health inputs for motors, GPS, camera, depth, map, communication and logging, and returns policy hooks for stop, emergency stop, bypass and motor keepalive actions without opening hardware or starting threads. It also supports optional degraded mode for non-critical camera/depth runs and freshness timeout checks for critical streams.
 
 See `docs/runtime_module.md` for M2 supervisor usage.
 

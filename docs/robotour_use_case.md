@@ -36,3 +36,7 @@ Rozeta is inspired by the Buchlovice/Robotour style workflow, but rebuilt as C/C
 1. Optional OSM/PBF import on top of the stable CSV route contract.
 2. Wider C ABI and packaging.
 3. Wider C ABI coverage after the replay and release-hardening foundation.
+
+## Buchlovice integration smoke
+
+Run `examples/robotour_buchlovice_demo.cpp` via `./build/examples/robotour_buchlovice_demo` to exercise the M2 runtime with route following, mock motor commands, obstacle wait/bypass policy hooks, optional degraded camera/depth policy and GPS freshness timeout inputs without hardware.

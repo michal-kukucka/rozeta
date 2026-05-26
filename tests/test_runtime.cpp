@@ -112,3 +112,48 @@ void test_runtime_motor_keepalive_due_uses_deterministic_ticks() {
     output = runtime.tick(inputs, std::chrono::milliseconds(350));
     REQUIRE_TRUE(!output.resend_last_motor_command);
 }
+
+
+void test_runtime_allows_optional_camera_depth_degraded_mode() {
+    rozeta::runtime::RuntimeConfig config;
+    config.camera_critical = false;
+    config.depth_critical = false;
+    config.camera_timeout = std::chrono::milliseconds(50);
+    config.depth_timeout = std::chrono::milliseconds(50);
+    config.countdown_ticks = 1;
+
+    rozeta::runtime::MissionRuntime runtime(config);
+    auto inputs = healthyInputs();
+    inputs.start_requested = true;
+    inputs.camera_healthy = false;
+    inputs.depth_healthy = false;
+    inputs.camera_last_update = std::chrono::milliseconds(0);
+    inputs.depth_last_update = std::chrono::milliseconds(0);
+
+    auto output = runtime.tick(inputs, std::chrono::milliseconds(0));
+    REQUIRE_EQ(static_cast<int>(output.phase), static_cast<int>(rozeta::runtime::MissionPhase::WaitingForStart));
+    output = runtime.tick(inputs, std::chrono::milliseconds(100));
+    REQUIRE_EQ(static_cast<int>(output.phase), static_cast<int>(rozeta::runtime::MissionPhase::Countdown));
+    output = runtime.tick(inputs, std::chrono::milliseconds(200));
+    REQUIRE_EQ(static_cast<int>(output.phase), static_cast<int>(rozeta::runtime::MissionPhase::Driving));
+    REQUIRE_TRUE(!output.emergency_stop);
+}
+
+void test_runtime_faults_on_stale_module_freshness() {
+    rozeta::runtime::RuntimeConfig config;
+    config.countdown_ticks = 1;
+    config.gps_timeout = std::chrono::milliseconds(250);
+
+    rozeta::runtime::MissionRuntime runtime(config);
+    auto inputs = healthyInputs();
+    inputs.start_requested = true;
+    inputs.gps_last_update = std::chrono::milliseconds(0);
+
+    runtime.tick(inputs, std::chrono::milliseconds(0));
+    runtime.tick(inputs, std::chrono::milliseconds(100));
+    auto output = runtime.tick(inputs, std::chrono::milliseconds(251));
+
+    REQUIRE_EQ(static_cast<int>(output.phase), static_cast<int>(rozeta::runtime::MissionPhase::Fault));
+    REQUIRE_TRUE(output.emergency_stop);
+    REQUIRE_EQ(output.reason, std::string("critical module stale: gps"));
+}

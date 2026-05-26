@@ -40,7 +40,7 @@ Rozeta cannot yet replace the Buchlovice application end-to-end because `kvalifi
 
 ### M1 — Buchlovice motor backend
 
-Status: implemented in Rozeta serial motor backend.
+Status: implemented and closed in Rozeta serial motor backend.
 
 Goal: allow Rozeta to drive the existing Buchlovice motor controller safely.
 
@@ -53,8 +53,8 @@ Delivered coverage:
 - Added fixture tests for mixed custom move, stop, spin, LRC, invalid motion config during emergency stop, and existing serial safety behavior.
 
 Remaining action points:
-- In M2, wire `buchlovice_repeat_interval` into the mission runtime tick loop for repeated keepalive sending.
-- Add hardware smoke runbook once the real Buchlovice controller is connected on a known Linux device path.
+- Closed: M2 exposes motor keepalive scheduling through `RuntimeOutput::resend_last_motor_command`.
+- Closed: `docs/buchlovice_motor_hardware_smoke.md` defines the hardware smoke runbook and dry-run command `serial_motor_calibrate --buchlovice-binary`.
 
 Continuation notes for unfinished M1 subtasks:
 - Real hardware was intentionally not exercised; M1 is covered by fake-transport binary-packet tests only.
@@ -64,7 +64,7 @@ Continuation notes for unfinished M1 subtasks:
 
 ### M2 — Mission runtime / supervisor
 
-Status: implemented in `rozeta::runtime::MissionRuntime`.
+Status: implemented and closed in `rozeta::runtime::MissionRuntime`.
 
 Goal: cover `main.py` and the orchestration parts of `kvalifikacia_demo.py` with a reusable runtime.
 
@@ -77,9 +77,9 @@ Delivered coverage:
 - Added tests for start/countdown/arrival, unhealthy module faulting, obstacle wait/bypass/resume and motor keepalive timing.
 
 Remaining action points:
-- Integrate `MissionRuntime` into a full Robotour demo loop that combines route following, obstacle sectors and real motor commands.
-- Add per-module freshness timestamps/timeouts once M3/M4/M7 sensor intake APIs expose update times.
-- Add configurable critical/non-critical health policies for optional camera/depth modes.
+- Closed: `robotour_buchlovice_demo` integrates `MissionRuntime`, route following, obstacle facts and mock motor commands as a no-hardware full Robotour smoke loop.
+- Closed: `RuntimeInputs` carries per-module last-update timestamps and `RuntimeConfig` exposes freshness timeout checks.
+- Closed: `RuntimeConfig` exposes configurable critical/non-critical policies for optional camera/depth degraded mode.
 
 Continuation notes for unfinished M2 subtasks:
 - M2 is intentionally a deterministic supervisor core only; it does not yet open hardware, own threads, or execute a full Robotour qualification loop.

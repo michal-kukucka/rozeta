@@ -157,6 +157,12 @@ Robotour telemetry-to-UI replay without hardware:
 ./build/examples/replay_ui_snapshots tests/fixtures/replay/basic_robotour.csv
 ```
 
+Buchlovice Robotour runtime smoke loop without hardware:
+
+```bash
+./build/examples/robotour_buchlovice_demo
+```
+
 Mission UI dashboard without hardware:
 
 ```bash
@@ -188,6 +194,7 @@ Detailed docs are included in `docs/` and are ready to be reused as a future off
 - `docs/imu_module.md` — IMU thresholds, pose fusion and sample replay
 - `docs/camera_module.md` — camera frame validation, mock capture and optional OpenCV backend
 - `docs/hardware_ui_backends.md` — optional OpenCV/libfreenect UI backend runbook and smoke hooks
+- `docs/buchlovice_motor_hardware_smoke.md` — M1 Buchlovice motor hardware smoke runbook
 - `docs/ui_module.md` — realtime mission UI snapshots, text dashboard and optional renderer bridge seam
 - `docs/module_overview.md#kinect` — Kinect/depth frame helpers and depth-derived obstacle sectors
 - `docs/robotour_use_case.md` — Robotour-style autonomous vehicle workflow

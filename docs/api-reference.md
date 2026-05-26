@@ -135,3 +135,7 @@ If you add, rename or remove a public header or example, the verifier tells you 
 ## Internal implementation APIs
 
 `src/internal/serial_port.hpp` and `src/internal/serial_motor_backend.hpp` are intentionally not part of the stable public API, but Doxygen includes them so maintainers can inspect backend behavior. They provide the M1/M2/M3/M4/M5 hardware-safe foundation: RAII serial transport, POSIX raw-mode serial configuration, finite read/write timeouts, deterministic motor command formatting, best-effort emergency stop writes, GPS serial read timeouts, YDLIDAR packet parsing, serial scanner lifecycle, offline route fixture parsing and `Status`-based failure reporting.
+
+## Buchlovice runtime smoke example
+
+`examples/robotour_buchlovice_demo.cpp` combines the runtime, route follower, mock motors, obstacle facts, optional degraded mode, freshness timeout inputs and keepalive handling without hardware.

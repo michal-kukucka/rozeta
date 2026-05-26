@@ -99,10 +99,10 @@ config.buchlovice_repeat_interval = std::chrono::milliseconds(200);
 Example dry run:
 
 ```bash
-./build-serial/examples/serial_motor_calibrate --dry-run --output motor_calibration.ini
+./build-serial/examples/serial_motor_calibrate --dry-run --buchlovice-binary --output motor_calibration.ini
 ```
 
-The dry-run mode does not open a serial device and does not send motor commands.
+The dry-run mode does not open a serial device and does not send motor commands. See the hardware smoke runbook in `docs/buchlovice_motor_hardware_smoke.md` before connecting the real controller.
 
 ## Future work
 
