@@ -56,6 +56,63 @@ struct RouteReuseDecision {
     double distance_from_route_m{0.0};
 };
 
+enum class TurnDirection {
+    None,
+    Left,
+    Right,
+};
+
+struct BearingAheadResult {
+    bool valid{false};
+    GeoCoordinate ahead{};
+    double bearing_deg{0.0};
+    double distance_to_ahead_m{0.0};
+    Status status{Status::okStatus()};
+
+    bool ok() const { return status.ok(); }
+};
+
+struct TurnAheadResult {
+    TurnDirection direction{TurnDirection::None};
+    bool turn_required{false};
+    double angle_deg{0.0};
+    double current_bearing_deg{0.0};
+    double ahead_bearing_deg{0.0};
+    Status status{Status::okStatus()};
+
+    bool ok() const { return status.ok(); }
+};
+
+struct WrongDirectionState {
+    unsigned int consecutive_wrong{0};
+    double previous_distance_to_goal_m{0.0};
+    bool has_previous_distance{false};
+};
+
+struct WrongDirectionInput {
+    GeoCoordinate last_fix{};
+    GeoCoordinate current_fix{};
+    GeoCoordinate goal{};
+    double desired_bearing_deg{0.0};
+    double wrong_angle_threshold_deg{100.0};
+    double min_movement_m{0.5};
+    double distance_growth_threshold_m{1.0};
+    unsigned int persistence_window{3};
+};
+
+struct WrongDirectionResult {
+    bool moving{false};
+    bool wrong_direction{false};
+    bool persistent_wrong_direction{false};
+    double movement_bearing_deg{0.0};
+    double angle_error_deg{0.0};
+    double distance_growth_m{0.0};
+    WrongDirectionState state{};
+    Status status{Status::okStatus()};
+
+    bool ok() const { return status.ok(); }
+};
+
 struct MapLoadResult {
     OfflineMap map{};
     Status status{Status::okStatus()};
@@ -94,5 +151,20 @@ RouteReuseDecision shouldReuseRoute(
     const std::vector<GeoCoordinate>& route,
     const GeoCoordinate& current_position,
     double max_distance_from_route_m);
+double haversineDistance(const GeoCoordinate& a, const GeoCoordinate& b);
+double initialBearing(const GeoCoordinate& from, const GeoCoordinate& to);
+double signedSmallestAngleDifference(double from_deg, double to_deg);
+BearingAheadResult bearingToAheadPoint(
+    const std::vector<GeoCoordinate>& route,
+    const GeoCoordinate& current_position,
+    double lookahead_m);
+TurnAheadResult turnAhead(
+    const std::vector<GeoCoordinate>& route,
+    const GeoCoordinate& current_position,
+    double lookahead_m,
+    double threshold_deg);
+WrongDirectionResult detectWrongDirection(
+    const WrongDirectionInput& input,
+    const WrongDirectionState& previous_state);
 
 } // namespace rozeta::maps

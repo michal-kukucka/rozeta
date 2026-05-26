@@ -29,7 +29,7 @@ Rozeta is inspired by the Buchlovice/Robotour style workflow, but rebuilt as C/C
 - fixture-driven `replay_robotour_log` checks for deterministic no-hardware integration testing
 - fixture-driven `replay_ui_snapshots` checks for deterministic UI movement over recorded missions
 - clean replacement of sensor backends, including optional OpenCV camera capture and libfreenect depth probing
-- offline maps, Buchlovice graph routing and waypoint route following available through CSV fixtures, `shortestPath`, `sampleRoute`, `shouldReuseRoute` and `RouteFollower`
+- offline maps, Buchlovice graph routing and waypoint route following available through CSV fixtures, `shortestPath`, `sampleRoute`, `shouldReuseRoute`, `bearingToAheadPoint`, `turnAhead`, `detectWrongDirection` and `RouteFollower`
 
 ## Next milestones
 
@@ -53,3 +53,7 @@ Use `mission::parseMissionTarget` to convert QR payload text such as `geo:lat,lo
 ## M5 graph routing over Buchlovice/OSM footways
 
 `maps::BuchloviceFootwayGraphLoader` covers Buchlovice `OsMapHelper` style footway CSV inputs with `way_id`, `point_index`, `lat`, and `lon` columns. The loader builds weighted bidirectional graph edges, `nearestVertexIndex` snaps GPS fixes to graph vertices, `shortestPath` computes Dijkstra routes, `sampleRoute` densifies sparse graph geometry, and `shouldReuseRoute` avoids unnecessary recalculation while the robot remains close to the current path. Use `buchlovice_graph_route` for a no-hardware graph-routing smoke.
+
+## M6 route cues
+
+M6 — Route cues: bearing, turn-ahead, wrong-direction covers the lightweight map-update hints that sit between graph routing and `RouteFollower`. `haversineDistance` and `initialBearing` expose GPS distance/bearing math, `bearingToAheadPoint` projects the current fix onto the route and points toward a lookahead waypoint, `turnAhead` reports left/right/none for upcoming route geometry, and `detectWrongDirection` combines movement bearing, distance growth and a persistence window so stationary or noisy GPS fixes do not falsely trigger a wrong-way alert.

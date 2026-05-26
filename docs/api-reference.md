@@ -40,7 +40,7 @@ Current public surface:
 - `include/rozeta/camera.hpp` — camera interface, frame-shape/byte-size validation helpers and optional OpenCV capture backend.
 - `include/rozeta/kinect.hpp` — depth-frame model, CSV fixture loader, point-cloud conversion helpers and optional libfreenect runtime probe.
 - `include/rozeta/imu.hpp` — inertial samples, tilt/collision helpers and deterministic odometry/GPS/IMU pose fusion.
-- `include/rozeta/maps.hpp` — offline CSV route loader, `OfflineMap` paths, Buchlovice footway graph loader, Dijkstra `shortestPath`, route sampling/reuse helpers, explicit load results and nearest-path/vertex lookup.
+- `include/rozeta/maps.hpp` — offline CSV route loader, `OfflineMap` paths, Buchlovice footway graph loader, Dijkstra `shortestPath`, route sampling/reuse helpers, M6 route cues (`haversineDistance`, `initialBearing`, `bearingToAheadPoint`, `turnAhead`, `detectWrongDirection`), explicit load results and nearest-path/vertex lookup.
 - `include/rozeta/c_api.h` — stable C ABI for value-type integrations: library version, angle normalization, 2D distance and LiDAR obstacle sector calculation.
 
 ## Stable C ABI
@@ -136,7 +136,7 @@ If you add, rename or remove a public header or example, the verifier tells you 
 
 ## Internal implementation APIs
 
-`src/internal/serial_port.hpp` and `src/internal/serial_motor_backend.hpp` are intentionally not part of the stable public API, but Doxygen includes them so maintainers can inspect backend behavior. They provide the M1/M2/M3/M4/M5 hardware-safe foundation: RAII serial transport, POSIX raw-mode serial configuration, finite read/write timeouts, deterministic motor command formatting, best-effort emergency stop writes, GPS serial read timeouts, YDLIDAR packet parsing, serial scanner lifecycle, offline route fixture parsing and `Status`-based failure reporting.
+`src/internal/serial_port.hpp` and `src/internal/serial_motor_backend.hpp` are intentionally not part of the stable public API, but Doxygen includes them so maintainers can inspect backend behavior. They provide the M1/M2/M3/M4/M5/M6 hardware-safe foundation: RAII serial transport, POSIX raw-mode serial configuration, finite read/write timeouts, deterministic motor command formatting, best-effort emergency stop writes, GPS serial read timeouts, YDLIDAR packet parsing, serial scanner lifecycle, offline route fixture parsing, route-cue helpers and `Status`-based failure reporting.
 
 ## Buchlovice runtime smoke example
 

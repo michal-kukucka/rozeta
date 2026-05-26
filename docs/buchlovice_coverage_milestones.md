@@ -8,9 +8,9 @@ Source audited:
 
 ## High-level conclusion
 
-Rozeta can already cover a meaningful foundation of the Buchlovice Robotour stack: differential-drive motor commands, emergency stop, NMEA GPS parsing, serial GPS reads, camera capture lifecycle, depth/Kinect frame contracts, obstacle sectors from depth/LiDAR, offline CSV route loading, simple route following, logging, telemetry replay, and mission UI snapshots.
+Rozeta can already cover a meaningful foundation of the Buchlovice Robotour stack: differential-drive motor commands, emergency stop, NMEA GPS parsing, serial/network GPS reads, camera capture lifecycle, depth/Kinect frame contracts, obstacle sectors from depth/LiDAR, offline CSV route loading, Buchlovice footway graph routing, route resampling/reuse, bearing/turn-ahead/wrong-direction route cues, simple route following, logging, telemetry replay, and mission UI snapshots.
 
-Rozeta cannot yet replace the Buchlovice application end-to-end because `kvalifikacia_demo.py` contains competition-specific behaviors that are still only application heuristics: QR mission intake, iPhone TCP/UDP GPS ingest, Buchlovice footway graph routing with Dijkstra and resampling, wrong-direction/turn-ahead cues, OpenCV path/grass/ROI vision, obstacle wait-and-bypass state machine, exact motor serial packet protocol, operator wizard/keyboard/beeper workflow, and a Python-friendly integration surface.
+Rozeta cannot yet replace the Buchlovice application end-to-end because `kvalifikacia_demo.py` still contains application-specific behaviors that are outside Rozeta's reusable core: OpenCV path/grass/ROI vision, pulse-based bypass maneuver execution, operator wizard/keyboard/beeper workflow, and a Python-friendly integration surface.
 
 ## Coverage map
 
@@ -21,8 +21,8 @@ Rozeta cannot yet replace the Buchlovice application end-to-end because `kvalifi
 | Serial motor driver with 7-byte packet `[255,pwm1,pwm2,reg,lrc,CR,LF]` repeated every 200 ms | Partial: `SerialMotorController` exists | No Buchlovice packet backend/configurable binary framing/repeated keepalive sender |
 | QR code start/mission target parsing | None | No QR decoder or mission-code parser in Rozeta |
 | iPhone GPS via TCP/UDP JSON, `lat,lon`, NMEA | Partial: NMEA serial/file parser only | No TCP/UDP GPS receiver and no JSON/plain coordinate parser receiver |
-| Buchlovice OSM footway CSV graph, Dijkstra, route resampling | Partial: `CsvMapLoader`, `OfflineMap`, route follower | No graph edge model, Dijkstra, nearest vertex, route resampling, route reuse/recalculation |
-| Haversine/bearing/turn-ahead/wrong-direction checks | Partial: core geo conversion and route follower | No public geo bearing helpers, turn-ahead cue, wrong-direction trend detector |
+| Buchlovice OSM footway CSV graph, Dijkstra, route resampling | Implemented: `BuchloviceFootwayGraphLoader`, `FootwayGraph`, `shortestPath`, `sampleRoute`, and `shouldReuseRoute` | Optional full OSM/PBF import remains future scope |
+| Haversine/bearing/turn-ahead/wrong-direction checks | Implemented: `haversineDistance`, `initialBearing`, `bearingToAheadPoint`, `turnAhead`, and `detectWrongDirection` | Field HUD/telemetry rendering of cues remains future UI scope |
 | Camera OpenCV capture | Partial: optional `OpenCvCamera` | No path/grass/QR/ROI perception algorithms on RGB frames |
 | `CameraModule.detect_path` HSV road/green segmentation | None | No RGB path-center detector with confidence/direction output |
 | `detect_simple_obstacle` dark ROI + hysteresis | None | Obstacle detection supports depth/LiDAR sectors, not RGB ROI/hysteresis |
@@ -142,14 +142,20 @@ Remaining action points:
 
 ### M6 — Route cues: bearing, turn-ahead, wrong-direction
 
+Status: implemented in `rozeta::maps`.
+
 Goal: cover navigation hints currently implemented in `osmap_integration.py` and the 1 Hz map update block.
 
-Action points:
-- Add public geo helpers for haversine distance, initial bearing, and signed smallest angle difference.
-- Add `bearingToAheadPoint(route, current, lookahead_m)`.
-- Add `turnAhead(route, current, lookahead_m, threshold_deg)` returning left/right/none and angle.
-- Add wrong-direction detector using last fix, current fix, desired bearing, persistence window, and distance-growth threshold.
-- Add tests for straight paths, left/right turns, U-turn-like movement, stationary GPS, noisy GPS, and empty routes.
+Delivered coverage:
+- Added public `haversineDistance`, `initialBearing`, and `signedSmallestAngleDifference` geo helpers.
+- Added `bearingToAheadPoint(route, current, lookahead_m)` for route-polyline projection plus lookahead bearing.
+- Added `turnAhead(route, current, lookahead_m, threshold_deg)` returning left/right/none and signed angle.
+- Added `detectWrongDirection` with `WrongDirectionInput`, `WrongDirectionState`, and `WrongDirectionResult` so callers can require movement, distance growth, and persistence before alerting.
+- Added tests for straight paths, left/right turns, empty routes, U-turn-like movement, stationary GPS, noisy GPS, and route-cue math.
+- Updated maps/API/Robotour docs, docs verifier phrases, and interactive diagrams.
+
+Remaining action points:
+- Field UI/HUD rendering of route-cue messages remains future M12/M13 scope; M6 intentionally delivers deterministic map-layer helpers only.
 
 ### M7 — RGB path and grass perception
 

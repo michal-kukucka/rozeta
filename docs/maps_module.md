@@ -2,7 +2,7 @@
 
 Public header: `include/rozeta/maps.hpp`
 
-Rozeta M5 turns the maps module from a placeholder into a deterministic, CI-safe offline route loader. The goal is intentionally modest and maintainable: load inspectable route files, keep parsing separate from driving decisions, and feed route points into `navigation::RouteFollower`.
+Rozeta maps provide deterministic, CI-safe route primitives: inspectable CSV route files, Buchlovice footway graph routing, route cue helpers, and pure data contracts that stay separate from driving decisions before feeding `navigation::RouteFollower`.
 
 ## CSV route format
 
@@ -79,6 +79,19 @@ Core graph helpers:
 - `shouldReuseRoute(route, current_position, max_distance_from_route_m)` checks distance from the current polyline so a robot can reuse the current route or recalculate when it drifts too far away.
 
 `examples/buchlovice_graph_route.cpp` is executable documentation for loading a Buchlovice-style graph, snapping start/goal points, computing the shortest path and resampling it without hardware.
+
+## M6 route cues: bearing, turn-ahead and wrong-direction
+
+M6 — Route cues: bearing, turn-ahead, wrong-direction adds pure helper APIs for Buchlovice map-update logic without owning sensors or motors:
+
+- `haversineDistance(a, b)` computes geodesic distance in meters for GPS fixes.
+- `initialBearing(from, to)` returns a compass bearing in degrees, normalized to `[0, 360)`.
+- `signedSmallestAngleDifference(from_deg, to_deg)` returns the shortest signed turn angle in degrees.
+- `bearingToAheadPoint(route, current, lookahead_m)` projects the current GPS fix onto the route polyline, advances by the lookahead distance, and returns the bearing to that ahead point.
+- `turnAhead(route, current, lookahead_m, threshold_deg)` compares the near-route bearing with the lookahead bearing and returns `TurnDirection::Left`, `Right`, or `None` plus the signed angle.
+- `detectWrongDirection(input, previous_state)` compares movement bearing with desired bearing, requires distance growth toward the goal, and only raises `persistent_wrong_direction` after the configured persistence window.
+
+The helpers are stateless except for the explicit `WrongDirectionState` passed between GPS fixes, making noisy/stationary GPS and U-turn-like movement deterministic in CTest.
 
 ## Verification fixtures
 

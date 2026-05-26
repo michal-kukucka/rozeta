@@ -146,3 +146,167 @@ void test_maps_route_reuse_decision_uses_distance_from_current_route() {
     REQUIRE_TRUE(!far_decision.reuse_existing);
     REQUIRE_TRUE(far_decision.distance_from_route_m > near_decision.distance_from_route_m);
 }
+
+void test_maps_geo_helpers_compute_distance_bearing_and_signed_angle() {
+    const rozeta::GeoCoordinate origin{49.1000000, 17.3900000, 0.0};
+    const rozeta::GeoCoordinate east{49.1000000, 17.3910000, 0.0};
+    const rozeta::GeoCoordinate north{49.1010000, 17.3900000, 0.0};
+
+    REQUIRE_TRUE(rozeta::maps::haversineDistance(origin, east) > 70.0);
+    REQUIRE_TRUE(rozeta::maps::haversineDistance(origin, east) < 75.0);
+    REQUIRE_NEAR(rozeta::maps::initialBearing(origin, east), 90.0, 0.1);
+    REQUIRE_NEAR(rozeta::maps::initialBearing(origin, north), 0.0, 0.1);
+    REQUIRE_NEAR(rozeta::maps::signedSmallestAngleDifference(350.0, 10.0), 20.0, 1e-9);
+    REQUIRE_NEAR(rozeta::maps::signedSmallestAngleDifference(10.0, 350.0), -20.0, 1e-9);
+}
+
+void test_maps_bearing_to_ahead_point_follows_straight_route() {
+    std::vector<rozeta::GeoCoordinate> route = {
+        {49.1000000, 17.3900000, 0.0},
+        {49.1000000, 17.3920000, 0.0},
+    };
+
+    auto result = rozeta::maps::bearingToAheadPoint(route, route.front(), 40.0);
+
+    REQUIRE_TRUE(result.ok());
+    REQUIRE_TRUE(result.valid);
+    REQUIRE_NEAR(result.bearing_deg, 90.0, 0.1);
+    REQUIRE_TRUE(result.distance_to_ahead_m > 39.0);
+    REQUIRE_TRUE(result.distance_to_ahead_m < 41.0);
+}
+
+void test_maps_turn_ahead_detects_left_and_right_turns() {
+    std::vector<rozeta::GeoCoordinate> left_route = {
+        {49.1000000, 17.3900000, 0.0},
+        {49.1000000, 17.3910000, 0.0},
+        {49.1010000, 17.3910000, 0.0},
+    };
+    std::vector<rozeta::GeoCoordinate> right_route = {
+        {49.1000000, 17.3900000, 0.0},
+        {49.1000000, 17.3910000, 0.0},
+        {49.0990000, 17.3910000, 0.0},
+    };
+
+    auto left = rozeta::maps::turnAhead(left_route, left_route.front(), 120.0, 80.0);
+    auto right = rozeta::maps::turnAhead(right_route, right_route.front(), 120.0, 80.0);
+
+    REQUIRE_TRUE(left.ok());
+    REQUIRE_TRUE(right.ok());
+    REQUIRE_EQ(static_cast<int>(left.direction), static_cast<int>(rozeta::maps::TurnDirection::Left));
+    REQUIRE_EQ(static_cast<int>(right.direction), static_cast<int>(rozeta::maps::TurnDirection::Right));
+    REQUIRE_TRUE(left.turn_required);
+    REQUIRE_TRUE(right.turn_required);
+    REQUIRE_TRUE(left.angle_deg < -80.0);
+    REQUIRE_TRUE(right.angle_deg > 80.0);
+}
+
+void test_maps_turn_ahead_handles_duplicate_leading_route_points() {
+    std::vector<rozeta::GeoCoordinate> route = {
+        {49.1000000, 17.3900000, 0.0},
+        {49.1000000, 17.3900000, 0.0},
+        {49.1000000, 17.3910000, 0.0},
+        {49.1010000, 17.3910000, 0.0},
+    };
+
+    auto result = rozeta::maps::turnAhead(route, route.front(), 120.0, 80.0);
+
+    REQUIRE_TRUE(result.ok());
+    REQUIRE_TRUE(result.turn_required);
+    REQUIRE_EQ(static_cast<int>(result.direction), static_cast<int>(rozeta::maps::TurnDirection::Left));
+    REQUIRE_TRUE(result.angle_deg < -80.0);
+}
+
+void test_maps_turn_ahead_uses_next_measurable_segment_after_duplicate_vertex() {
+    std::vector<rozeta::GeoCoordinate> route = {
+        {49.1000000, 17.3900000, 0.0},
+        {49.1000000, 17.3910000, 0.0},
+        {49.1000000, 17.3910000, 0.0},
+        {49.1010000, 17.3910000, 0.0},
+    };
+
+    const double first_segment_m = rozeta::maps::haversineDistance(route[0], route[1]);
+    auto result = rozeta::maps::turnAhead(route, route.front(), first_segment_m, 80.0);
+
+    REQUIRE_TRUE(result.ok());
+    REQUIRE_TRUE(result.turn_required);
+    REQUIRE_EQ(static_cast<int>(result.direction), static_cast<int>(rozeta::maps::TurnDirection::Left));
+    REQUIRE_TRUE(result.angle_deg < -80.0);
+}
+
+void test_maps_route_cues_reject_non_finite_coordinates() {
+    const double bad = std::numeric_limits<double>::quiet_NaN();
+    std::vector<rozeta::GeoCoordinate> route = {
+        {49.1000000, 17.3900000, 0.0},
+        {bad, 17.3910000, 0.0},
+    };
+
+    auto bearing = rozeta::maps::bearingToAheadPoint(route, route.front(), 20.0);
+    REQUIRE_TRUE(!bearing.ok());
+    REQUIRE_EQ(static_cast<int>(bearing.status.code), static_cast<int>(rozeta::ErrorCode::InvalidArgument));
+
+    rozeta::maps::WrongDirectionInput input;
+    input.last_fix = {49.1000000, 17.3900000, 0.0};
+    input.current_fix = {bad, 17.3901000, 0.0};
+    input.goal = {49.1000000, 17.3920000, 0.0};
+    auto wrong = rozeta::maps::detectWrongDirection(input, {});
+    REQUIRE_TRUE(!wrong.ok());
+    REQUIRE_EQ(static_cast<int>(wrong.status.code), static_cast<int>(rozeta::ErrorCode::InvalidArgument));
+}
+
+void test_maps_turn_ahead_returns_none_for_straight_and_empty_routes() {
+    std::vector<rozeta::GeoCoordinate> straight = {
+        {49.1000000, 17.3900000, 0.0},
+        {49.1000000, 17.3920000, 0.0},
+    };
+
+    auto none = rozeta::maps::turnAhead(straight, straight.front(), 80.0, 30.0);
+    auto empty = rozeta::maps::turnAhead({}, straight.front(), 80.0, 30.0);
+
+    REQUIRE_TRUE(none.ok());
+    REQUIRE_EQ(static_cast<int>(none.direction), static_cast<int>(rozeta::maps::TurnDirection::None));
+    REQUIRE_TRUE(!none.turn_required);
+    REQUIRE_TRUE(!empty.ok());
+    REQUIRE_EQ(static_cast<int>(empty.status.code), static_cast<int>(rozeta::ErrorCode::InvalidArgument));
+}
+
+void test_maps_wrong_direction_detector_uses_persistence_and_distance_growth() {
+    rozeta::maps::WrongDirectionState state;
+    rozeta::maps::WrongDirectionInput input;
+    input.desired_bearing_deg = 90.0;
+    input.goal = {49.1000000, 17.3920000, 0.0};
+    input.persistence_window = 2;
+    input.distance_growth_threshold_m = 0.5;
+    input.min_movement_m = 0.5;
+
+    input.last_fix = {49.1000000, 17.3902000, 0.0};
+    input.current_fix = {49.1000000, 17.3901000, 0.0};
+    auto first = rozeta::maps::detectWrongDirection(input, state);
+    REQUIRE_TRUE(first.ok());
+    REQUIRE_TRUE(first.moving);
+    REQUIRE_TRUE(first.wrong_direction);
+    REQUIRE_TRUE(!first.persistent_wrong_direction);
+
+    input.last_fix = input.current_fix;
+    input.current_fix = {49.1000000, 17.3900000, 0.0};
+    auto second = rozeta::maps::detectWrongDirection(input, first.state);
+    REQUIRE_TRUE(second.wrong_direction);
+    REQUIRE_TRUE(second.persistent_wrong_direction);
+}
+
+void test_maps_wrong_direction_detector_ignores_stationary_and_noisy_gps() {
+    rozeta::maps::WrongDirectionInput input;
+    input.desired_bearing_deg = 90.0;
+    input.goal = {49.1000000, 17.3920000, 0.0};
+    input.min_movement_m = 2.0;
+    input.distance_growth_threshold_m = 0.5;
+    input.last_fix = {49.1000000, 17.3900000, 0.0};
+    input.current_fix = {49.1000000, 17.3900010, 0.0};
+
+    auto result = rozeta::maps::detectWrongDirection(input, {});
+
+    REQUIRE_TRUE(result.ok());
+    REQUIRE_TRUE(!result.moving);
+    REQUIRE_TRUE(!result.wrong_direction);
+    REQUIRE_TRUE(!result.persistent_wrong_direction);
+    REQUIRE_EQ(result.state.consecutive_wrong, static_cast<unsigned int>(0));
+}

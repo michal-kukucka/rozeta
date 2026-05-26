@@ -218,7 +218,7 @@ const ROZETA_MODULE_MODEL = {
       title: 'Robotour autonomous loop',
       nodes: [
         { id: 'gps', label: 'GPS module', x: 70, y: 70, w: 210, h: 88, color: '#34d399', detail: 'Serial/file/network NMEA, JSON, lat,lon to GPS fix' },
-        { id: 'maps', label: 'Maps module', x: 70, y: 205, w: 210, h: 88, color: '#34d399', detail: 'CSV routes + Buchlovice graph routing' },
+        { id: 'maps', label: 'Maps module', x: 70, y: 205, w: 210, h: 88, color: '#34d399', detail: 'CSV routes + Buchlovice graph + route cues' },
         { id: 'mission', label: 'Mission target intake', x: 350, y: 70, w: 250, h: 88, color: '#22d3ee', detail: 'M3 parseMissionTarget, QrDecoder, OpenCV QR hook, geo:lat,lon payloads' },
         { id: 'lidar', label: 'LiDAR module', x: 70, y: 345, w: 210, h: 88, color: '#34d399', detail: 'YDLIDAR/sample bytes to ScanPoint ranges' },
         { id: 'depth', label: 'Kinect/depth', x: 350, y: 390, w: 220, h: 88, color: '#34d399', detail: 'Depth CSV/libfreenect to metric frames' },
@@ -231,7 +231,7 @@ const ROZETA_MODULE_MODEL = {
       ],
       edges: [
         { from: 'gps', to: 'state', label: 'GPS fix', detail: 'NetworkGpsReceiver + SerialGpsReceiver normalize TCP/UDP/NMEA/JSON/plain coordinate payloads into GpsFix', lx: 345, ly: 120 },
-        { from: 'maps', to: 'state', label: 'Graph route', detail: 'M5 — Graph routing over Buchlovice/OSM footways: BuchloviceFootwayGraphLoader + shortestPath + sampleRoute + shouldReuseRoute feed RouteFollower waypoints', lx: 330, ly: 245 },
+        { from: 'maps', to: 'state', label: 'Route cues', detail: 'M5 — Graph routing over Buchlovice/OSM footways plus M6 — Route cues: bearing, turn-ahead, wrong-direction. BuchloviceFootwayGraphLoader + shortestPath + sampleRoute + shouldReuseRoute feed RouteFollower waypoints; haversineDistance, initialBearing, bearingToAheadPoint, turnAhead and detectWrongDirection provide map-update hints.', lx: 330, ly: 245 },
         { from: 'mission', to: 'maps', label: 'QR target', detail: 'QrDecoder payload parsed by parseMissionTarget into validated GeoCoordinate', lx: 315, ly: 185 },
         { from: 'lidar', to: 'obstacles', label: 'LiDAR scan', detail: 'angle_deg, distance_m, valid flags', lx: 345, ly: 350 },
         { from: 'depth', to: 'obstacles', label: 'Depth frame', detail: 'width, height and metric depth pixels reduced to obstacle sectors', lx: 660, ly: 345 },
@@ -249,7 +249,7 @@ const ROZETA_MODULE_MODEL = {
         { id: 'raw', label: 'Raw hardware + files', x: 70, y: 80, w: 240, h: 96, color: '#94a3b8', detail: 'NMEA + TCP/UDP GPS + YDLIDAR + depth CSV + camera + route/footway CSV + ticks' },
         { id: 'parse', label: 'Normalize modules', x: 435, y: 80, w: 250, h: 96, color: '#34d399', detail: 'parseGpsPayload, NMEA, YDLIDAR, depth, OpenCV, CSV, odometry' },
         { id: 'model', label: 'Rozeta data model', x: 805, y: 80, w: 240, h: 96, color: '#22d3ee', detail: 'Geo, scan, pose, state' },
-        { id: 'decision', label: 'Decision + runtime layer', x: 430, y: 320, w: 270, h: 100, color: '#34d399', detail: 'MissionRuntime phases + ObstacleWait + RouteFollower + navigator' },
+        { id: 'decision', label: 'Decision + runtime layer', x: 430, y: 320, w: 270, h: 100, color: '#34d399', detail: 'MissionRuntime phases + ObstacleWait + RouteFollower + route cues + navigator' },
         { id: 'act', label: 'Actuation / logging', x: 805, y: 320, w: 240, h: 100, color: '#fb7185', detail: 'Mock/serial motors; Buchlovice packets [255, pwm_right, pwm_left, reg, lrc, 13, 10]; logs' },
         { id: 'docs', label: 'Docs + tests', x: 235, y: 570, w: 280, h: 92, color: '#a78bfa', detail: 'Doxygen + docs verifier + CTest' },
         { id: 'site', label: 'Official-site ready', x: 650, y: 570, w: 280, h: 92, color: '#a78bfa', detail: 'Portal, diagrams, API docs' }
@@ -257,7 +257,7 @@ const ROZETA_MODULE_MODEL = {
       edges: [
         { from: 'raw', to: 'parse', label: 'Raw samples', detail: 'serial/network bytes → NMEA/JSON/plain GPS + YDLIDAR packets, depth CSV, BGR frames, route CSV, Buchlovice footway CSV, ticks', lx: 373, ly: 88 },
         { from: 'parse', to: 'model', label: 'Typed payloads', detail: 'GPS, scan, depth frame, camera frame, offline route, pose', lx: 745, ly: 88 },
-        { from: 'model', to: 'decision', label: 'data-flow', detail: 'RobotState + obstacles + route waypoint', lx: 715, ly: 260, hot: true },
+        { from: 'model', to: 'decision', label: 'Route cue state', detail: 'RobotState + obstacles + route waypoint + bearingToAheadPoint/turnAhead/detectWrongDirection hints', lx: 715, ly: 260, hot: true },
         { from: 'decision', to: 'act', label: 'Motor commands', detail: 'left/right speed, calibration, stop, emergency stop', lx: 750, ly: 475 },
         { from: 'model', to: 'docs', label: 'Documented structs', detail: 'Public headers feed Doxygen', lx: 385, ly: 500 },
         { from: 'docs', to: 'site', label: 'Generated reference', detail: 'HTML/XML API output and verified static pages', lx: 590, ly: 705 }

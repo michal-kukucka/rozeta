@@ -15,7 +15,7 @@ The initial milestone focuses on the foundation, not final hardware drivers:
 - NMEA GPS parser/validator for GGA/RMC plus serial and M4 TCP/UDP network receivers with stream buffering
 - differential-drive odometry
 - LiDAR interface, filtering, console visualization and optional YDLIDAR-style packet parser/backend
-- offline CSV maps/route loading with explicit status errors plus Buchlovice footway graph routing, Dijkstra shortest paths and route resampling
+- offline CSV maps/route loading with explicit status errors plus Buchlovice footway graph routing, Dijkstra shortest paths, route resampling, and M6 bearing/turn/wrong-direction route cues
 - obstacle sector calculation from LiDAR scans
 - simple waypoint navigator plus monotonic route follower
 - IMU tilt/collision helpers and deterministic pose fusion from odometry, GPS and IMU heading
@@ -203,7 +203,7 @@ Detailed docs are included in `docs/` and are ready to be reused as a future off
 - `docs/motor_module.md` — differential-drive motor API, mock backend and safety behavior
 - `docs/gps_module.md` — NMEA parsing and geo/local coordinate usage
 - `docs/lidar_module.md` — LiDAR scan structures, filtering, YDLIDAR backend and sample replay
-- `docs/maps_module.md` — offline CSV route format, loader behavior, Buchlovice graph routing and fixtures
+- `docs/maps_module.md` — offline CSV route format, loader behavior, Buchlovice graph routing, M6 route cues and fixtures
 - `docs/mission_module.md` — M3 QR mission target intake parser and QR decoder seam
 - `docs/navigation.md` — waypoint navigation, route following and obstacle-aware decisions
 - `docs/imu_module.md` — IMU thresholds, pose fusion and sample replay

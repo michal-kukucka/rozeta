@@ -47,6 +47,15 @@ void test_maps_buchlovice_graph_loader_reports_invalid_rows();
 void test_maps_graph_nearest_vertex_and_shortest_path();
 void test_maps_graph_sample_route_adds_spacing_points();
 void test_maps_route_reuse_decision_uses_distance_from_current_route();
+void test_maps_geo_helpers_compute_distance_bearing_and_signed_angle();
+void test_maps_bearing_to_ahead_point_follows_straight_route();
+void test_maps_turn_ahead_detects_left_and_right_turns();
+void test_maps_turn_ahead_handles_duplicate_leading_route_points();
+void test_maps_turn_ahead_uses_next_measurable_segment_after_duplicate_vertex();
+void test_maps_route_cues_reject_non_finite_coordinates();
+void test_maps_turn_ahead_returns_none_for_straight_and_empty_routes();
+void test_maps_wrong_direction_detector_uses_persistence_and_distance_growth();
+void test_maps_wrong_direction_detector_ignores_stationary_and_noisy_gps();
 void test_navigation_go_to_waypoint_stops_inside_tolerance();
 void test_navigation_route_follower_advances_waypoints();
 void test_navigation_route_follower_finishes_route();
@@ -156,6 +165,15 @@ int main(){
         {"maps_graph_shortest_path", test_maps_graph_nearest_vertex_and_shortest_path},
         {"maps_graph_sample_route", test_maps_graph_sample_route_adds_spacing_points},
         {"maps_graph_route_reuse", test_maps_route_reuse_decision_uses_distance_from_current_route},
+        {"maps_geo_helpers", test_maps_geo_helpers_compute_distance_bearing_and_signed_angle},
+        {"maps_bearing_ahead", test_maps_bearing_to_ahead_point_follows_straight_route},
+        {"maps_turn_ahead", test_maps_turn_ahead_detects_left_and_right_turns},
+        {"maps_turn_duplicate_points", test_maps_turn_ahead_handles_duplicate_leading_route_points},
+        {"maps_turn_duplicate_vertex", test_maps_turn_ahead_uses_next_measurable_segment_after_duplicate_vertex},
+        {"maps_route_cue_invalid", test_maps_route_cues_reject_non_finite_coordinates},
+        {"maps_turn_ahead_none", test_maps_turn_ahead_returns_none_for_straight_and_empty_routes},
+        {"maps_wrong_direction", test_maps_wrong_direction_detector_uses_persistence_and_distance_growth},
+        {"maps_wrong_direction_noise", test_maps_wrong_direction_detector_ignores_stationary_and_noisy_gps},
         {"navigation_waypoint_tolerance", test_navigation_go_to_waypoint_stops_inside_tolerance},
         {"navigation_route_advance", test_navigation_route_follower_advances_waypoints},
         {"navigation_route_complete", test_navigation_route_follower_finishes_route},

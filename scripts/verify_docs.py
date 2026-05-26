@@ -139,6 +139,15 @@ REQUIRED_BUCHLOVICE_M5_PHRASES = [
     "buchlovice_graph_route",
 ]
 
+REQUIRED_BUCHLOVICE_M6_PHRASES = [
+    "M6 — Route cues: bearing, turn-ahead, wrong-direction",
+    "haversineDistance",
+    "initialBearing",
+    "bearingToAheadPoint",
+    "turnAhead",
+    "detectWrongDirection",
+]
+
 
 def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
@@ -278,6 +287,21 @@ def main() -> int:
     for phrase in REQUIRED_BUCHLOVICE_M5_PHRASES:
         if phrase not in buchlovice_m5_docs:
             fail(f"Buchlovice M5 graph routing documentation/diagram coverage missing: {phrase}", failures)
+
+    buchlovice_m6_docs = (
+        read("docs/maps_module.md")
+        + "\n"
+        + read("docs/api-reference.md")
+        + "\n"
+        + read("docs/robotour_use_case.md")
+        + "\n"
+        + read("docs/diagrams/module-map.html")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M6_PHRASES:
+        if phrase not in buchlovice_m6_docs:
+            fail(f"Buchlovice M6 route-cue documentation/diagram coverage missing: {phrase}", failures)
 
     doxygen = read("Doxyfile")
     for required in ["INPUT                  = include src examples", "OUTPUT_DIRECTORY       = docs/generated", "GENERATE_HTML", "GENERATE_XML", "EXTRACT_ALL"]:

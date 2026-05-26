@@ -82,6 +82,46 @@ Status parseIntField(const std::string& text, int& out, const std::string& conte
     return Status::okStatus();
 }
 
+double pi() {
+    return std::acos(-1.0);
+}
+
+double degreesToRadians(double degrees) {
+    return degrees * pi() / 180.0;
+}
+
+double radiansToDegrees(double radians) {
+    return radians * 180.0 / pi();
+}
+
+double normalizeBearingDegrees(double degrees) {
+    double normalized = std::fmod(degrees, 360.0);
+    if (normalized < 0.0) {
+        normalized += 360.0;
+    }
+    return normalized;
+}
+
+double bearingDegreesBetween(const GeoCoordinate& from, const GeoCoordinate& to) {
+    const double lat1 = degreesToRadians(from.latitude);
+    const double lat2 = degreesToRadians(to.latitude);
+    const double delta_lon = degreesToRadians(to.longitude - from.longitude);
+    const double y = std::sin(delta_lon) * std::cos(lat2);
+    const double x = std::cos(lat1) * std::sin(lat2) -
+        std::sin(lat1) * std::cos(lat2) * std::cos(delta_lon);
+    return normalizeBearingDegrees(radiansToDegrees(std::atan2(y, x)));
+}
+
+bool isFiniteCoordinate(const GeoCoordinate& coordinate) {
+    return std::isfinite(coordinate.latitude) &&
+        std::isfinite(coordinate.longitude) &&
+        std::isfinite(coordinate.altitude_m);
+}
+
+bool routeHasFiniteCoordinates(const std::vector<GeoCoordinate>& route) {
+    return std::all_of(route.begin(), route.end(), isFiniteCoordinate);
+}
+
 std::string lineContext(std::size_t line_number) {
     return "line " + std::to_string(line_number);
 }
@@ -113,6 +153,144 @@ double distanceToSegmentMeters(
     const double dy = local_point.y - local_to.y * t;
     const double dz = local_point.z - local_to.z * t;
     return std::sqrt(dx * dx + dy * dy + dz * dz);
+}
+
+GeoCoordinate interpolateGeo(
+    const GeoCoordinate& from,
+    const GeoCoordinate& to,
+    double ratio) {
+    return {
+        from.latitude + (to.latitude - from.latitude) * ratio,
+        from.longitude + (to.longitude - from.longitude) * ratio,
+        from.altitude_m + (to.altitude_m - from.altitude_m) * ratio,
+    };
+}
+
+struct RouteProjection {
+    bool valid{false};
+    GeoCoordinate point{};
+    double along_route_m{0.0};
+    double distance_from_route_m{std::numeric_limits<double>::infinity()};
+};
+
+RouteProjection projectOntoRoute(
+    const std::vector<GeoCoordinate>& route,
+    const GeoCoordinate& point) {
+    RouteProjection best;
+    if (route.empty()) {
+        return best;
+    }
+    if (route.size() == 1) {
+        best.valid = true;
+        best.point = route.front();
+        best.distance_from_route_m = distanceMeters(point, route.front());
+        return best;
+    }
+
+    double accumulated = 0.0;
+    for (std::size_t index = 1; index < route.size(); ++index) {
+        const auto& from = route[index - 1];
+        const auto& to = route[index];
+        const double segment = distanceMeters(from, to);
+        if (segment <= 0.0) {
+            continue;
+        }
+
+        const auto local_point = geoToLocal(from, point);
+        const auto local_to = geoToLocal(from, to);
+        const double segment_length_squared =
+            local_to.x * local_to.x + local_to.y * local_to.y + local_to.z * local_to.z;
+        double ratio = (local_point.x * local_to.x +
+                        local_point.y * local_to.y +
+                        local_point.z * local_to.z) /
+            segment_length_squared;
+        ratio = std::max(0.0, std::min(1.0, ratio));
+
+        const GeoCoordinate projected = interpolateGeo(from, to, ratio);
+        const double distance = distanceMeters(point, projected);
+        if (distance < best.distance_from_route_m) {
+            best.valid = true;
+            best.point = projected;
+            best.along_route_m = accumulated + segment * ratio;
+            best.distance_from_route_m = distance;
+        }
+        accumulated += segment;
+    }
+    return best;
+}
+
+GeoCoordinate pointAtRouteDistance(
+    const std::vector<GeoCoordinate>& route,
+    double target_distance_m) {
+    if (route.empty()) {
+        return {};
+    }
+    if (target_distance_m <= 0.0) {
+        return route.front();
+    }
+
+    double accumulated = 0.0;
+    for (std::size_t index = 1; index < route.size(); ++index) {
+        const auto& from = route[index - 1];
+        const auto& to = route[index];
+        const double segment = distanceMeters(from, to);
+        if (segment <= 0.0) {
+            continue;
+        }
+        if (accumulated + segment >= target_distance_m) {
+            return interpolateGeo(from, to, (target_distance_m - accumulated) / segment);
+        }
+        accumulated += segment;
+    }
+    return route.back();
+}
+
+double routeTangentBearingAtDistance(
+    const std::vector<GeoCoordinate>& route,
+    double target_distance_m,
+    bool prefer_outgoing_vertex_segment) {
+    if (route.size() < 2) {
+        return 0.0;
+    }
+
+    const double vertex_epsilon_m = 1e-6;
+    if (target_distance_m <= 0.0) {
+        for (std::size_t index = 1; index < route.size(); ++index) {
+            if (distanceMeters(route[index - 1], route[index]) > 0.0) {
+                return bearingDegreesBetween(route[index - 1], route[index]);
+            }
+        }
+        return 0.0;
+    }
+
+    double accumulated = 0.0;
+    double fallback = 0.0;
+    for (std::size_t index = 1; index < route.size(); ++index) {
+        const auto& from = route[index - 1];
+        const auto& to = route[index];
+        const double segment = distanceMeters(from, to);
+        if (segment <= 0.0) {
+            continue;
+        }
+
+        fallback = bearingDegreesBetween(from, to);
+        const double segment_end = accumulated + segment;
+        if (target_distance_m < segment_end - vertex_epsilon_m) {
+            return fallback;
+        }
+        if (std::fabs(target_distance_m - segment_end) <= vertex_epsilon_m) {
+            if (prefer_outgoing_vertex_segment) {
+                for (std::size_t next_index = index + 1; next_index < route.size(); ++next_index) {
+                    if (distanceMeters(route[next_index - 1], route[next_index]) > 0.0) {
+                        return bearingDegreesBetween(route[next_index - 1], route[next_index]);
+                    }
+                }
+            }
+            return fallback;
+        }
+        accumulated = segment_end;
+    }
+    return fallback;
 }
 
 std::string coordinateKey(const GeoCoordinate& coordinate) {
@@ -510,6 +688,168 @@ RouteReuseDecision shouldReuseRoute(
         std::isfinite(max_distance_from_route_m) &&
         decision.distance_from_route_m <= max_distance_from_route_m;
     return decision;
+}
+
+double haversineDistance(const GeoCoordinate& a, const GeoCoordinate& b) {
+    if (!isFiniteCoordinate(a) || !isFiniteCoordinate(b)) {
+        return std::numeric_limits<double>::infinity();
+    }
+
+    constexpr double earth_radius_m = 6371000.0;
+    const double lat1 = degreesToRadians(a.latitude);
+    const double lat2 = degreesToRadians(b.latitude);
+    const double delta_lat = degreesToRadians(b.latitude - a.latitude);
+    const double delta_lon = degreesToRadians(b.longitude - a.longitude);
+
+    const double sin_lat = std::sin(delta_lat / 2.0);
+    const double sin_lon = std::sin(delta_lon / 2.0);
+    const double h = sin_lat * sin_lat +
+        std::cos(lat1) * std::cos(lat2) * sin_lon * sin_lon;
+    const double clamped = std::min(1.0, std::max(0.0, h));
+    return 2.0 * earth_radius_m * std::asin(std::sqrt(clamped));
+}
+
+double initialBearing(const GeoCoordinate& from, const GeoCoordinate& to) {
+    if (!isFiniteCoordinate(from) || !isFiniteCoordinate(to)) {
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+    return bearingDegreesBetween(from, to);
+}
+
+double signedSmallestAngleDifference(double from_deg, double to_deg) {
+    double diff = normalizeBearingDegrees(to_deg) - normalizeBearingDegrees(from_deg);
+    while (diff > 180.0) {
+        diff -= 360.0;
+    }
+    while (diff <= -180.0) {
+        diff += 360.0;
+    }
+    return diff;
+}
+
+BearingAheadResult bearingToAheadPoint(
+    const std::vector<GeoCoordinate>& route,
+    const GeoCoordinate& current_position,
+    double lookahead_m) {
+    if (route.size() < 2 || lookahead_m <= 0.0 || !std::isfinite(lookahead_m)) {
+        return {
+            {},
+            {},
+            0.0,
+            0.0,
+            Status::error(
+                ErrorCode::InvalidArgument,
+                "route lookahead requires at least two points and positive distance")};
+    }
+    if (!isFiniteCoordinate(current_position) || !routeHasFiniteCoordinates(route)) {
+        return {{}, {}, 0.0, 0.0,
+            Status::error(ErrorCode::InvalidArgument, "route cue coordinates must be finite")};
+    }
+
+    const RouteProjection projection = projectOntoRoute(route, current_position);
+    const double total_distance = routeDistance(route);
+    if (!projection.valid || total_distance <= 0.0) {
+        return {{}, {}, 0.0, 0.0, Status::error(ErrorCode::InvalidArgument, "route has no measurable segments")};
+    }
+
+    const double target_distance = std::min(total_distance, projection.along_route_m + lookahead_m);
+    GeoCoordinate ahead = pointAtRouteDistance(route, target_distance);
+    double distance_to_ahead = haversineDistance(current_position, ahead);
+    if (distance_to_ahead <= 0.0) {
+        ahead = route.back();
+        distance_to_ahead = haversineDistance(current_position, ahead);
+    }
+
+    BearingAheadResult result;
+    result.valid = distance_to_ahead > 0.0;
+    result.ahead = ahead;
+    result.bearing_deg = initialBearing(current_position, ahead);
+    result.distance_to_ahead_m = distance_to_ahead;
+    return result;
+}
+
+TurnAheadResult turnAhead(
+    const std::vector<GeoCoordinate>& route,
+    const GeoCoordinate& current_position,
+    double lookahead_m,
+    double threshold_deg) {
+    if (threshold_deg < 0.0 || !std::isfinite(threshold_deg)) {
+        return {{}, false, 0.0, 0.0, 0.0, Status::error(ErrorCode::InvalidArgument, "turn threshold must be finite and non-negative")};
+    }
+
+    auto ahead = bearingToAheadPoint(route, current_position, lookahead_m);
+    if (!ahead.ok()) {
+        return {{}, false, 0.0, 0.0, 0.0, ahead.status};
+    }
+
+    const RouteProjection projection = projectOntoRoute(route, current_position);
+    const double total_distance = routeDistance(route);
+    if (!projection.valid || total_distance <= 0.0) {
+        return {{}, false, 0.0, 0.0, 0.0,
+            Status::error(ErrorCode::InvalidArgument, "route has no measurable segments")};
+    }
+
+    const double target_distance = std::min(total_distance, projection.along_route_m + lookahead_m);
+    const double current_bearing =
+        routeTangentBearingAtDistance(route, projection.along_route_m, false);
+    const double ahead_bearing = routeTangentBearingAtDistance(route, target_distance, true);
+
+    TurnAheadResult result;
+    result.current_bearing_deg = current_bearing;
+    result.ahead_bearing_deg = ahead_bearing;
+    result.angle_deg = signedSmallestAngleDifference(current_bearing, ahead_bearing);
+    result.turn_required = std::fabs(result.angle_deg) >= threshold_deg;
+    if (result.turn_required && result.angle_deg < 0.0) {
+        result.direction = TurnDirection::Left;
+    } else if (result.turn_required && result.angle_deg > 0.0) {
+        result.direction = TurnDirection::Right;
+    }
+    return result;
+}
+
+WrongDirectionResult detectWrongDirection(
+    const WrongDirectionInput& input,
+    const WrongDirectionState& previous_state) {
+    if (input.persistence_window == 0 || input.min_movement_m < 0.0 ||
+        input.distance_growth_threshold_m < 0.0 || input.wrong_angle_threshold_deg < 0.0 ||
+        !std::isfinite(input.min_movement_m) || !std::isfinite(input.distance_growth_threshold_m) ||
+        !std::isfinite(input.wrong_angle_threshold_deg) || !std::isfinite(input.desired_bearing_deg) ||
+        !isFiniteCoordinate(input.last_fix) || !isFiniteCoordinate(input.current_fix) ||
+        !isFiniteCoordinate(input.goal)) {
+        return {{}, false, false, 0.0, 0.0, 0.0, previous_state,
+            Status::error(ErrorCode::InvalidArgument, "wrong-direction thresholds must be finite and non-negative")};
+    }
+
+    WrongDirectionResult result;
+    result.state = previous_state;
+    const double movement_m = haversineDistance(input.last_fix, input.current_fix);
+    const double current_distance_to_goal = haversineDistance(input.current_fix, input.goal);
+    const double previous_distance_to_goal = previous_state.has_previous_distance
+        ? previous_state.previous_distance_to_goal_m
+        : haversineDistance(input.last_fix, input.goal);
+
+    result.state.previous_distance_to_goal_m = current_distance_to_goal;
+    result.state.has_previous_distance = true;
+    result.distance_growth_m = current_distance_to_goal - previous_distance_to_goal;
+    result.moving = movement_m >= input.min_movement_m;
+
+    if (!result.moving) {
+        result.state.consecutive_wrong = 0;
+        return result;
+    }
+
+    result.movement_bearing_deg = initialBearing(input.last_fix, input.current_fix);
+    result.angle_error_deg = signedSmallestAngleDifference(input.desired_bearing_deg, result.movement_bearing_deg);
+    result.wrong_direction =
+        std::fabs(result.angle_error_deg) >= input.wrong_angle_threshold_deg &&
+        result.distance_growth_m >= input.distance_growth_threshold_m;
+
+    result.state.consecutive_wrong = result.wrong_direction
+        ? previous_state.consecutive_wrong + 1
+        : 0;
+    result.persistent_wrong_direction =
+        result.state.consecutive_wrong >= input.persistence_window;
+    return result;
 }
 
 } // namespace rozeta::maps
