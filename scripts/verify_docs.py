@@ -25,6 +25,7 @@ PUBLIC_HEADER_DOCS = {
     "lidar": "docs/lidar_module.md",
     "logging": "docs/module_overview.md",
     "maps": "docs/maps_module.md",
+    "mission": "docs/mission_module.md",
     "motors": "docs/motor_module.md",
     "runtime": "docs/runtime_module.md",
     "navigation": "docs/navigation.md",
@@ -111,6 +112,14 @@ REQUIRED_BUCHLOVICE_M2_PHRASES = [
     "optional degraded mode",
     "freshness timeout",
     "robotour_buchlovice_demo",
+]
+
+REQUIRED_BUCHLOVICE_M3_PHRASES = [
+    "M3 — QR mission target intake",
+    "parseMissionTarget",
+    "geo:lat,lon",
+    "QrDecoder",
+    "OpenCV QR",
 ]
 
 
@@ -215,6 +224,17 @@ def main() -> int:
     for phrase in REQUIRED_BUCHLOVICE_M2_PHRASES:
         if phrase not in buchlovice_m2_docs:
             fail(f"Buchlovice M2 runtime documentation/diagram coverage missing: {phrase}", failures)
+
+    buchlovice_m3_docs = (
+        read("docs/mission_module.md")
+        + "\n"
+        + read("docs/diagrams/module-map.html")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M3_PHRASES:
+        if phrase not in buchlovice_m3_docs:
+            fail(f"Buchlovice M3 mission documentation/diagram coverage missing: {phrase}", failures)
 
     doxygen = read("Doxyfile")
     for required in ["INPUT                  = include src examples", "OUTPUT_DIRECTORY       = docs/generated", "GENERATE_HTML", "GENERATE_XML", "EXTRACT_ALL"]:

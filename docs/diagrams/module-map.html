@@ -219,6 +219,7 @@ const ROZETA_MODULE_MODEL = {
       nodes: [
         { id: 'gps', label: 'GPS module', x: 70, y: 70, w: 210, h: 88, color: '#34d399', detail: 'Serial/file NMEA + checksum to GPS fix' },
         { id: 'maps', label: 'Maps module', x: 70, y: 205, w: 210, h: 88, color: '#34d399', detail: 'CSV route to sorted offline paths' },
+        { id: 'mission', label: 'Mission target intake', x: 350, y: 70, w: 250, h: 88, color: '#22d3ee', detail: 'M3 parseMissionTarget, QrDecoder, OpenCV QR hook, geo:lat,lon payloads' },
         { id: 'lidar', label: 'LiDAR module', x: 70, y: 345, w: 210, h: 88, color: '#34d399', detail: 'YDLIDAR/sample bytes to ScanPoint ranges' },
         { id: 'depth', label: 'Kinect/depth', x: 350, y: 390, w: 220, h: 88, color: '#34d399', detail: 'Depth CSV/libfreenect to metric frames' },
         { id: 'odom', label: 'Odometry', x: 70, y: 515, w: 210, h: 88, color: '#34d399', detail: 'Wheel ticks to Pose2D' },
@@ -231,6 +232,7 @@ const ROZETA_MODULE_MODEL = {
       edges: [
         { from: 'gps', to: 'state', label: 'GPS fix', detail: 'validated latitude, longitude, altitude, speed, course, satellites', lx: 345, ly: 120 },
         { from: 'maps', to: 'state', label: 'Offline route', detail: 'CSV path_id, seq, latitude, longitude, altitude_m', lx: 330, ly: 245 },
+        { from: 'mission', to: 'maps', label: 'QR target', detail: 'QrDecoder payload parsed by parseMissionTarget into validated GeoCoordinate', lx: 315, ly: 185 },
         { from: 'lidar', to: 'obstacles', label: 'LiDAR scan', detail: 'angle_deg, distance_m, valid flags', lx: 345, ly: 350 },
         { from: 'depth', to: 'obstacles', label: 'Depth frame', detail: 'width, height and metric depth pixels reduced to obstacle sectors', lx: 660, ly: 345 },
         { from: 'odom', to: 'state', label: 'Pose estimate', detail: 'x, y, heading from encoder ticks', lx: 310, ly: 510 },

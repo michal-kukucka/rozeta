@@ -40,3 +40,7 @@ Rozeta is inspired by the Buchlovice/Robotour style workflow, but rebuilt as C/C
 ## Buchlovice integration smoke
 
 Run `examples/robotour_buchlovice_demo.cpp` via `./build/examples/robotour_buchlovice_demo` to exercise the M2 runtime with route following, mock motor commands, obstacle wait/bypass policy hooks, optional degraded camera/depth policy and GPS freshness timeout inputs without hardware.
+
+## QR mission target intake
+
+Use `mission::parseMissionTarget` to convert QR payload text such as `geo:lat,lon` or `N 48.333 E 17.444` into a validated mission target before building a route. `mission::QrDecoder` lets applications provide an OpenCV QR or platform-specific decoder without making default CI depend on camera libraries.

@@ -61,6 +61,7 @@ set(ROZETA_SOURCES
     src/maps.cpp
     src/navigation.cpp
     src/runtime.cpp
+    src/mission.cpp
     src/ui.cpp
     src/obstacle_detection.cpp
     src/internal/serial_port.cpp

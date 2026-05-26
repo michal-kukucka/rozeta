@@ -23,6 +23,7 @@ The initial milestone focuses on the foundation, not final hardware drivers:
 - depth-frame CSV fixtures, point-cloud helpers and obstacle extraction with an optional Kinect/libfreenect flag
 - stable `rozeta.telemetry.v1` Robotour replay logs for GPS, LiDAR/depth, pose, navigation decisions and motor commands
 - realtime UI snapshot composition for map, camera, Kinect/depth and mission markers
+- mission target parser for QR payload text such as `geo:lat,lon`, `gps lat,lon`, labeled lat/lon and hemisphere formats
 - examples and standalone C++ test binary
 
 ## Project layout
@@ -190,6 +191,7 @@ Detailed docs are included in `docs/` and are ready to be reused as a future off
 - `docs/gps_module.md` — NMEA parsing and geo/local coordinate usage
 - `docs/lidar_module.md` — LiDAR scan structures, filtering, YDLIDAR backend and sample replay
 - `docs/maps_module.md` — offline CSV route format, loader behavior and fixtures
+- `docs/mission_module.md` — M3 QR mission target intake parser and QR decoder seam
 - `docs/navigation.md` — waypoint navigation, route following and obstacle-aware decisions
 - `docs/imu_module.md` — IMU thresholds, pose fusion and sample replay
 - `docs/camera_module.md` — camera frame validation, mock capture and optional OpenCV backend

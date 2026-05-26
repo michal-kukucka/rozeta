@@ -90,13 +90,20 @@ Continuation notes for unfinished M2 subtasks:
 
 ### M3 — QR mission target intake
 
+Status: implemented in `rozeta::mission`.
+
 Goal: replace Buchlovice QR start/target parsing with a reusable Rozeta mission-input layer.
 
-Action points:
-- Add a mission target parser supporting `geo:lat,lon`, `gps lat,lon`, `lat: ... lon: ...`, and `N ... E ...` decimal coordinate formats.
-- Add validation bounds for latitude/longitude and structured parse errors.
-- Add optional OpenCV QR decoder backend guarded by `ROZETA_WITH_OPENCV`.
-- Add tests for valid QR payloads, SPayD-like/non-GPS text rejection, malformed coordinates, hemisphere signs, and whitespace/semicolon variants.
+Delivered coverage:
+- Added `include/rozeta/mission.hpp` and `src/mission.cpp` with `parseMissionTarget`.
+- Supports `geo:lat,lon`, `gps lat,lon`, `lat: ... lon: ...`, and `N ... E ...` decimal coordinate formats.
+- Adds validation bounds for latitude/longitude and structured `ParseError` / `InvalidArgument` statuses.
+- Adds the `QrDecoder` dependency-injection seam plus `parseMissionTargetFromQr` for QR payload sources.
+- Declares the OpenCV QR hook behind `ROZETA_WITH_OPENCV` while keeping default CI dependency-free.
+- Adds tests for valid QR payloads, SPayD-like/non-GPS text rejection, malformed/out-of-range coordinates, hemisphere signs, whitespace/semicolon variants, and fake QR decoder integration.
+
+Remaining action points:
+- Implement a real OpenCV QR adapter body once OpenCV QR dependencies are available in the optional backend build.
 
 ### M4 — Network GPS receivers
 

@@ -16,6 +16,10 @@ Shared definitions: `Status`, `ErrorCode`, timestamps, geometry, robot state, co
 
 `telemetry::ReplaySample` defines the stable Robotour replay schema for GPS fixes, LiDAR/depth distances, pose, navigation decisions and motor commands. `telemetry::loadReplayLog` parses `rozeta.telemetry.v1` CSV files, `telemetry::replayNavigation` drives recorded samples back through `navigation::SimpleNavigator`, and `telemetry::replayUiSnapshots` turns the same samples into deterministic `ui::UiSnapshot` frames so CI can verify navigation and UI playback without hardware.
 
+## Mission
+
+`mission::parseMissionTarget` parses M3 QR mission target text (`geo:lat,lon`, `gps lat,lon`, labeled lat/lon and hemisphere formats) into validated `GeoCoordinate` values. `mission::QrDecoder` keeps QR decoding injectable, with an OpenCV QR hook guarded behind `ROZETA_WITH_OPENCV`.
+
 ## Runtime
 
 `runtime::MissionRuntime` is the deterministic, tick-based M2 supervisor for Buchlovice/Robotour loops. It models mission phases (`WaitingForStart`, `Countdown`, `Driving`, `ObstacleWait`, `Bypass`, `Arrived`, `Shutdown`, `Fault`), consumes module health inputs for motors, GPS, camera, depth, map, communication and logging, and returns policy hooks for stop, emergency stop, bypass and motor keepalive actions without opening hardware or starting threads. It also supports optional degraded mode for non-critical camera/depth runs and freshness timeout checks for critical streams.

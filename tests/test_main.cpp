@@ -43,6 +43,10 @@ void test_runtime_countdown_start_and_arrival_flow_is_deterministic();
 void test_runtime_faults_on_unhealthy_critical_module();
 void test_runtime_obstacle_wait_bypass_and_resume_flow();
 void test_runtime_motor_keepalive_due_uses_deterministic_ticks();
+void test_mission_target_parser_accepts_geo_and_gps_formats();
+void test_mission_target_parser_accepts_labeled_and_hemisphere_formats();
+void test_mission_target_parser_rejects_invalid_payloads_with_status();
+void test_qr_mission_source_uses_decoder_backend_when_enabled();
 void test_runtime_allows_optional_camera_depth_degraded_mode();
 void test_runtime_faults_on_stale_module_freshness();
 void test_imu_tilt_detects_lateral_acceleration_threshold();
@@ -135,6 +139,10 @@ int main(){
         {"runtime_fault_unhealthy_module", test_runtime_faults_on_unhealthy_critical_module},
         {"runtime_obstacle_bypass", test_runtime_obstacle_wait_bypass_and_resume_flow},
         {"runtime_motor_keepalive", test_runtime_motor_keepalive_due_uses_deterministic_ticks},
+        {"mission_geo_gps_parse", test_mission_target_parser_accepts_geo_and_gps_formats},
+        {"mission_labeled_hemisphere_parse", test_mission_target_parser_accepts_labeled_and_hemisphere_formats},
+        {"mission_rejects_invalid_payloads", test_mission_target_parser_rejects_invalid_payloads_with_status},
+        {"mission_qr_backend", test_qr_mission_source_uses_decoder_backend_when_enabled},
         {"runtime_optional_degraded", test_runtime_allows_optional_camera_depth_degraded_mode},
         {"runtime_stale_module", test_runtime_faults_on_stale_module_freshness},
         {"imu_tilt", test_imu_tilt_detects_lateral_acceleration_threshold},

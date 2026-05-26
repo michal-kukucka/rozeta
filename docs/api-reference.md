@@ -139,3 +139,7 @@ If you add, rename or remove a public header or example, the verifier tells you 
 ## Buchlovice runtime smoke example
 
 `examples/robotour_buchlovice_demo.cpp` combines the runtime, route follower, mock motors, obstacle facts, optional degraded mode, freshness timeout inputs and keepalive handling without hardware.
+
+## Mission target API
+
+`include/rozeta/mission.hpp` exposes `mission::parseMissionTarget`, `MissionTarget`, `QrImage`, `QrDecoder`, and `parseMissionTargetFromQr` for M3 QR mission target intake. The default parser supports `geo:lat,lon`, `gps lat,lon`, labeled `lat`/`lon`, and `N ... E ...` coordinate text.
