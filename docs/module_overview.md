@@ -78,6 +78,10 @@ See `docs/perception_module.md` for M7 RGB perception usage.
 
 `kinect::DepthFrame` stores normalized metric depth samples with image metadata. `kinect::loadDepthCsv` loads no-hardware fixtures, `kinect::depthFrameToPointCloud` projects valid pixels into a point cloud, and `obstacle_detection::fromDepthFrame` converts depth images into ahead/left/right obstacle sectors. Optional libfreenect probing is isolated behind `ROZETA_WITH_KINECT=ON`; the default build has no Kinect dependency.
 
+M9 — Depth/Kinect adapter parity adds `KinectProfile` (configurable baseline frames, blob area, depth diff threshold, smoothing kernel, display/headless flags), `KinectBackendStatus`/`KinectBackendSelector` (Unavailable→Connected→Running→Stale/Simulated lifecycle), `DepthObjectSummary` (nearest distance, side angle, sector, blob area, freshness), and `normalizeDepthObstacleSummaries` (left/center/right sector partitioning with blob-area gating).
+
+See `docs/kinect_module.md` for M9 profile and depth-object-summary usage.
+
 ## UI
 
 `ui::SnapshotComposer` connects `maps::OfflineMap`, camera RGB frames, Kinect RGB/depth frames and `RobotState` into a render-backend-neutral realtime `UiSnapshot`. The UI module also provides mission overlays for start, operation, final and current robot markers plus viewport projection helpers for drawing the robot position on the active map.

@@ -92,6 +92,18 @@ void test_perception_obstacle_empty_roi_safe_false();
 void test_perception_obstacle_threshold_boundary_cases();
 void test_perception_obstacle_tracker_resets_state();
 void test_perception_obstacle_config_validation_handles_bounds();
+void test_kinect_profile_defaults_have_safe_values();
+void test_kinect_profile_validates_rejects_invalid_fields();
+void test_kinect_profile_loads_and_parses_config_file();
+void test_kinect_profile_load_partial_falls_back_to_defaults();
+void test_kinect_profile_load_rejects_missing_file();
+void test_kinect_backend_selector_starts_unavailable();
+void test_kinect_backend_selector_transitions_through_statuses();
+void test_kinect_backend_selector_mark_stale();
+void test_normalize_depth_obstacle_summaries_empty_frame_returns_empty();
+void test_normalize_depth_obstacle_summaries_detects_left_center_right();
+void test_normalize_depth_obstacle_summaries_freshness_timestamp_is_set();
+void test_normalize_depth_obstacle_summaries_respects_blob_area_minimum();
 void test_telemetry_parser_loads_robotour_fixture();
 void test_telemetry_parser_rejects_bad_schema_and_rows();
 void test_telemetry_replay_produces_deterministic_navigation_decisions();
@@ -221,6 +233,18 @@ int main(){
         {"perception_threshold", test_perception_obstacle_threshold_boundary_cases},
         {"perception_tracker_reset", test_perception_obstacle_tracker_resets_state},
         {"perception_config_validation", test_perception_obstacle_config_validation_handles_bounds},
+        {"kinect_profile_defaults", test_kinect_profile_defaults_have_safe_values},
+        {"kinect_profile_validate", test_kinect_profile_validates_rejects_invalid_fields},
+        {"kinect_profile_load", test_kinect_profile_loads_and_parses_config_file},
+        {"kinect_profile_partial", test_kinect_profile_load_partial_falls_back_to_defaults},
+        {"kinect_profile_missing", test_kinect_profile_load_rejects_missing_file},
+        {"kinect_backend_unavailable", test_kinect_backend_selector_starts_unavailable},
+        {"kinect_backend_transitions", test_kinect_backend_selector_transitions_through_statuses},
+        {"kinect_backend_stale", test_kinect_backend_selector_mark_stale},
+        {"kinect_summaries_empty", test_normalize_depth_obstacle_summaries_empty_frame_returns_empty},
+        {"kinect_summaries_sectors", test_normalize_depth_obstacle_summaries_detects_left_center_right},
+        {"kinect_summaries_freshness", test_normalize_depth_obstacle_summaries_freshness_timestamp_is_set},
+        {"kinect_summaries_blob", test_normalize_depth_obstacle_summaries_respects_blob_area_minimum},
         {"telemetry_parser_fixture", test_telemetry_parser_loads_robotour_fixture},
         {"telemetry_parser_errors", test_telemetry_parser_rejects_bad_schema_and_rows},
         {"telemetry_replay_deterministic", test_telemetry_replay_produces_deterministic_navigation_decisions},

@@ -19,6 +19,7 @@ add_executable(rozeta_tests
     test_perception.cpp
     test_telemetry.cpp
     test_ui.cpp
+    test_kinect_profile.cpp
 )
 if(ROZETA_WITH_SERIAL_MOTORS)
   target_sources(rozeta_tests PRIVATE test_serial_motors.cpp)

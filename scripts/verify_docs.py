@@ -21,7 +21,7 @@ PUBLIC_HEADER_DOCS = {
     "depth": "docs/navigation.md",
     "gps": "docs/gps_module.md",
     "imu": "docs/imu_module.md",
-    "kinect": "docs/module_overview.md",
+    "kinect": "docs/kinect_module.md",
     "lidar": "docs/lidar_module.md",
     "logging": "docs/module_overview.md",
     "maps": "docs/maps_module.md",
@@ -43,6 +43,7 @@ REQUIRED_FILES = [
     "docs/architecture.md",
     "docs/maintenance.md",
     "docs/hardware_ui_backends.md",
+    "docs/kinect_module.md",
     "docs/buchlovice_motor_hardware_smoke.md",
     "docs/ui_module.md",
     "docs/diagrams/module-map.html",
@@ -164,6 +165,15 @@ REQUIRED_BUCHLOVICE_M8_PHRASES = [
     "detectRgbObstacleDark",
     "detectRgbObstacleDiff",
     "RgbObstacleState",
+]
+
+REQUIRED_BUCHLOVICE_M9_PHRASES = [
+    "M9 — Depth/Kinect adapter parity",
+    "KinectProfile",
+    "KinectBackendSelector",
+    "KinectBackendStatus",
+    "DepthObjectSummary",
+    "normalizeDepthObstacleSummaries",
 ]
 
 
@@ -350,6 +360,21 @@ def main() -> int:
     for phrase in REQUIRED_BUCHLOVICE_M8_PHRASES:
         if phrase not in buchlovice_m8_docs:
             fail(f"Buchlovice M8 obstacle detection documentation/diagram coverage missing: {phrase}", failures)
+
+    buchlovice_m9_docs = (
+        read("docs/kinect_module.md")
+        + "\n"
+        + read("docs/api-reference.md")
+        + "\n"
+        + read("docs/module_overview.md")
+        + "\n"
+        + read("docs/diagrams/module-map.html")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M9_PHRASES:
+        if phrase not in buchlovice_m9_docs:
+            fail(f"Buchlovice M9 kinect adapter documentation/diagram coverage missing: {phrase}", failures)
 
     doxygen = read("Doxyfile")
     for required in ["INPUT                  = include src examples", "OUTPUT_DIRECTORY       = docs/generated", "GENERATE_HTML", "GENERATE_XML", "EXTRACT_ALL"]:

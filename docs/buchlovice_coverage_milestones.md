@@ -191,14 +191,17 @@ Delivered coverage:
 
 ### M9 — Depth/Kinect adapter parity
 
-Goal: make Rozeta’s Kinect/depth path a practical replacement for the Buchlovice Kinect integration.
+Status: implemented in `rozeta::kinect`.
 
-Action points:
-- Add a Kinect profile schema matching the useful Buchlovice parameters: baseline frames, min blob area, depth diff threshold, smoothing kernel, display/headless flag.
-- Add a backend selection API with explicit status: unavailable, connected, running, simulated/replay, stale.
-- Normalize depth obstacle output into object summaries containing nearest distance, side/angle/sector, area, and freshness timestamp.
-- Provide optional adapters/examples for libfreenect/libfreenect2 where available, while keeping no-hardware tests fixture-based.
-- Add tests for profile load/defaults, stale detections, empty depth, and left/center/right object summaries.
+Goal: make Rozeta's Kinect/depth path a practical replacement for the Buchlovice Kinect integration.
+
+Delivered coverage:
+- Added `KinectProfile` schema with `baseline_frames`, `min_blob_area`, `depth_diff_threshold`, `smoothing_kernel`, `display`, `headless` plus `defaults()`, `load(path)`, and `validate()` methods.
+- Added `KinectBackendStatus` enum and `KinectBackendSelector` class tracking backend lifecycle: Unavailable → Connected → Running → Stale/Simulated.
+- Added `DepthObjectSummary` struct with nearest distance, side angle, sector (-1/0/1), blob area, freshness timestamp and active flag.
+- Added `normalizeDepthObstacleSummaries(frame, profile, threshold_m)` that partitions a depth frame into left/center/right sectors, applies blob-area minimum gating, and returns structured object summaries.
+- Added tests for profile defaults, validation, file load/partial/missing, backend selector transitions and stale detection, empty depth frames, left/center/right sector detection, freshness timestamps and blob-area filtering.
+- Created `docs/kinect_module.md` with profile format and API docs, updated API reference, module overview, Robotour use case, diagram, and milestone status.
 
 ### M10 — Obstacle wait and bypass behavior
 
