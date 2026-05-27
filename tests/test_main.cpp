@@ -128,6 +128,10 @@ void test_operator_input_inject_all_keys();
 void test_beeper_mock_records_beeps();
 void test_beeper_mock_silence_until_beeped();
 void test_operator_io_headless_text_dashboard_renders_phase();
+void test_mission_event_logger_stores_events();
+void test_mission_event_logger_bypass_events();
+void test_mission_tick_logger_captures_all_fields();
+void test_mission_tick_logger_csv_header_matches_sample();
 void test_telemetry_parser_loads_robotour_fixture();
 void test_telemetry_parser_rejects_bad_schema_and_rows();
 void test_telemetry_replay_produces_deterministic_navigation_decisions();
@@ -293,6 +297,10 @@ int main(){
         {"opio_beeper", test_beeper_mock_records_beeps},
         {"opio_beeper_silent", test_beeper_mock_silence_until_beeped},
         {"opio_dashboard", test_operator_io_headless_text_dashboard_renders_phase},
+        {"telm_events", test_mission_event_logger_stores_events},
+        {"telm_bypass", test_mission_event_logger_bypass_events},
+        {"telm_tick_csv", test_mission_tick_logger_captures_all_fields},
+        {"telm_tick_header", test_mission_tick_logger_csv_header_matches_sample},
         {"telemetry_parser_fixture", test_telemetry_parser_loads_robotour_fixture},
         {"telemetry_parser_errors", test_telemetry_parser_rejects_bad_schema_and_rows},
         {"telemetry_replay_deterministic", test_telemetry_replay_produces_deterministic_navigation_decisions},

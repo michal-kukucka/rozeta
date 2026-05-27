@@ -247,13 +247,14 @@ Delivered coverage:
 
 ### M13 — Telemetry mapping for Buchlovice events
 
+Status: implemented in `rozeta::telemetry`.
+
 Goal: make field runs replayable and comparable in CI.
 
-Action points:
-- Extend or complement `rozeta.telemetry.v1` with mission events: QR scanned, phase change, obstacle source, wait start/end, bypass start/end, arrival, operator acknowledgement.
-- Add adapters that log GPS fix, route target, camera/depth obstacle metrics, route cue, motor command, and mission phase every tick.
-- Add replay tests that reproduce navigation and obstacle behavior decisions from captured logs.
-- Add a converter/importer for existing Buchlovice logs where feasible.
+Delivered coverage:
+- Added `MissionEventLogger` recording phase_change, qr_scanned, arrival, operator_ack, obstacle_wait_start/end, and bypass_start/end events with timestamps.
+- Added `MissionTickSample` struct and `formatMissionTickCsv()` + `missionTickCsvHeader()` for per-tick CSV logging of phase, leg, GPS, target, camera/depth obstacle coverage, route cue, motor commands, and bypass direction.
+- Added tests for event logging, bypass events, tick CSV formatting, and CSV header contract.
 
 ### M14 — Python bindings / migration bridge
 

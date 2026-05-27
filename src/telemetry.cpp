@@ -314,4 +314,91 @@ ReplayUiResult replayUiSnapshots(
     return result;
 }
 
+// ── M13 Mission event telemetry ──────────────────────────────────
+
+std::int64_t MissionEventLogger::nowMs() const {
+    using namespace std::chrono;
+    return duration_cast<milliseconds>(
+        steady_clock::now().time_since_epoch()).count();
+}
+
+void MissionEventLogger::logPhaseChange(
+    const std::string& phase, int leg) {
+    events_.push_back({"phase_change",
+        phase + " leg=" + std::to_string(leg), nowMs()});
+}
+
+void MissionEventLogger::logQrScanned(const std::string& payload) {
+    events_.push_back({"qr_scanned", payload, nowMs()});
+}
+
+void MissionEventLogger::logArrival(
+    double lat, double lon, int leg) {
+    events_.push_back({"arrival",
+        std::to_string(lat) + "," + std::to_string(lon) +
+        " leg=" + std::to_string(leg), nowMs()});
+}
+
+void MissionEventLogger::logOperatorAck(const std::string& ack) {
+    events_.push_back({"operator_ack", ack, nowMs()});
+}
+
+void MissionEventLogger::logObstacleWaitStart(
+    const std::string& source) {
+    events_.push_back({"obstacle_wait_start", source, nowMs()});
+}
+
+void MissionEventLogger::logObstacleWaitEnd() {
+    events_.push_back({"obstacle_wait_end", "", nowMs()});
+}
+
+void MissionEventLogger::logBypassStart(
+    const std::string& direction) {
+    events_.push_back({"bypass_start", direction, nowMs()});
+}
+
+void MissionEventLogger::logBypassEnd() {
+    events_.push_back({"bypass_end", "", nowMs()});
+}
+
+const std::vector<MissionEventRecord>&
+MissionEventLogger::events() const {
+    return events_;
+}
+
+void MissionEventLogger::reset() {
+    events_.clear();
+}
+
+const std::vector<std::string>& missionTickCsvHeader() {
+    static const std::vector<std::string> header = {
+        "phase", "leg", "gps_lat", "gps_lon",
+        "target_lat", "target_lon",
+        "dark_coverage", "diff_coverage",
+        "obstacle_ahead", "obstacle_source",
+        "route_cue", "motor_left", "motor_right",
+        "bypass_dir",
+    };
+    return header;
+}
+
+std::string formatMissionTickCsv(const MissionTickSample& sample) {
+    std::ostringstream os;
+    os << sample.phase << ","
+       << sample.leg << ","
+       << sample.gps_lat << ","
+       << sample.gps_lon << ","
+       << sample.target_lat << ","
+       << sample.target_lon << ","
+       << sample.dark_coverage << ","
+       << sample.diff_coverage << ","
+       << (sample.obstacle_ahead ? "1" : "0") << ","
+       << sample.obstacle_source << ","
+       << sample.route_cue << ","
+       << sample.motor_left << ","
+       << sample.motor_right << ","
+       << sample.bypass_dir;
+    return os.str();
+}
+
 } // namespace rozeta::telemetry
