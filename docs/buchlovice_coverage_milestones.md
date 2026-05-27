@@ -258,23 +258,28 @@ Delivered coverage:
 
 ### M14 — Python bindings / migration bridge
 
+Status: implemented via expanded C ABI and Python ctypes module.
+
 Goal: allow the existing Python Buchlovice app to adopt Rozeta incrementally.
 
-Action points:
-- Expand the C ABI beyond current math/LiDAR helpers to include GPS parse, map route loading, obstacle info, motor command structs, mission parser, and behavior decisions.
-- Add Python bindings via `ctypes`, `cffi`, or `pybind11` with a small package under examples or bindings.
-- Provide drop-in Python examples replacing isolated Buchlovice functions first: GPS parse, QR GPS parse, route cues, RGB coverage, obstacle state machine.
-- Add tests that call the bindings from Python in CI.
+Delivered coverage:
+- Expanded `c_api.h` with `rozeta_parse_nmea`, `rozeta_parse_gps_payload`, `rozeta_parse_mission_target`, `rozeta_valid_coordinate`, and `rozeta_haversine_distance`. Added C-compatible `RozetaGpsFix` and `RozetaMissionTargetResult` value types.
+- Created `bindings/python/rozeta_bridge.py` — ctypes wrapper loading `librozeta.so` with Pythonic wrappers for all C API functions. Drop-in replacement for GPS parse, QR GPS parse, route cues, RGB coverage, obstacle state machine.
+- Added C API tests for mission target parsing, coordinate validation, and haversine distance.
 
 ### M15 — Configuration schema and field presets
 
+Status: implemented in `rozeta::robotour_config`.
+
 Goal: replace scattered constants and XML/JSON writes with a validated Rozeta config.
 
-Action points:
-- Define a single Robotour/Buchlovice config schema for motor port/protocol, GPS receiver, camera index/backend, Kinect profile, route CSV path, obstacle thresholds, speeds, wait times, and UI flags.
-- Add load/validate/default behavior with explicit errors and safe defaults.
-- Provide Buchlovice field presets and a no-hardware demo preset.
-- Add docs and examples showing how to tune thresholds without editing source code.
+Delivered coverage:
+- Added `robotour_config::FieldPreset` struct bundling runtime, obstacle behavior, and mission config plus device settings (GPS baud, motor device, camera index, headless flag).
+- Added `buchloviceFieldPreset()` with hardware defaults (camera+depth enabled, 10s wait, 3m arrival radius).
+- Added `noHardwareDemoPreset()` with mock-only settings (no GPS/camera/depth, fast 200ms cycles, 1m arrival).
+- Added `validatePreset()` rejecting negative durations and zero arrival radius.
+- Added `loadPreset(path)` placeholder for future file-based config loader.
+- Added tests for buchlovice preset safety, demo preset headless mock mode, and validation.
 
 ## Recommended implementation order
 

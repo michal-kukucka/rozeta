@@ -32,6 +32,7 @@ PUBLIC_HEADER_DOCS = {
     "obstacle_detection": "docs/navigation.md",
     "obstacle_behavior": "docs/navigation.md",
     "operator_io": "docs/module_overview.md",
+    "robotour_config": "docs/module_overview.md",
     "odometry": "docs/module_overview.md",
     "perception": "docs/perception_module.md",
     "telemetry": "docs/module_overview.md",

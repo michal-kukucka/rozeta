@@ -132,6 +132,13 @@ void test_mission_event_logger_stores_events();
 void test_mission_event_logger_bypass_events();
 void test_mission_tick_logger_captures_all_fields();
 void test_mission_tick_logger_csv_header_matches_sample();
+void test_c_api_parse_mission_target_valid();
+void test_c_api_parse_mission_target_invalid();
+void test_c_api_valid_coordinate();
+void test_c_api_haversine_distance();
+void test_field_preset_buchlovice_has_safe_defaults();
+void test_field_preset_no_hardware_demo_is_headless();
+void test_field_preset_validate_rejects_invalid();
 void test_telemetry_parser_loads_robotour_fixture();
 void test_telemetry_parser_rejects_bad_schema_and_rows();
 void test_telemetry_replay_produces_deterministic_navigation_decisions();
@@ -301,6 +308,13 @@ int main(){
         {"telm_bypass", test_mission_event_logger_bypass_events},
         {"telm_tick_csv", test_mission_tick_logger_captures_all_fields},
         {"telm_tick_header", test_mission_tick_logger_csv_header_matches_sample},
+        {"capi_mission", test_c_api_parse_mission_target_valid},
+        {"capi_mission_inv", test_c_api_parse_mission_target_invalid},
+        {"capi_coord", test_c_api_valid_coordinate},
+        {"capi_haversine", test_c_api_haversine_distance},
+        {"fpreset_buchlovice", test_field_preset_buchlovice_has_safe_defaults},
+        {"fpreset_demo", test_field_preset_no_hardware_demo_is_headless},
+        {"fpreset_validate", test_field_preset_validate_rejects_invalid},
         {"telemetry_parser_fixture", test_telemetry_parser_loads_robotour_fixture},
         {"telemetry_parser_errors", test_telemetry_parser_rejects_bad_schema_and_rows},
         {"telemetry_replay_deterministic", test_telemetry_replay_produces_deterministic_navigation_decisions},

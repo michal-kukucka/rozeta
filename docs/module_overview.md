@@ -86,7 +86,11 @@ See `docs/kinect_module.md` for M9 profile and depth-object-summary usage.
 
 ## Operator I/O
 
-M12 — Operator I/O, HUD, and beeper abstractions for operator io. `operator_io::OperatorInput` defines a key-event interface (`Quit`, `ToggleKinect`, `SwitchCamera`, `Continue`, `Spacebar`) with `MockOperatorInput` for dependency-free tests. `operator_io::Beeper` provides a beep-pattern interface (`"short"`, `"long"`, `"double"`) with `MockBeeper` capturing patterns for verification. `operator_io::HeadlessDashboard` renders mission phase, leg number, and coordinates as plain text for headless operation.
+M12 — Operator I/O, HUD, and beeper abstractions for operator io. `operator_io::OperatorInput` defines a key-event interface...
+
+## Robotour config
+
+M15 — Configuration schema and field presets for robotour_config. `robotour_config::FieldPreset` bundles runtime, obstacle behavior, and mission config into named presets: `buchloviceFieldPreset()` (hardware with camera+depth, 10s wait) and `noHardwareDemoPreset()` (mock-only, fast 200ms cycles). `validatePreset()` rejects invalid arrival radii and negative durations. `loadPreset(path)` placeholder for future file-based config.
 
 ## UI
 

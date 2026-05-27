@@ -24,6 +24,7 @@ add_executable(rozeta_tests
     test_robotour_mission.cpp
     test_operator_io.cpp
     test_telemetry_mission.cpp
+    test_m14_m15.cpp
 )
 if(ROZETA_WITH_SERIAL_MOTORS)
   target_sources(rozeta_tests PRIVATE test_serial_motors.cpp)
