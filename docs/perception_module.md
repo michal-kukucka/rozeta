@@ -38,3 +38,17 @@ This keeps CI dependency-free while preserving the same RGB byte layout used by 
 ## OpenCV relationship
 
 OpenCV remains optional. When `ROZETA_WITH_OPENCV=ON`, applications can capture frames with `camera::OpenCvCamera` and pass the resulting bytes to `perception::detectRgbPath` or `perception::measureSideCoverage`. The perception API itself stays dependency-free so synthetic fixtures and replay tests work on machines without camera libraries.
+
+## M8 — RGB obstacle ROI with hysteresis
+
+M8 adds reference-frame obstacle detection with hysteresis to the perception module:
+
+1. `RgbObstacleConfig` exposes configurable ROI geometry, dark/diff thresholds, morphology kernel, trigger streak and clear streak.
+2. `detectRgbObstacleDark(frame, config)` measures dark-pixel coverage inside the obstacle ROI and returns `RgbObstacleResult` with `dark_coverage`.
+3. `detectRgbObstacleDiff(frame, reference, config)` computes per-channel pixel differences against a reference frame and returns `diff_coverage`.
+4. `RgbObstacleTracker` wraps the detectors with a hysteresis state machine: `update(frame)` feeds dark frames, `updateRef(frame, reference)` feeds diff frames. Five consecutive obstacle frames trigger `RgbObstacleState::Triggered`; three consecutive clear frames reset to `Clear`.
+5. Empty ROI (left > right, top >= bottom) returns `dark_coverage = 0.0` and `status.ok()` without crashing.
+
+Default obstacle ROI: center 40% of width (`roi_left_fraction=0.30`, `roi_right_fraction=0.70`), lower 70% of height (`roi_top_fraction=0.30`). Default hysteresis: 5 trigger, 3 clear. All thresholds and streaks are reconfigurable at runtime.
+
+Like the rest of perception, M8 stays dependency-free. The same packed RGB8 `camera::Frame` contract drives both path analysis and obstacle detection, so OpenCV remains a capture-only concern.

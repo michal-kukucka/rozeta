@@ -217,4 +217,266 @@ SideCoverageResult measureSideCoverage(const camera::Frame& frame, const RgbPath
     return result;
 }
 
+// ── M8 RGB obstacle detection ─────────────────────────────────────
+
+namespace {
+
+bool validateObstacleConfig(const RgbObstacleConfig& config) {
+    if (!std::isfinite(config.roi_left_fraction) ||
+        !std::isfinite(config.roi_right_fraction) ||
+        !std::isfinite(config.roi_top_fraction) ||
+        !std::isfinite(config.roi_bottom_fraction) ||
+        !std::isfinite(config.dark_max_value) ||
+        !std::isfinite(config.coverage_threshold) ||
+        !std::isfinite(config.diff_threshold) ||
+        !std::isfinite(config.diff_coverage_threshold)) {
+        return false;
+    }
+    if (config.roi_left_fraction < 0.0 || config.roi_left_fraction > 1.0 ||
+        config.roi_right_fraction < 0.0 || config.roi_right_fraction > 1.0 ||
+        config.roi_top_fraction < 0.0 || config.roi_top_fraction > 1.0 ||
+        config.roi_bottom_fraction < 0.0 || config.roi_bottom_fraction > 1.0 ||
+        config.dark_max_value < 0.0 || config.dark_max_value > 1.0 ||
+        config.coverage_threshold < 0.0 || config.coverage_threshold > 1.0 ||
+        config.diff_threshold < 0.0 ||
+        config.diff_coverage_threshold < 0.0 || config.diff_coverage_threshold > 1.0 ||
+        config.trigger_streak < 1 ||
+        config.clear_streak < 1) {
+        return false;
+    }
+    return true;
+}
+
+int roiXBegin(const camera::Frame& frame, const RgbObstacleConfig& config) {
+    return static_cast<int>(std::floor(
+        static_cast<double>(frame.metadata.width) *
+        std::max(0.0, std::min(1.0, config.roi_left_fraction))));
+}
+
+int roiXEnd(const camera::Frame& frame, const RgbObstacleConfig& config) {
+    return static_cast<int>(std::floor(
+        static_cast<double>(frame.metadata.width) *
+        std::max(0.0, std::min(1.0, config.roi_right_fraction))));
+}
+
+int roiYBegin(const camera::Frame& frame, const RgbObstacleConfig& config) {
+    return static_cast<int>(std::floor(
+        static_cast<double>(frame.metadata.height) *
+        std::max(0.0, std::min(1.0, config.roi_top_fraction))));
+}
+
+int roiYEnd(const camera::Frame& frame, const RgbObstacleConfig& config) {
+    return static_cast<int>(std::floor(
+        static_cast<double>(frame.metadata.height) *
+        std::max(0.0, std::min(1.0, config.roi_bottom_fraction))));
+}
+
+} // namespace
+
+RgbObstacleResult detectRgbObstacleDark(
+    const camera::Frame& frame,
+    const RgbObstacleConfig& config) {
+    RgbObstacleResult result;
+
+    Status frame_status = camera::validateFrame(frame, 3, 1);
+    if (!frame_status.ok()) {
+        result.status = frame_status;
+        return result;
+    }
+    if (!validateObstacleConfig(config)) {
+        result.status = Status::error(
+            ErrorCode::InvalidArgument,
+            "RGB obstacle config is invalid or out of bounds");
+        return result;
+    }
+
+    const int x_begin = roiXBegin(frame, config);
+    const int x_end = roiXEnd(frame, config);
+    const int y_begin = roiYBegin(frame, config);
+    const int y_end = roiYEnd(frame, config);
+
+    const int roi_width = std::max(0, x_end - x_begin);
+    const int roi_height = std::max(0, y_end - y_begin);
+    const int roi_pixels = roi_width * roi_height;
+
+    if (roi_pixels <= 0) {
+        return result; // empty ROI → dark_coverage stays 0, status stays ok
+    }
+
+    const int width = frame.metadata.width;
+    int dark_count = 0;
+    for (int y = y_begin; y < y_end; ++y) {
+        for (int x = x_begin; x < x_end; ++x) {
+            const std::size_t y_offset =
+                static_cast<std::size_t>(y) * static_cast<std::size_t>(width);
+            const std::size_t pixel_offset =
+                y_offset + static_cast<std::size_t>(x);
+            const std::size_t base = pixel_offset * 3U;
+            const HsvPixel hsv = rgbToHsv(
+                frame.bytes[base],
+                frame.bytes[base + 1],
+                frame.bytes[base + 2]);
+            if (hsv.value <= config.dark_max_value) {
+                ++dark_count;
+            }
+        }
+    }
+
+    result.dark_coverage = static_cast<double>(dark_count) /
+        static_cast<double>(roi_pixels);
+    result.source = "dark";
+    return result;
+}
+
+RgbObstacleResult detectRgbObstacleDiff(
+    const camera::Frame& frame,
+    const camera::Frame& reference,
+    const RgbObstacleConfig& config) {
+    RgbObstacleResult result;
+
+    Status frame_status = camera::validateFrame(frame, 3, 1);
+    if (!frame_status.ok()) {
+        result.status = frame_status;
+        return result;
+    }
+    Status ref_status = camera::validateFrame(reference, 3, 1);
+    if (!ref_status.ok()) {
+        result.status = ref_status;
+        return result;
+    }
+    if (frame.metadata.width != reference.metadata.width ||
+        frame.metadata.height != reference.metadata.height) {
+        result.status = Status::error(
+            ErrorCode::InvalidArgument,
+            "frame and reference must have same dimensions");
+        return result;
+    }
+    if (!validateObstacleConfig(config)) {
+        result.status = Status::error(
+            ErrorCode::InvalidArgument,
+            "RGB obstacle config is invalid or out of bounds");
+        return result;
+    }
+
+    const int x_begin = roiXBegin(frame, config);
+    const int x_end = roiXEnd(frame, config);
+    const int y_begin = roiYBegin(frame, config);
+    const int y_end = roiYEnd(frame, config);
+
+    const int roi_width = std::max(0, x_end - x_begin);
+    const int roi_height = std::max(0, y_end - y_begin);
+    const int roi_pixels = roi_width * roi_height;
+
+    if (roi_pixels <= 0) {
+        result.source = "diff";
+        return result;
+    }
+
+    const int width = frame.metadata.width;
+    int diff_count = 0;
+    for (int y = y_begin; y < y_end; ++y) {
+        for (int x = x_begin; x < x_end; ++x) {
+            const std::size_t y_offset =
+                static_cast<std::size_t>(y) * static_cast<std::size_t>(width);
+            const std::size_t pixel_offset =
+                y_offset + static_cast<std::size_t>(x);
+            const std::size_t base = pixel_offset * 3U;
+
+            const int dr = std::abs(
+                static_cast<int>(frame.bytes[base]) -
+                static_cast<int>(reference.bytes[base]));
+            const int dg = std::abs(
+                static_cast<int>(frame.bytes[base + 1]) -
+                static_cast<int>(reference.bytes[base + 1]));
+            const int db = std::abs(
+                static_cast<int>(frame.bytes[base + 2]) -
+                static_cast<int>(reference.bytes[base + 2]));
+
+            if (static_cast<double>(std::max({dr, dg, db})) >=
+                config.diff_threshold) {
+                ++diff_count;
+            }
+        }
+    }
+
+    result.diff_coverage = static_cast<double>(diff_count) /
+        static_cast<double>(roi_pixels);
+    result.source = "diff";
+    return result;
+}
+
+// ── RgbObstacleTracker ────────────────────────────────────────────
+
+RgbObstacleTracker::RgbObstacleTracker(const RgbObstacleConfig& config)
+    : config_(config) {}
+
+void RgbObstacleTracker::update(const camera::Frame& frame) {
+    const auto detection = detectRgbObstacleDark(frame, config_);
+    result_.dark_coverage = detection.dark_coverage;
+    result_.diff_coverage = -1.0;
+    result_.source = "dark";
+
+    bool obstacle = detection.ok() &&
+        detection.dark_coverage >= config_.coverage_threshold;
+    applyHysteresis(obstacle);
+}
+
+void RgbObstacleTracker::updateRef(
+    const camera::Frame& frame,
+    const camera::Frame& reference) {
+    const auto dark_detection = detectRgbObstacleDark(frame, config_);
+    const auto diff_detection = detectRgbObstacleDiff(
+        frame, reference, config_);
+
+    result_.dark_coverage = dark_detection.dark_coverage;
+    result_.diff_coverage = diff_detection.ok()
+        ? diff_detection.diff_coverage
+        : -1.0;
+    result_.source = "diff";
+
+    bool obstacle = dark_detection.ok() &&
+        (dark_detection.dark_coverage >= config_.coverage_threshold ||
+         (diff_detection.ok() &&
+          diff_detection.diff_coverage >= config_.diff_coverage_threshold));
+    applyHysteresis(obstacle);
+}
+
+void RgbObstacleTracker::reset() {
+    state_ = RgbObstacleState::Clear;
+    streak_ = 0;
+    last_was_obstacle_ = false;
+    result_ = RgbObstacleResult{};
+}
+
+RgbObstacleState RgbObstacleTracker::state() const {
+    return state_;
+}
+
+const RgbObstacleResult& RgbObstacleTracker::result() const {
+    return result_;
+}
+
+void RgbObstacleTracker::applyHysteresis(bool obstacle_detected) {
+    if (obstacle_detected == last_was_obstacle_) {
+        ++streak_;
+    } else {
+        streak_ = 1;
+        last_was_obstacle_ = obstacle_detected;
+    }
+
+    result_.streak_count = streak_;
+
+    if (obstacle_detected) {
+        if (streak_ >= config_.trigger_streak) {
+            state_ = RgbObstacleState::Triggered;
+        }
+    } else {
+        if (streak_ >= config_.clear_streak) {
+            state_ = RgbObstacleState::Clear;
+        }
+    }
+
+    result_.state = state_;
+}
+
 } // namespace rozeta::perception

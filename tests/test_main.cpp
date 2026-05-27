@@ -85,6 +85,13 @@ void test_perception_detects_centered_left_and_right_paths();
 void test_perception_grass_and_dark_side_coverage_helpers();
 void test_perception_low_confidence_invalid_config_and_invalid_frames_fail_safe();
 void test_perception_side_coverage_handles_narrow_frames();
+void test_perception_dark_obstacle_detects_center_coverage();
+void test_perception_diff_obstacle_detects_reference_difference();
+void test_perception_hysteresis_triggers_after_streak_and_clears_after_clear_streak();
+void test_perception_obstacle_empty_roi_safe_false();
+void test_perception_obstacle_threshold_boundary_cases();
+void test_perception_obstacle_tracker_resets_state();
+void test_perception_obstacle_config_validation_handles_bounds();
 void test_telemetry_parser_loads_robotour_fixture();
 void test_telemetry_parser_rejects_bad_schema_and_rows();
 void test_telemetry_replay_produces_deterministic_navigation_decisions();
@@ -207,6 +214,13 @@ int main(){
         {"perception_coverage", test_perception_grass_and_dark_side_coverage_helpers},
         {"perception_invalid", test_perception_low_confidence_invalid_config_and_invalid_frames_fail_safe},
         {"perception_narrow", test_perception_side_coverage_handles_narrow_frames},
+        {"perception_dark_obstacle", test_perception_dark_obstacle_detects_center_coverage},
+        {"perception_diff_obstacle", test_perception_diff_obstacle_detects_reference_difference},
+        {"perception_hysteresis", test_perception_hysteresis_triggers_after_streak_and_clears_after_clear_streak},
+        {"perception_empty_roi", test_perception_obstacle_empty_roi_safe_false},
+        {"perception_threshold", test_perception_obstacle_threshold_boundary_cases},
+        {"perception_tracker_reset", test_perception_obstacle_tracker_resets_state},
+        {"perception_config_validation", test_perception_obstacle_config_validation_handles_bounds},
         {"telemetry_parser_fixture", test_telemetry_parser_loads_robotour_fixture},
         {"telemetry_parser_errors", test_telemetry_parser_rejects_bad_schema_and_rows},
         {"telemetry_replay_deterministic", test_telemetry_replay_produces_deterministic_navigation_decisions},

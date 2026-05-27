@@ -175,13 +175,19 @@ Remaining action points:
 
 ### M8 — RGB obstacle ROI with hysteresis
 
+Status: implemented in `rozeta::perception`.
+
 Goal: cover `detect_simple_obstacle` and CameraModule reference-frame obstacle detection.
 
-Action points:
-- Add RGB obstacle detectors for center dark ROI coverage and reference-frame difference coverage.
-- Expose configurable ROI geometry, threshold values, morphology kernels, trigger streak, and clear streak.
-- Return coverage percentage and source metadata for telemetry/HUD.
-- Add tests for hysteresis: 5 dark frames trigger, 3 clear frames reset, empty ROI safe false, threshold boundary cases.
+Delivered coverage:
+- Added `RgbObstacleConfig` with configurable ROI geometry (`roi_left_fraction`, `roi_right_fraction`, `roi_top_fraction`, `roi_bottom_fraction`), dark/diff thresholds, trigger streak and clear streak.
+- Added `detectRgbObstacleDark(frame, config)` for center dark ROI coverage measurement returning `RgbObstacleResult` with `dark_coverage` and source metadata.
+- Added `detectRgbObstacleDiff(frame, reference, config)` for per-channel pixel differencing with `diff_coverage` output.
+- Added `RgbObstacleTracker` hysteresis state machine with `update()` for dark-obstacle accumulation and `updateRef()` for combined dark+diff detection.
+- Tracker enforces configurable hysteresis: 5 consecutive obstacle frames trigger `RgbObstacleState::Triggered`, 3 consecutive clear frames reset to `Clear`.
+- Empty ROI (left > right, zero pixel count) returns `dark_coverage = 0.0` and `status.ok()` without crashing.
+- Added tests for dark obstacle detection, reference-frame differencing, hysteresis trigger/clear streaks, empty ROI safety, threshold boundary cases, tracker reset and config validation.
+- Updated perception, API, Robotour, diagram and milestone docs.
 
 ### M9 — Depth/Kinect adapter parity
 

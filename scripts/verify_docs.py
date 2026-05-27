@@ -157,6 +157,15 @@ REQUIRED_BUCHLOVICE_M7_PHRASES = [
     "green coverage",
 ]
 
+REQUIRED_BUCHLOVICE_M8_PHRASES = [
+    "M8 — RGB obstacle ROI with hysteresis",
+    "RgbObstacleConfig",
+    "RgbObstacleTracker",
+    "detectRgbObstacleDark",
+    "detectRgbObstacleDiff",
+    "RgbObstacleState",
+]
+
 
 def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
@@ -326,6 +335,21 @@ def main() -> int:
     for phrase in REQUIRED_BUCHLOVICE_M7_PHRASES:
         if phrase not in buchlovice_m7_docs:
             fail(f"Buchlovice M7 RGB perception documentation/diagram coverage missing: {phrase}", failures)
+
+    buchlovice_m8_docs = (
+        read("docs/perception_module.md")
+        + "\n"
+        + read("docs/api-reference.md")
+        + "\n"
+        + read("docs/robotour_use_case.md")
+        + "\n"
+        + read("docs/diagrams/module-map.html")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M8_PHRASES:
+        if phrase not in buchlovice_m8_docs:
+            fail(f"Buchlovice M8 obstacle detection documentation/diagram coverage missing: {phrase}", failures)
 
     doxygen = read("Doxyfile")
     for required in ["INPUT                  = include src examples", "OUTPUT_DIRECTORY       = docs/generated", "GENERATE_HTML", "GENERATE_XML", "EXTRACT_ALL"]:

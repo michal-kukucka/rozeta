@@ -64,6 +64,36 @@ rozeta::camera::Frame grassFrame(int width, int height, int green_center_x, int 
     return makeFrame(width, height, rgb);
 }
 
+rozeta::camera::Frame darkObstacleFrame(int width, int height, double dark_roi_fraction) {
+    // dark_roi_fraction: fraction of lower pixels that are dark (obstacle)
+    std::vector<unsigned char> rgb(static_cast<std::size_t>(width * height * 3), 120);
+    const int dark_rows = static_cast<int>(height * dark_roi_fraction);
+    for (int y = height - dark_rows; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            setPixel(rgb, width, x, y, 5, 5, 5);
+        }
+    }
+    return makeFrame(width, height, rgb);
+}
+
+rozeta::camera::Frame changedRegionFrame(
+    int width,
+    int height,
+    int changed_x,
+    int changed_y,
+    int changed_w,
+    int changed_h) {
+    std::vector<unsigned char> rgb(static_cast<std::size_t>(width * height * 3), 100);
+    const int end_x = std::min(width, changed_x + changed_w);
+    const int end_y = std::min(height, changed_y + changed_h);
+    for (int y = changed_y; y < end_y; ++y) {
+        for (int x = changed_x; x < end_x; ++x) {
+            setPixel(rgb, width, x, y, 200, 200, 200);
+        }
+    }
+    return makeFrame(width, height, rgb);
+}
+
 } // namespace
 
 void test_perception_detects_centered_left_and_right_paths() {
@@ -142,4 +172,193 @@ void test_perception_side_coverage_handles_narrow_frames() {
     require(result.left_green_coverage == 0.0, "zero-width left third should report zero coverage");
     require(result.right_green_coverage == 0.0, "zero-width right third should report zero coverage");
     require(result.center_dark_coverage > 0.0, "center band should still be measured");
+}
+
+// ── M8 RGB obstacle ROI tests ──────────────────────────────────────
+
+void test_perception_dark_obstacle_detects_center_coverage() {
+    rozeta::perception::RgbObstacleConfig config;
+    config.coverage_threshold = 0.10;
+
+    // Full dark frame -> high dark coverage in ROI
+    const auto dark = rozeta::perception::detectRgbObstacleDark(
+        darkObstacleFrame(20, 20, 1.0),
+        config);
+    require(dark.ok(), "dark obstacle detection should be ok");
+    require(dark.dark_coverage > 0.5, "all-dark frame should have high dark coverage");
+    require(dark.dark_coverage > config.coverage_threshold,
+        "coverage should exceed threshold");
+
+    // Bright frame -> low dark coverage
+    const auto bright = rozeta::perception::detectRgbObstacleDark(
+        makeFrame(20, 20, std::vector<unsigned char>(20 * 20 * 3, 200)),
+        config);
+    require(bright.ok(), "bright frame detection should be ok");
+    require(bright.dark_coverage < config.coverage_threshold,
+        "all-bright frame should be below dark threshold");
+}
+
+void test_perception_diff_obstacle_detects_reference_difference() {
+    rozeta::perception::RgbObstacleConfig config;
+    config.diff_coverage_threshold = 0.05;
+
+    // Reference: blank frame, Current: frame with changed region
+    const auto ref = makeFrame(20, 20, std::vector<unsigned char>(20 * 20 * 3, 50));
+    const auto changed = changedRegionFrame(20, 20, 5, 10, 10, 6);
+
+    const auto result = rozeta::perception::detectRgbObstacleDiff(changed, ref, config);
+    require(result.ok(), "diff obstacle detection should be ok");
+    require(result.diff_coverage > config.diff_coverage_threshold,
+        "changed region should produce significant diff coverage");
+
+    // Identical frames -> no diff
+    const auto same = rozeta::perception::detectRgbObstacleDiff(ref, ref, config);
+    require(same.ok(), "identical frames detection should be ok");
+    require(same.diff_coverage < config.diff_coverage_threshold,
+        "identical frames should have zero diff coverage");
+}
+
+void test_perception_hysteresis_triggers_after_streak_and_clears_after_clear_streak() {
+    rozeta::perception::RgbObstacleConfig config;
+    config.trigger_streak = 5;
+    config.clear_streak = 3;
+    config.coverage_threshold = 0.10;
+
+    rozeta::perception::RgbObstacleTracker tracker(config);
+
+    // Tracker starts clear
+    require(tracker.state() == rozeta::perception::RgbObstacleState::Clear,
+        "tracker should start in Clear state");
+
+    const auto dark = darkObstacleFrame(20, 20, 1.0);
+    const auto bright = makeFrame(20, 20, std::vector<unsigned char>(20 * 20 * 3, 200));
+
+    // Feed 4 dark frames — should still be Clear (not enough for trigger streak)
+    for (int i = 0; i < 4; ++i) {
+        tracker.update(dark);
+    }
+    require(tracker.state() == rozeta::perception::RgbObstacleState::Clear,
+        "4 dark frames should not trigger (need 5)");
+
+    // 5th dark frame — triggers
+    tracker.update(dark);
+    require(tracker.state() == rozeta::perception::RgbObstacleState::Triggered,
+        "5th dark frame should trigger obstacle");
+
+    // Another dark frame — stays triggered
+    tracker.update(dark);
+    require(tracker.state() == rozeta::perception::RgbObstacleState::Triggered,
+        "additional dark frame should keep triggered state");
+
+    // Feed 2 bright frames — should still be Triggered (not enough for clear streak)
+    for (int i = 0; i < 2; ++i) {
+        tracker.update(bright);
+    }
+    require(tracker.state() == rozeta::perception::RgbObstacleState::Triggered,
+        "2 clear frames should not clear (need 3)");
+
+    // 3rd bright frame — clears
+    tracker.update(bright);
+    require(tracker.state() == rozeta::perception::RgbObstacleState::Clear,
+        "3rd clear frame should reset to Clear");
+}
+
+void test_perception_obstacle_empty_roi_safe_false() {
+    rozeta::perception::RgbObstacleConfig config;
+    // Bogus ROI: left > right
+    config.roi_left_fraction = 0.8;
+    config.roi_right_fraction = 0.2;
+
+    const auto frame = makeFrame(10, 10, std::vector<unsigned char>(10 * 10 * 3, 5));
+    const auto result = rozeta::perception::detectRgbObstacleDark(frame, config);
+
+    // Should still return ok — no crash, safe false
+    require(result.ok(), "empty ROI should not crash");
+    require(result.dark_coverage == 0.0, "empty ROI should report zero dark coverage");
+
+    // Tracker with empty ROI should stay clear
+    rozeta::perception::RgbObstacleTracker tracker(config);
+    for (int i = 0; i < 10; ++i) {
+        tracker.update(frame);
+    }
+    require(tracker.state() == rozeta::perception::RgbObstacleState::Clear,
+        "tracker should stay clear with empty ROI");
+}
+
+void test_perception_obstacle_threshold_boundary_cases() {
+    rozeta::perception::RgbObstacleConfig config;
+    // Use full-frame ROI for exact boundary math
+    config.roi_top_fraction = 0.0;
+    config.roi_bottom_fraction = 1.0;
+    config.roi_left_fraction = 0.0;
+    config.roi_right_fraction = 1.0;
+    config.coverage_threshold = 0.50;
+
+    // Frame that is exactly 50% dark in ROI
+    const auto frame = darkObstacleFrame(20, 20, 0.50);
+
+    const auto result = rozeta::perception::detectRgbObstacleDark(frame, config);
+    require(result.ok(), "boundary case should be ok");
+
+    // Coverage should be close to 0.50 (within tolerance for integer math)
+    require(result.dark_coverage > 0.40 && result.dark_coverage < 0.60,
+        "half-dark frame should report near 0.50 dark coverage");
+
+    // Set extreme thresholds — should not crash
+    config.coverage_threshold = 0.0;
+    const auto zero_threshold = rozeta::perception::detectRgbObstacleDark(
+        makeFrame(10, 10, std::vector<unsigned char>(10 * 10 * 3, 200)),
+        config);
+    require(zero_threshold.ok(), "zero threshold should not crash");
+    require(zero_threshold.dark_coverage >= 0.0, "zero threshold result should be valid");
+
+    config.coverage_threshold = 1.0;
+    const auto max_threshold = rozeta::perception::detectRgbObstacleDark(
+        makeFrame(10, 10, std::vector<unsigned char>(10 * 10 * 3, 5)),
+        config);
+    require(max_threshold.ok(), "max threshold should not crash");
+    require(max_threshold.dark_coverage <= 1.0, "max threshold result should be valid");
+}
+
+void test_perception_obstacle_tracker_resets_state() {
+    rozeta::perception::RgbObstacleConfig config;
+    config.trigger_streak = 3;
+    config.clear_streak = 2;
+    config.coverage_threshold = 0.10;
+
+    rozeta::perception::RgbObstacleTracker tracker(config);
+    const auto dark = darkObstacleFrame(10, 10, 1.0);
+
+    // Trigger the tracker
+    tracker.update(dark);
+    tracker.update(dark);
+    tracker.update(dark);
+    require(tracker.state() == rozeta::perception::RgbObstacleState::Triggered,
+        "tracker should be triggered after 3 dark frames");
+
+    // Reset
+    tracker.reset();
+    require(tracker.state() == rozeta::perception::RgbObstacleState::Clear,
+        "reset should clear tracker state");
+
+    // After reset, streak count starts fresh
+    tracker.update(dark);
+    require(tracker.state() == rozeta::perception::RgbObstacleState::Clear,
+        "after reset, single dark frame should not trigger");
+
+    // Verify result carries metadata
+    const auto result = tracker.result();
+    require(result.streak_count >= 0, "result should report streak count");
+    require(!result.source.empty(), "result should report source");
+}
+
+void test_perception_obstacle_config_validation_handles_bounds() {
+    rozeta::perception::RgbObstacleConfig config;
+    config.roi_left_fraction = 1.5; // out of [0,1]
+
+    const auto frame = makeFrame(10, 10, std::vector<unsigned char>(10 * 10 * 3, 120));
+    const auto result = rozeta::perception::detectRgbObstacleDark(frame, config);
+    require(!result.ok(), "invalid config should return error");
+    require(result.status.code == rozeta::ErrorCode::InvalidArgument,
+        "out-of-range config should be InvalidArgument");
 }

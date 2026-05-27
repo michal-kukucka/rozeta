@@ -13,7 +13,7 @@ Rozeta is inspired by the Buchlovice/Robotour style workflow, but rebuilt as C/C
 4. Read odometry.
 5. Read normalized LiDAR scans from mock data, sample replay or optional YDLIDAR serial devices.
 6. Optionally replay or capture depth frames with `depth_obstacle_console --sample` and convert them into obstacle sectors.
-7. Optionally capture validated camera frames through `camera_capture --mock` or the OpenCV backend, then run `perception::detectRgbPath` and `perception::measureSideCoverage` for M7 RGB path and grass perception hints.
+7. Optionally capture validated camera frames through `camera_capture --mock` or the OpenCV backend, then run `perception::detectRgbPath` and `perception::measureSideCoverage` for M7 RGB path and grass perception hints. For M8 RGB obstacle detection, use `perception::RgbObstacleTracker` with `update()` to accumulate dark-obstacle measurements and `updateRef()` for reference-frame difference detection; the tracker's configurable hysteresis (5-frame trigger, 3-frame clear) suppresses transient false positives before feeding obstacle state into navigation decisions.
 8. Update robot state.
 9. Use `navigation::RouteFollower` to make a waypoint/obstacle-aware decision.
 10. Send motor commands.
