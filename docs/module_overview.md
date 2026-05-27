@@ -84,6 +84,10 @@ M9 — Depth/Kinect adapter parity adds `KinectProfile` (configurable baseline f
 
 See `docs/kinect_module.md` for M9 profile and depth-object-summary usage.
 
+## Operator I/O
+
+M12 — Operator I/O, HUD, and beeper abstractions for operator io. `operator_io::OperatorInput` defines a key-event interface (`Quit`, `ToggleKinect`, `SwitchCamera`, `Continue`, `Spacebar`) with `MockOperatorInput` for dependency-free tests. `operator_io::Beeper` provides a beep-pattern interface (`"short"`, `"long"`, `"double"`) with `MockBeeper` capturing patterns for verification. `operator_io::HeadlessDashboard` renders mission phase, leg number, and coordinates as plain text for headless operation.
+
 ## UI
 
 `ui::SnapshotComposer` connects `maps::OfflineMap`, camera RGB frames, Kinect RGB/depth frames and `RobotState` into a render-backend-neutral realtime `UiSnapshot`. The UI module also provides mission overlays for start, operation, final and current robot markers plus viewport projection helpers for drawing the robot position on the active map.

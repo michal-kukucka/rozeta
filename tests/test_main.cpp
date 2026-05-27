@@ -122,6 +122,12 @@ void test_robotour_mission_events_fire_on_transitions();
 void test_robotour_mission_aborts_on_emergency();
 void test_robotour_mission_arrival_radius_respects_threshold();
 void test_robotour_mission_leg_tracking();
+void test_operator_input_mock_routes_events();
+void test_operator_input_multiple_listeners();
+void test_operator_input_inject_all_keys();
+void test_beeper_mock_records_beeps();
+void test_beeper_mock_silence_until_beeped();
+void test_operator_io_headless_text_dashboard_renders_phase();
 void test_telemetry_parser_loads_robotour_fixture();
 void test_telemetry_parser_rejects_bad_schema_and_rows();
 void test_telemetry_replay_produces_deterministic_navigation_decisions();
@@ -281,6 +287,12 @@ int main(){
         {"rmis_abort", test_robotour_mission_aborts_on_emergency},
         {"rmis_arrival", test_robotour_mission_arrival_radius_respects_threshold},
         {"rmis_legs", test_robotour_mission_leg_tracking},
+        {"opio_mock_keys", test_operator_input_mock_routes_events},
+        {"opio_multi_listen", test_operator_input_multiple_listeners},
+        {"opio_all_keys", test_operator_input_inject_all_keys},
+        {"opio_beeper", test_beeper_mock_records_beeps},
+        {"opio_beeper_silent", test_beeper_mock_silence_until_beeped},
+        {"opio_dashboard", test_operator_io_headless_text_dashboard_renders_phase},
         {"telemetry_parser_fixture", test_telemetry_parser_loads_robotour_fixture},
         {"telemetry_parser_errors", test_telemetry_parser_rejects_bad_schema_and_rows},
         {"telemetry_replay_deterministic", test_telemetry_replay_produces_deterministic_navigation_decisions},

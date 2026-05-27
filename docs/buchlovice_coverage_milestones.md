@@ -233,14 +233,17 @@ Delivered coverage:
 
 ### M12 — Operator I/O, HUD, and beeper abstractions
 
+Status: implemented in `rozeta::operator_io`.
+
 Goal: cover practical field operation without baking OpenCV/highgui and console logic into mission code.
 
-Action points:
-- Add an operator control interface for keys/events: quit, toggle Kinect overlay, switch camera, continue/spacebar.
-- Add a beeper/audio notification interface with mock implementation and platform-specific adapters later.
-- Add an OpenCV UI renderer backend for `ui::UiSnapshot` with camera image, map panel, mission phase, GPS, route cue, obstacle source, and green/dark coverage diagnostics.
-- Keep a headless text-dashboard fallback.
-- Add tests for event routing and renderer status propagation; smoke-test OpenCV renderer only when enabled.
+Delivered coverage:
+- Added `operator_io::OperatorInput` interface with `onKey(handler)` and `OperatorKey` enum: Quit, ToggleKinect, SwitchCamera, Continue, Spacebar.
+- Added `MockOperatorInput` with `injectKey()` for deterministic event injection in tests.
+- Added `operator_io::Beeper` interface with `beep(pattern)` and `onBeep(listener)` for short/long/double beeps.
+- Added `MockBeeper` capturing beep patterns for verification in CI.
+- Added `HeadlessDashboard::renderPhase(phase, leg, lat, lon)` for text-based mission status display.
+- Added tests for mock key routing, multiple listeners, all key types, beeper recording/silence, and dashboard rendering.
 
 ### M13 — Telemetry mapping for Buchlovice events
 

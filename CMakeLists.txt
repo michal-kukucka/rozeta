@@ -66,6 +66,7 @@ set(ROZETA_SOURCES
     src/ui.cpp
     src/obstacle_detection.cpp
     src/obstacle_behavior.cpp
+    src/operator_io.cpp
     src/internal/serial_port.cpp
 )
 
