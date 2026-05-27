@@ -187,6 +187,15 @@ REQUIRED_BUCHLOVICE_M10_PHRASES = [
     "BypassDirection",
 ]
 
+REQUIRED_BUCHLOVICE_M11_PHRASES = [
+    "M11 — Robotour mission state machine",
+    "RobotourMission",
+    "RobotourPhase",
+    "MissionAck",
+    "MissionEvent",
+    "arrival_radius_m",
+]
+
 
 def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
@@ -401,6 +410,17 @@ def main() -> int:
     for phrase in REQUIRED_BUCHLOVICE_M10_PHRASES:
         if phrase not in buchlovice_m10_docs:
             fail(f"Buchlovice M10 obstacle behavior documentation/diagram coverage missing: {phrase}", failures)
+
+    buchlovice_m11_docs = (
+        read("docs/mission_module.md")
+        + "\n"
+        + read("docs/api-reference.md")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M11_PHRASES:
+        if phrase not in buchlovice_m11_docs:
+            fail(f"Buchlovice M11 mission state machine documentation coverage missing: {phrase}", failures)
 
     doxygen = read("Doxyfile")
     for required in ["INPUT                  = include src examples", "OUTPUT_DIRECTORY       = docs/generated", "GENERATE_HTML", "GENERATE_XML", "EXTRACT_ALL"]:

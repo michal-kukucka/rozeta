@@ -36,6 +36,21 @@ public:
 
 An OpenCV QR hook is declared behind `ROZETA_WITH_OPENCV` as `OpenCvQrDecoder`. The default build remains dependency-free; the M3 public seam and fake-decoder tests are already in place for the later optional OpenCV QR adapter.
 
+## M11 — Robotour mission state machine
+
+`RobotourMission` models the three-leg Buchlovice/Robotour qualification flow as a deterministic state machine:
+
+1. **ServiceStart** → operator acknowledges `ServiceComplete` → **ToLoading** (leg 1).
+2. Arrive within `arrival_radius_m` at loading target → **AtLoading** → operator acknowledges `LoadComplete` → **ToUnloading** (leg 2).
+3. Arrive at unloading target → **AtUnloading** → operator acknowledges `UnloadComplete` → **Returning** (leg 3).
+4. Arrive at start position → **Complete**.
+
+`abort()` transitions to **Aborted** from any phase. Operator acknowledgements (`MissionAck`) are injectable events, not blocking calls — no threading or I/O inside the mission logic.
+
+Target coordinates can be set from config (`RobotourMissionConfig`) or dynamically via `setLoadingTargetFromPayload("geo:48.1,17.2")` / `setUnloadingTargetFromPayload(...)`, which reuses the M3 payload parser.
+
+`pollEvent()` drains a queue of `MissionEvent` values (PhaseChanged, ArrivedAtTarget, OperatorAcknowledged) for logging, UI, beeper, and telemetry consumers.
+
 ## Verification
 
 Covered by `tests/test_mission.cpp`:

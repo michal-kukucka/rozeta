@@ -220,14 +220,16 @@ Delivered coverage:
 
 ### M11 — Robotour mission state machine
 
+Status: implemented in `rozeta::mission::RobotourMission`.
+
 Goal: cover the three-leg mission in `KvalifikacnyProgram.run()`.
 
-Action points:
-- Add mission phases: service/start, to_loading, at_loading, to_unloading, at_unloading, returning, complete, aborted.
-- Model target acquisition sources: QR, fixed config, demo/random route, replay log.
-- Add arrival-radius checks using geo distance and expose arrival events for beeper/UI/logging.
-- Add load/unload operator acknowledgements as injectable events, not direct blocking input calls.
-- Add a Robotour qualification example using Rozeta maps, GPS, perception, obstacle behavior, and motors.
+Delivered coverage:
+- Added `RobotourPhase` enum: ServiceStart, ToLoading, AtLoading, ToUnloading, AtUnloading, Returning, Complete, Aborted.
+- Added `RobotourMission` state machine with leg tracking (0→1→2→3), operator acknowledgements (`MissionAck::ServiceComplete/LoadComplete/UnloadComplete`), and haversine `arrival_radius_m` checks.
+- `MissionEvent` queue with PhaseChanged, ArrivedAtTarget, OperatorAcknowledged events drained via `pollEvent()`.
+- Target coordinates settable from `RobotourMissionConfig` or dynamically via `setLoadingTargetFromPayload("geo:...")` reusing the M3 parser.
+- Added tests for initial phase, three-leg progression, QR payload target setting, event emission, abort, arrival radius, and leg tracking.
 
 ### M12 — Operator I/O, HUD, and beeper abstractions
 

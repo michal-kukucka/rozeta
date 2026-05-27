@@ -173,4 +173,192 @@ Status OpenCvQrDecoder::decode(const QrImage&, std::string&) {
 }
 #endif
 
+// ── M11 RobotourMission ──────────────────────────────────────────
+
+namespace {
+
+constexpr double kEarthRadiusM = 6371000.0;
+constexpr double kPi = 3.14159265358979323846;
+
+double haversineDistanceM(const GeoCoordinate& a, const GeoCoordinate& b) {
+    const double dlat = (b.latitude - a.latitude) * kPi / 180.0;
+    const double dlon = (b.longitude - a.longitude) * kPi / 180.0;
+    const double lat1 = a.latitude * kPi / 180.0;
+    const double lat2 = b.latitude * kPi / 180.0;
+    const double sin_dlat = std::sin(dlat / 2.0);
+    const double sin_dlon = std::sin(dlon / 2.0);
+    const double a_val = sin_dlat * sin_dlat +
+        std::cos(lat1) * std::cos(lat2) * sin_dlon * sin_dlon;
+    return 2.0 * kEarthRadiusM * std::atan2(std::sqrt(a_val), std::sqrt(1.0 - a_val));
+}
+
+} // namespace
+
+RobotourMission::RobotourMission(RobotourMissionConfig config)
+    : config_(config) {}
+
+RobotourPhase RobotourMission::phase() const {
+    return phase_;
+}
+
+int RobotourMission::currentLeg() const {
+    return leg_;
+}
+
+bool RobotourMission::finished() const {
+    return phase_ == RobotourPhase::Complete ||
+        phase_ == RobotourPhase::Aborted;
+}
+
+GeoCoordinate RobotourMission::currentTarget() const {
+    return legTarget(leg_);
+}
+
+const MissionTarget& RobotourMission::loadingTarget() const {
+    return loading_target_;
+}
+
+const MissionTarget& RobotourMission::unloadingTarget() const {
+    return unloading_target_;
+}
+
+GeoCoordinate RobotourMission::legTarget(int leg) const {
+    switch (leg) {
+    case 1: return loading_target_.coordinate.latitude != 0.0 ||
+        loading_target_.coordinate.longitude != 0.0
+        ? loading_target_.coordinate
+        : config_.loading_target;
+    case 2: return unloading_target_.coordinate.latitude != 0.0 ||
+        unloading_target_.coordinate.longitude != 0.0
+        ? unloading_target_.coordinate
+        : config_.unloading_target;
+    case 3: return config_.start_position;
+    default: return {};
+    }
+}
+
+void RobotourMission::updatePosition(GeoCoordinate position) {
+    if (finished()) {
+        return;
+    }
+
+    const auto target = currentTarget();
+    if (leg_ == 0) {
+        return; // no active leg
+    }
+
+    if (withinArrivalRadius(position, target)) {
+        MissionEvent ev;
+        ev.type = MissionEventType::ArrivedAtTarget;
+        ev.position = position;
+        ev.leg = leg_;
+
+        switch (phase_) {
+        case RobotourPhase::ToLoading:
+            pushEvent(ev);
+            transition(RobotourPhase::AtLoading);
+            break;
+        case RobotourPhase::ToUnloading:
+            pushEvent(ev);
+            transition(RobotourPhase::AtUnloading);
+            break;
+        case RobotourPhase::Returning:
+            pushEvent(ev);
+            transition(RobotourPhase::Complete);
+            break;
+        default:
+            break;
+        }
+    }
+}
+
+void RobotourMission::acknowledge(MissionAck ack) {
+    if (finished()) {
+        return;
+    }
+
+    MissionEvent ev;
+    ev.type = MissionEventType::OperatorAcknowledged;
+
+    switch (ack) {
+    case MissionAck::ServiceComplete:
+        if (phase_ == RobotourPhase::ServiceStart) {
+            ev.detail = "service complete";
+            pushEvent(ev);
+            leg_ = 1;
+            transition(RobotourPhase::ToLoading);
+        }
+        break;
+    case MissionAck::LoadComplete:
+        if (phase_ == RobotourPhase::AtLoading) {
+            ev.detail = "load complete";
+            pushEvent(ev);
+            leg_ = 2;
+            transition(RobotourPhase::ToUnloading);
+        }
+        break;
+    case MissionAck::UnloadComplete:
+        if (phase_ == RobotourPhase::AtUnloading) {
+            ev.detail = "unload complete";
+            pushEvent(ev);
+            leg_ = 3;
+            transition(RobotourPhase::Returning);
+        }
+        break;
+    }
+}
+
+void RobotourMission::abort() {
+    transition(RobotourPhase::Aborted);
+}
+
+Status RobotourMission::setLoadingTargetFromPayload(
+    const std::string& payload) {
+    return parseMissionTarget(payload, loading_target_);
+}
+
+Status RobotourMission::setUnloadingTargetFromPayload(
+    const std::string& payload) {
+    return parseMissionTarget(payload, unloading_target_);
+}
+
+std::optional<MissionEvent> RobotourMission::pollEvent() {
+    if (event_head_ < events_.size()) {
+        return events_[event_head_++];
+    }
+    return std::nullopt;
+}
+
+void RobotourMission::reset() {
+    phase_ = RobotourPhase::ServiceStart;
+    leg_ = 0;
+    events_.clear();
+    event_head_ = 0;
+}
+
+void RobotourMission::pushEvent(MissionEvent event) {
+    event.phase = phase_;
+    event.leg = leg_;
+    events_.push_back(event);
+}
+
+void RobotourMission::transition(RobotourPhase next) {
+    if (phase_ == next) {
+        return;
+    }
+    MissionEvent ev;
+    ev.type = MissionEventType::PhaseChanged;
+    ev.phase = next;
+    ev.leg = leg_;
+    ev.detail = "phase transition";
+    events_.push_back(ev);
+    phase_ = next;
+}
+
+bool RobotourMission::withinArrivalRadius(
+    const GeoCoordinate& a,
+    const GeoCoordinate& b) const {
+    return haversineDistanceM(a, b) <= config_.arrival_radius_m;
+}
+
 } // namespace rozeta::mission

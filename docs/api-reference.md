@@ -146,4 +146,4 @@ If you add, rename or remove a public header or example, the verifier tells you 
 
 ## Mission target API
 
-`include/rozeta/mission.hpp` exposes `mission::parseMissionTarget`, `MissionTarget`, `QrImage`, `QrDecoder`, and `parseMissionTargetFromQr` for M3 QR mission target intake. The default parser supports `geo:lat,lon`, `gps lat,lon`, labeled `lat`/`lon`, and `N ... E ...` coordinate text.
+`include/rozeta/mission.hpp` exposes `mission::parseMissionTarget`, `MissionTarget`, `QrImage`, `QrDecoder`, and `parseMissionTargetFromQr` for M3 QR mission target intake. The default parser supports `geo:lat,lon`, `gps lat,lon`, labeled `lat`/`lon`, and `N ... E ...` coordinate text. M11 adds `RobotourMission` three-leg state machine (Service→ToLoading→AtLoading→ToUnloading→AtUnloading→Returning→Complete/Aborted), `MissionAck` operator acknowledgements, `MissionEvent` queue, haversine arrival-radius checks, and dynamic QR target loading.

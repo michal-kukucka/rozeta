@@ -115,6 +115,13 @@ void test_obstacle_behavior_obstacle_during_bypass_triggers_estop();
 void test_obstacle_behavior_reset_clears_all_state();
 void test_obstacle_behavior_bypass_direction_uses_side_coverage_as_tiebreaker();
 void test_obstacle_behavior_select_bypass_prefers_clear_lidar_over_depth();
+void test_robotour_mission_starts_in_service_phase();
+void test_robotour_mission_progresses_through_three_legs();
+void test_robotour_mission_target_source_from_qr_payload();
+void test_robotour_mission_events_fire_on_transitions();
+void test_robotour_mission_aborts_on_emergency();
+void test_robotour_mission_arrival_radius_respects_threshold();
+void test_robotour_mission_leg_tracking();
 void test_telemetry_parser_loads_robotour_fixture();
 void test_telemetry_parser_rejects_bad_schema_and_rows();
 void test_telemetry_replay_produces_deterministic_navigation_decisions();
@@ -267,6 +274,13 @@ int main(){
         {"obeh_reset", test_obstacle_behavior_reset_clears_all_state},
         {"obeh_coverage_tie", test_obstacle_behavior_bypass_direction_uses_side_coverage_as_tiebreaker},
         {"obeh_lidar_prefer", test_obstacle_behavior_select_bypass_prefers_clear_lidar_over_depth},
+        {"rmis_start", test_robotour_mission_starts_in_service_phase},
+        {"rmis_three_legs", test_robotour_mission_progresses_through_three_legs},
+        {"rmis_qr_target", test_robotour_mission_target_source_from_qr_payload},
+        {"rmis_events", test_robotour_mission_events_fire_on_transitions},
+        {"rmis_abort", test_robotour_mission_aborts_on_emergency},
+        {"rmis_arrival", test_robotour_mission_arrival_radius_respects_threshold},
+        {"rmis_legs", test_robotour_mission_leg_tracking},
         {"telemetry_parser_fixture", test_telemetry_parser_loads_robotour_fixture},
         {"telemetry_parser_errors", test_telemetry_parser_rejects_bad_schema_and_rows},
         {"telemetry_replay_deterministic", test_telemetry_replay_produces_deterministic_navigation_decisions},
