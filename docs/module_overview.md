@@ -50,6 +50,8 @@ See `docs/runtime_module.md` for M2 supervisor usage.
 
 Combines normalized sensor results into `ObstacleInfo` with ahead/left/right flags and nearest distance. Current implementation supports LiDAR scan sectors and depth-frame obstacle extraction through the same navigation contract.
 
+M10 — Obstacle wait and bypass behavior adds `obstacle_behavior::ObstacleBehavior`, a deterministic state machine for competition safety: stop-and-wait with configurable duration, recheck after wait, pulse-based bypass maneuver (spin/forward/counter-spin), max attempt gating, in-maneuver emergency stop, and bypass direction selection from combined LiDAR/depth/RGB side coverage. The obstacle behavior module lives in `include/rozeta/obstacle_behavior.hpp`.
+
 ## Navigation
 
 `navigation::SimpleNavigator` maps pose, target waypoint and obstacles into motor decisions: go-to-waypoint, obstacle avoidance and emergency stop. `navigation::RouteFollower` adds monotonic multi-waypoint progress while reusing the same decision contract.

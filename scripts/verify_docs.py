@@ -30,6 +30,7 @@ PUBLIC_HEADER_DOCS = {
     "runtime": "docs/runtime_module.md",
     "navigation": "docs/navigation.md",
     "obstacle_detection": "docs/navigation.md",
+    "obstacle_behavior": "docs/navigation.md",
     "odometry": "docs/module_overview.md",
     "perception": "docs/perception_module.md",
     "telemetry": "docs/module_overview.md",
@@ -174,6 +175,16 @@ REQUIRED_BUCHLOVICE_M9_PHRASES = [
     "KinectBackendStatus",
     "DepthObjectSummary",
     "normalizeDepthObstacleSummaries",
+]
+
+REQUIRED_BUCHLOVICE_M10_PHRASES = [
+    "M10 — Obstacle wait and bypass behavior",
+    "ObstacleBehavior",
+    "ObstacleBehaviorPhase",
+    "MotorPulse",
+    "ObstacleBehaviorConfig",
+    "selectBypassDirection",
+    "BypassDirection",
 ]
 
 
@@ -375,6 +386,21 @@ def main() -> int:
     for phrase in REQUIRED_BUCHLOVICE_M9_PHRASES:
         if phrase not in buchlovice_m9_docs:
             fail(f"Buchlovice M9 kinect adapter documentation/diagram coverage missing: {phrase}", failures)
+
+    buchlovice_m10_docs = (
+        read("docs/navigation.md")
+        + "\n"
+        + read("docs/api-reference.md")
+        + "\n"
+        + read("docs/module_overview.md")
+        + "\n"
+        + read("docs/diagrams/module-map.html")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M10_PHRASES:
+        if phrase not in buchlovice_m10_docs:
+            fail(f"Buchlovice M10 obstacle behavior documentation/diagram coverage missing: {phrase}", failures)
 
     doxygen = read("Doxyfile")
     for required in ["INPUT                  = include src examples", "OUTPUT_DIRECTORY       = docs/generated", "GENERATE_HTML", "GENERATE_XML", "EXTRACT_ALL"]:

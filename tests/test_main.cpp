@@ -104,6 +104,17 @@ void test_normalize_depth_obstacle_summaries_empty_frame_returns_empty();
 void test_normalize_depth_obstacle_summaries_detects_left_center_right();
 void test_normalize_depth_obstacle_summaries_freshness_timestamp_is_set();
 void test_normalize_depth_obstacle_summaries_respects_blob_area_minimum();
+void test_obstacle_behavior_clear_to_waiting_when_obstacle_appears();
+void test_obstacle_behavior_wait_then_recheck_clears_if_gone();
+void test_obstacle_behavior_still_blocked_enters_bypass();
+void test_obstacle_behavior_full_bypass_sequence();
+void test_obstacle_behavior_select_bypass_direction_from_sensors();
+void test_obstacle_behavior_both_sides_blocked_emergency_stop();
+void test_obstacle_behavior_max_bypass_attempts_triggers_estop();
+void test_obstacle_behavior_obstacle_during_bypass_triggers_estop();
+void test_obstacle_behavior_reset_clears_all_state();
+void test_obstacle_behavior_bypass_direction_uses_side_coverage_as_tiebreaker();
+void test_obstacle_behavior_select_bypass_prefers_clear_lidar_over_depth();
 void test_telemetry_parser_loads_robotour_fixture();
 void test_telemetry_parser_rejects_bad_schema_and_rows();
 void test_telemetry_replay_produces_deterministic_navigation_decisions();
@@ -245,6 +256,17 @@ int main(){
         {"kinect_summaries_sectors", test_normalize_depth_obstacle_summaries_detects_left_center_right},
         {"kinect_summaries_freshness", test_normalize_depth_obstacle_summaries_freshness_timestamp_is_set},
         {"kinect_summaries_blob", test_normalize_depth_obstacle_summaries_respects_blob_area_minimum},
+        {"obeh_clear_to_wait", test_obstacle_behavior_clear_to_waiting_when_obstacle_appears},
+        {"obeh_wait_recheck", test_obstacle_behavior_wait_then_recheck_clears_if_gone},
+        {"obeh_blocked_bypass", test_obstacle_behavior_still_blocked_enters_bypass},
+        {"obeh_full_bypass", test_obstacle_behavior_full_bypass_sequence},
+        {"obeh_bypass_dir", test_obstacle_behavior_select_bypass_direction_from_sensors},
+        {"obeh_both_blocked", test_obstacle_behavior_both_sides_blocked_emergency_stop},
+        {"obeh_max_attempts", test_obstacle_behavior_max_bypass_attempts_triggers_estop},
+        {"obeh_bypass_estop", test_obstacle_behavior_obstacle_during_bypass_triggers_estop},
+        {"obeh_reset", test_obstacle_behavior_reset_clears_all_state},
+        {"obeh_coverage_tie", test_obstacle_behavior_bypass_direction_uses_side_coverage_as_tiebreaker},
+        {"obeh_lidar_prefer", test_obstacle_behavior_select_bypass_prefers_clear_lidar_over_depth},
         {"telemetry_parser_fixture", test_telemetry_parser_loads_robotour_fixture},
         {"telemetry_parser_errors", test_telemetry_parser_rejects_bad_schema_and_rows},
         {"telemetry_replay_deterministic", test_telemetry_replay_produces_deterministic_navigation_decisions},

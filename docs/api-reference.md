@@ -36,6 +36,7 @@ Current public surface:
 - `include/rozeta/odometry.hpp` — differential-drive odometry and pose integration.
 - `include/rozeta/lidar.hpp` — LiDAR scan types, scanner interface, filtering, console visualization and optional YDLIDAR-style backend/parser helper.
 - `include/rozeta/obstacle_detection.hpp` — obstacle sector calculation from LiDAR scans and depth frames.
+- `include/rozeta/obstacle_behavior.hpp` — M10 obstacle wait and bypass behavior: `ObstacleBehavior` deterministic state machine with configurable wait/recheck/bypass pulse sequence, bypass direction selection from combined LiDAR/depth/RGB side coverage, max attempt gating, and in-maneuver emergency stop safety.
 - `include/rozeta/navigation.hpp` — waypoint navigation, route-following progress state and obstacle-aware motor decisions.
 - `include/rozeta/camera.hpp` — camera interface, frame-shape/byte-size validation helpers and optional OpenCV capture backend.
 - `include/rozeta/perception.hpp` — M7 RGB path/grass perception helpers and M8 RGB obstacle ROI with hysteresis: `RgbPathConfig`, `detectRgbPath`, `measureSideCoverage`, path direction/offset, green coverage and dark coverage diagnostics. M8 adds `RgbObstacleConfig`, `RgbObstacleResult`, `RgbObstacleTracker`, `detectRgbObstacleDark` and `detectRgbObstacleDiff` for reference-frame obstacle detection with configurable hysteresis (5-frame trigger, 3-frame clear).

@@ -205,14 +205,18 @@ Delivered coverage:
 
 ### M10 — Obstacle wait and bypass behavior
 
+Status: implemented in `rozeta::obstacle_behavior`.
+
 Goal: cover the competition safety behavior: stop, wait, recheck, bypass, resume.
 
-Action points:
-- Add a behavior state machine for obstacle handling with configurable wait time, clear condition, bypass direction strategy, and maximum maneuver duration.
-- Implement bypass direction selection from combined depth/LiDAR/RGB side coverage.
-- Add pulse-based differential-drive maneuver primitives: spin left/right, forward pulse, counter-steer, stop.
-- Ensure every step rechecks obstacle state and can abort to emergency stop.
-- Add deterministic tests with fake sensors and mock motors for clear-after-wait, still-blocked-bypass, lost-camera, and emergency-stop paths.
+Delivered coverage:
+- Added `ObstacleBehaviorConfig` with configurable wait duration, bypass speed, spin speed/duration, forward duration, and max bypass attempts.
+- Added `ObstacleBehavior` deterministic state machine with phases: Clear → Waiting → Rechecking → SelectingBypass → BypassSpin → BypassForward → BypassCounterSpin → Resuming/EmergencyStop.
+- Implemented pulse-based differential-drive primitives: stop, forward, spin-left, spin-right via `MotorPulse` output contract.
+- `selectBypassDirection(depth, lidar, left_cov, right_cov)` combines LiDAR (primary), depth (secondary), and RGB side coverage (tiebreaker) to pick Left/Right.
+- Every tick checks obstacle state and can abort to emergency stop mid-maneuver when both sides block.
+- Added tests for Clear→Waiting transition, wait/recheck/clear flow, still-blocked bypass entry, full bypass spin/forward/counter-spin sequence, sensor-based direction selection, both-sides-blocked e-stop, max attempts e-stop, in-maneuver e-stop, state reset, coverage tiebreaker, and LiDAR-over-depth priority.
+- Created `include/rozeta/obstacle_behavior.hpp` and `src/obstacle_behavior.cpp`, updated navigation docs, API reference, module overview, diagram, and milestone status.
 
 ### M11 — Robotour mission state machine
 
