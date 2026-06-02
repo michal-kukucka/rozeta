@@ -52,3 +52,29 @@ M8 adds reference-frame obstacle detection with hysteresis to the perception mod
 Default obstacle ROI: center 40% of width (`roi_left_fraction=0.30`, `roi_right_fraction=0.70`), lower 70% of height (`roi_top_fraction=0.30`). Default hysteresis: 5 trigger, 3 clear. All thresholds and streaks are reconfigurable at runtime.
 
 Like the rest of perception, M8 stays dependency-free. The same packed RGB8 `camera::Frame` contract drives both path analysis and obstacle detection, so OpenCV remains a capture-only concern.
+
+
+## Camera-scene path / obstacle / person processing
+
+The camera scene helper combines the existing path and obstacle algorithms with a
+dependency-free people-on-track detector:
+
+1. `PersonDetectorConfig` defines ROI, minimum blob area, skin-pixel fraction,
+   upright aspect ratio and track-touch thresholds.
+2. `detectPeopleOnTrack(frame, config)` uses classic computer-vision rules
+   compatible with OpenCV-style RGB processing: skin-color gates, saturated
+   non-grass clothing masks, connected components and upright blob geometry.
+   It returns bounding boxes, confidence, horizontal offset and whether a
+   person overlaps the lower track ROI.
+3. `CameraSceneConfig` groups `RgbPathConfig`, `RgbObstacleConfig` and
+   `PersonDetectorConfig`.
+4. `analyzeCameraScene(frame, config)` runs path recognition, dark obstacle ROI
+   detection and person detection over the same camera frame. `track_blocked` is
+   true when the obstacle threshold is exceeded or any detected person touches
+   the track ROI.
+
+The API intentionally keeps third-party libraries behind capture/integration
+seams. Applications can import frames from existing GitHub/OpenCV camera or DNN
+backends, then pass packed RGB8 data into this deterministic fallback. Default
+CI stays hardware-free and dependency-free while real deployments can swap in
+OpenCV/YOLO-style detectors at the frame source boundary.

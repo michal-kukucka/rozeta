@@ -4,6 +4,7 @@
 #include <rozeta/core.hpp>
 
 #include <string>
+#include <vector>
 
 namespace rozeta::perception {
 
@@ -116,5 +117,58 @@ RgbObstacleResult detectRgbObstacleDiff(
     const camera::Frame& frame,
     const camera::Frame& reference,
     const RgbObstacleConfig& config);
+
+// ── Camera scene + people-on-track detection ───────────────────────
+
+struct PersonDetectorConfig {
+    double roi_top_fraction{0.0};
+    double roi_bottom_fraction{1.0};
+    double min_area_fraction{0.015};
+    double min_skin_fraction{0.01};
+    double min_aspect_ratio{1.20};
+    double max_aspect_ratio{4.50};
+    double track_touch_fraction{0.65};
+};
+
+struct PersonDetection {
+    int x{0};
+    int y{0};
+    int width{0};
+    int height{0};
+    double confidence{0.0};
+    double center_offset{0.0};
+    bool touches_track_roi{false};
+};
+
+struct PersonDetectionResult {
+    std::vector<PersonDetection> people;
+    Status status{};
+
+    bool ok() const { return status.ok(); }
+};
+
+struct CameraSceneConfig {
+    RgbPathConfig path{};
+    RgbObstacleConfig obstacle{};
+    PersonDetectorConfig people{};
+};
+
+struct CameraSceneResult {
+    RgbPathResult path{};
+    RgbObstacleResult obstacle{};
+    PersonDetectionResult people{};
+    bool track_blocked{false};
+    std::string source{"rgb-classic-cv"};
+    Status status{};
+
+    bool ok() const { return status.ok(); }
+};
+
+PersonDetectionResult detectPeopleOnTrack(
+    const camera::Frame& frame,
+    const PersonDetectorConfig& config = {});
+CameraSceneResult analyzeCameraScene(
+    const camera::Frame& frame,
+    const CameraSceneConfig& config = {});
 
 } // namespace rozeta::perception

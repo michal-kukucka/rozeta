@@ -92,6 +92,8 @@ void test_perception_obstacle_empty_roi_safe_false();
 void test_perception_obstacle_threshold_boundary_cases();
 void test_perception_obstacle_tracker_resets_state();
 void test_perception_obstacle_config_validation_handles_bounds();
+void test_perception_detects_people_on_track_from_upright_rgb_blob();
+void test_perception_camera_scene_analysis_combines_path_obstacles_and_people();
 void test_kinect_profile_defaults_have_safe_values();
 void test_kinect_profile_validates_rejects_invalid_fields();
 void test_kinect_profile_loads_and_parses_config_file();
@@ -268,6 +270,8 @@ int main(){
         {"perception_threshold", test_perception_obstacle_threshold_boundary_cases},
         {"perception_tracker_reset", test_perception_obstacle_tracker_resets_state},
         {"perception_config_validation", test_perception_obstacle_config_validation_handles_bounds},
+        {"perception_people_on_track", test_perception_detects_people_on_track_from_upright_rgb_blob},
+        {"perception_camera_scene", test_perception_camera_scene_analysis_combines_path_obstacles_and_people},
         {"kinect_profile_defaults", test_kinect_profile_defaults_have_safe_values},
         {"kinect_profile_validate", test_kinect_profile_validates_rejects_invalid_fields},
         {"kinect_profile_load", test_kinect_profile_loads_and_parses_config_file},
@@ -336,7 +340,10 @@ int main(){
         {"serial_motor_stop", test_serial_motor_stop_writes_configured_stop_command},
         {"serial_motor_estop", test_serial_motor_emergency_stop_writes_stop_then_refuses_motion},
         {"serial_motor_clear_estop", test_serial_motor_clear_emergency_stop_allows_motion},
-        {"serial_motor_estop_ignores_motion_config", test_serial_motor_emergency_stop_writes_stop_even_when_motion_config_is_invalid},
+        {
+            "serial_motor_estop_ignores_motion_config",
+            test_serial_motor_emergency_stop_writes_stop_even_when_motion_config_is_invalid,
+        },
         {"serial_motor_prefix_validation", test_serial_motor_rejects_command_prefix_with_control_characters},
         {"serial_motor_write_error", test_serial_motor_propagates_transport_write_errors},
         {"serial_motor_buchlovice_packet", test_serial_motor_formats_buchlovice_binary_packets},

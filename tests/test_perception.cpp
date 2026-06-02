@@ -94,6 +94,46 @@ rozeta::camera::Frame changedRegionFrame(
     return makeFrame(width, height, rgb);
 }
 
+rozeta::camera::Frame trackSceneFrame() {
+    std::vector<unsigned char> rgb(static_cast<std::size_t>(48 * 32 * 3), 35);
+
+    // Pale center track.
+    for (int y = 12; y < 32; ++y) {
+        for (int x = 17; x < 31; ++x) {
+            setPixel(rgb, 48, x, y, 138, 136, 122);
+        }
+    }
+
+    // Dark box obstacle on the track.
+    for (int y = 22; y < 29; ++y) {
+        for (int x = 22; x < 28; ++x) {
+            setPixel(rgb, 48, x, y, 4, 4, 4);
+        }
+    }
+
+    // Upright person-like blob: head, torso and legs on the track.
+    for (int y = 7; y < 11; ++y) {
+        for (int x = 36; x < 40; ++x) {
+            setPixel(rgb, 48, x, y, 226, 174, 128);
+        }
+    }
+    for (int y = 11; y < 23; ++y) {
+        for (int x = 34; x < 42; ++x) {
+            setPixel(rgb, 48, x, y, 210, 35, 35);
+        }
+    }
+    for (int y = 23; y < 28; ++y) {
+        for (int x = 35; x < 38; ++x) {
+            setPixel(rgb, 48, x, y, 25, 25, 120);
+        }
+        for (int x = 39; x < 42; ++x) {
+            setPixel(rgb, 48, x, y, 25, 25, 120);
+        }
+    }
+
+    return makeFrame(48, 32, rgb);
+}
+
 } // namespace
 
 void test_perception_detects_centered_left_and_right_paths() {
@@ -361,4 +401,51 @@ void test_perception_obstacle_config_validation_handles_bounds() {
     require(!result.ok(), "invalid config should return error");
     require(result.status.code == rozeta::ErrorCode::InvalidArgument,
         "out-of-range config should be InvalidArgument");
+}
+
+void test_perception_detects_people_on_track_from_upright_rgb_blob() {
+    rozeta::perception::PersonDetectorConfig config;
+    config.min_area_fraction = 0.01;
+    config.min_skin_fraction = 0.02;
+
+    const auto detections = rozeta::perception::detectPeopleOnTrack(
+        trackSceneFrame(),
+        config);
+
+    require(detections.ok(), "person detection should accept RGB frame");
+    require(detections.people.size() == 1, "exactly one person should be detected");
+    require(detections.people.front().confidence > 0.50,
+        "person-like upright blob should be high confidence");
+    require(detections.people.front().center_offset > 0.40,
+        "detected person should be on right side of track view");
+    require(detections.people.front().touches_track_roi,
+        "person feet should overlap the lower track ROI");
+}
+
+void test_perception_camera_scene_analysis_combines_path_obstacles_and_people() {
+    rozeta::perception::CameraSceneConfig config;
+    config.path.min_path_coverage = 0.02;
+    config.obstacle.coverage_threshold = 0.02;
+    config.obstacle.roi_left_fraction = 0.35;
+    config.obstacle.roi_right_fraction = 0.65;
+    config.obstacle.roi_top_fraction = 0.50;
+    config.obstacle.roi_bottom_fraction = 1.00;
+    config.people.min_area_fraction = 0.01;
+    config.people.min_skin_fraction = 0.02;
+
+    const auto scene = rozeta::perception::analyzeCameraScene(
+        trackSceneFrame(),
+        config);
+
+    require(scene.ok(), "camera scene analysis should be ok");
+    require(scene.path.direction == rozeta::perception::PathDirection::Centered,
+        "scene should preserve centered path recognition");
+    require(scene.obstacle.dark_coverage > config.obstacle.coverage_threshold,
+        "scene should report obstacle dark coverage");
+    require(scene.people.people.size() == 1,
+        "scene should include detected person list");
+    require(scene.track_blocked,
+        "scene should mark track blocked by obstacle or person");
+    require(scene.source == "rgb-classic-cv",
+        "scene source should identify imported classic CV style processor");
 }

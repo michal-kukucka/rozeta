@@ -3,6 +3,9 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <queue>
+#include <utility>
+#include <vector>
 
 namespace rozeta::perception {
 namespace {
@@ -477,6 +480,249 @@ void RgbObstacleTracker::applyHysteresis(bool obstacle_detected) {
     }
 
     result_.state = state_;
+}
+
+
+// ── Camera scene + people-on-track detection ───────────────────────
+
+namespace {
+
+bool finitePersonConfig(const PersonDetectorConfig& config) {
+    return std::isfinite(config.roi_top_fraction) &&
+        std::isfinite(config.roi_bottom_fraction) &&
+        std::isfinite(config.min_area_fraction) &&
+        std::isfinite(config.min_skin_fraction) &&
+        std::isfinite(config.min_aspect_ratio) &&
+        std::isfinite(config.max_aspect_ratio) &&
+        std::isfinite(config.track_touch_fraction);
+}
+
+Status validatePersonConfig(const PersonDetectorConfig& config) {
+    if (!finitePersonConfig(config)) {
+        return Status::error(
+            ErrorCode::InvalidArgument,
+            "person detector config must be finite");
+    }
+    if (config.roi_top_fraction < 0.0 || config.roi_top_fraction > 1.0 ||
+        config.roi_bottom_fraction < 0.0 || config.roi_bottom_fraction > 1.0 ||
+        config.min_area_fraction < 0.0 || config.min_area_fraction > 1.0 ||
+        config.min_skin_fraction < 0.0 || config.min_skin_fraction > 1.0 ||
+        config.min_aspect_ratio <= 0.0 || config.max_aspect_ratio <= 0.0 ||
+        config.min_aspect_ratio > config.max_aspect_ratio ||
+        config.track_touch_fraction < 0.0 || config.track_touch_fraction > 1.0) {
+        return Status::error(
+            ErrorCode::InvalidArgument,
+            "person detector config thresholds out of range");
+    }
+    return Status::okStatus();
+}
+
+bool isClassicSkinPixel(unsigned char red, unsigned char green, unsigned char blue) {
+    const int max_channel = std::max({red, green, blue});
+    const int min_channel = std::min({red, green, blue});
+    return red > 95 && green > 40 && blue > 20 &&
+        (max_channel - min_channel) > 15 &&
+        std::abs(static_cast<int>(red) - static_cast<int>(green)) > 15 &&
+        red > green && red > blue;
+}
+
+bool isPersonClothingPixel(const HsvPixel& hsv) {
+    const bool saturated_non_grass = hsv.saturation >= 0.45 &&
+        hsv.value >= 0.12 &&
+        !hueInRange(hsv.hue_deg, 70.0, 170.0);
+    const bool dark_blue_or_red = hsv.saturation >= 0.35 &&
+        hsv.value >= 0.08 &&
+        (hsv.hue_deg <= 35.0 || hsv.hue_deg >= 210.0);
+    return saturated_non_grass || dark_blue_or_red;
+}
+
+bool isPersonCandidatePixel(
+    const camera::Frame& frame,
+    int x,
+    int y,
+    bool& skin_pixel) {
+    const std::size_t offset =
+        (static_cast<std::size_t>(y) * static_cast<std::size_t>(frame.metadata.width) +
+         static_cast<std::size_t>(x)) * 3U;
+    const unsigned char red = frame.bytes[offset];
+    const unsigned char green = frame.bytes[offset + 1];
+    const unsigned char blue = frame.bytes[offset + 2];
+    skin_pixel = isClassicSkinPixel(red, green, blue);
+    return skin_pixel || isPersonClothingPixel(rgbToHsv(red, green, blue));
+}
+
+} // namespace
+
+PersonDetectionResult detectPeopleOnTrack(
+    const camera::Frame& frame,
+    const PersonDetectorConfig& config) {
+    PersonDetectionResult result;
+    Status status = camera::validateFrame(frame, 3, 1);
+    if (!status.ok()) {
+        result.status = status;
+        return result;
+    }
+    status = validatePersonConfig(config);
+    if (!status.ok()) {
+        result.status = status;
+        return result;
+    }
+
+    const int width = frame.metadata.width;
+    const int height = frame.metadata.height;
+    const int y_begin = static_cast<int>(std::floor(
+        static_cast<double>(height) * config.roi_top_fraction));
+    const int y_end = static_cast<int>(std::floor(
+        static_cast<double>(height) * config.roi_bottom_fraction));
+    if (y_end <= y_begin) {
+        return result;
+    }
+
+    std::vector<unsigned char> visited(
+        static_cast<std::size_t>(width * height), 0U);
+    const int min_area = std::max(
+        1,
+        static_cast<int>(std::ceil(
+            static_cast<double>(width * height) * config.min_area_fraction)));
+
+    const int dx[4] = {1, -1, 0, 0};
+    const int dy[4] = {0, 0, 1, -1};
+
+    for (int start_y = y_begin; start_y < y_end; ++start_y) {
+        for (int start_x = 0; start_x < width; ++start_x) {
+            const std::size_t start_index =
+                static_cast<std::size_t>(start_y * width + start_x);
+            if (visited[start_index] != 0U) {
+                continue;
+            }
+            bool start_skin = false;
+            if (!isPersonCandidatePixel(frame, start_x, start_y, start_skin)) {
+                visited[start_index] = 1U;
+                continue;
+            }
+
+            std::queue<std::pair<int, int>> frontier;
+            frontier.push({start_x, start_y});
+            visited[start_index] = 1U;
+
+            int min_x = start_x;
+            int max_x = start_x;
+            int min_y = start_y;
+            int max_y = start_y;
+            int area = 0;
+            int skin_count = 0;
+
+            while (!frontier.empty()) {
+                const auto [x, y] = frontier.front();
+                frontier.pop();
+                ++area;
+
+                bool skin_pixel = false;
+                (void)isPersonCandidatePixel(frame, x, y, skin_pixel);
+                if (skin_pixel) {
+                    ++skin_count;
+                }
+                min_x = std::min(min_x, x);
+                max_x = std::max(max_x, x);
+                min_y = std::min(min_y, y);
+                max_y = std::max(max_y, y);
+
+                for (int i = 0; i < 4; ++i) {
+                    const int nx = x + dx[i];
+                    const int ny = y + dy[i];
+                    if (nx < 0 || nx >= width || ny < y_begin || ny >= y_end) {
+                        continue;
+                    }
+                    const std::size_t next_index =
+                        static_cast<std::size_t>(ny * width + nx);
+                    if (visited[next_index] != 0U) {
+                        continue;
+                    }
+                    bool neighbor_skin = false;
+                    if (!isPersonCandidatePixel(frame, nx, ny, neighbor_skin)) {
+                        visited[next_index] = 1U;
+                        continue;
+                    }
+                    visited[next_index] = 1U;
+                    frontier.push({nx, ny});
+                }
+            }
+
+            const int box_width = max_x - min_x + 1;
+            const int box_height = max_y - min_y + 1;
+            const double aspect = static_cast<double>(box_height) /
+                static_cast<double>(std::max(1, box_width));
+            const double skin_fraction = static_cast<double>(skin_count) /
+                static_cast<double>(std::max(1, area));
+            if (area < min_area || skin_fraction < config.min_skin_fraction ||
+                aspect < config.min_aspect_ratio || aspect > config.max_aspect_ratio) {
+                continue;
+            }
+
+            PersonDetection person;
+            person.x = min_x;
+            person.y = min_y;
+            person.width = box_width;
+            person.height = box_height;
+            person.center_offset =
+                ((static_cast<double>(min_x + max_x) * 0.5) -
+                 ((static_cast<double>(width) - 1.0) * 0.5)) /
+                std::max(1.0, (static_cast<double>(width) - 1.0) * 0.5);
+            person.touches_track_roi =
+                static_cast<double>(max_y) >=
+                static_cast<double>(height) * config.track_touch_fraction;
+            const double area_score = std::min(
+                1.0,
+                static_cast<double>(area) / static_cast<double>(min_area * 2));
+            const double aspect_score = aspect >= config.min_aspect_ratio ? 1.0 : 0.0;
+            const double skin_score = std::min(1.0, skin_fraction / 0.10);
+            person.confidence = std::min(
+                1.0,
+                0.45 * area_score + 0.35 * aspect_score + 0.20 * skin_score);
+            result.people.push_back(person);
+        }
+    }
+
+    std::sort(
+        result.people.begin(),
+        result.people.end(),
+        [](const PersonDetection& lhs, const PersonDetection& rhs) {
+            return lhs.confidence > rhs.confidence;
+        });
+    return result;
+}
+
+CameraSceneResult analyzeCameraScene(
+    const camera::Frame& frame,
+    const CameraSceneConfig& config) {
+    CameraSceneResult result;
+    result.path = detectRgbPath(frame, config.path);
+    result.obstacle = detectRgbObstacleDark(frame, config.obstacle);
+    result.people = detectPeopleOnTrack(frame, config.people);
+
+    if (!result.path.ok()) {
+        result.status = result.path.status;
+        return result;
+    }
+    if (!result.obstacle.ok()) {
+        result.status = result.obstacle.status;
+        return result;
+    }
+    if (!result.people.ok()) {
+        result.status = result.people.status;
+        return result;
+    }
+
+    const bool obstacle_blocks =
+        result.obstacle.dark_coverage >= config.obstacle.coverage_threshold;
+    const bool person_blocks = std::any_of(
+        result.people.people.begin(),
+        result.people.people.end(),
+        [](const PersonDetection& person) {
+            return person.touches_track_roi;
+        });
+    result.track_blocked = obstacle_blocks || person_blocks;
+    return result;
 }
 
 } // namespace rozeta::perception
