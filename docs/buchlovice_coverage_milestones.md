@@ -8,9 +8,9 @@ Source audited:
 
 ## High-level conclusion
 
-Rozeta can already cover a meaningful foundation of the Buchlovice Robotour stack: differential-drive motor commands, emergency stop, NMEA GPS parsing, serial/network GPS reads, camera capture lifecycle, M7 RGB path and grass perception, depth/Kinect frame contracts, obstacle sectors from depth/LiDAR, offline CSV route loading, Buchlovice footway graph routing, route resampling/reuse, bearing/turn-ahead/wrong-direction route cues, simple route following, logging, telemetry replay, and mission UI snapshots.
+Rozeta can already cover a meaningful foundation of the Buchlovice Robotour stack: differential-drive motor commands, emergency stop, NMEA GPS parsing, serial/network GPS reads, camera capture lifecycle, M7 RGB path and grass perception, M8 RGB obstacle ROI/hysteresis, camera-scene people-on-track detection, depth/Kinect frame contracts, obstacle sectors from depth/LiDAR, offline CSV route loading, Buchlovice footway graph routing, route resampling/reuse, bearing/turn-ahead/wrong-direction route cues, simple route following, logging, telemetry replay, and mission UI snapshots.
 
-Rozeta cannot yet replace the Buchlovice application end-to-end because `kvalifikacia_demo.py` still contains application-specific behaviors that are outside Rozeta's reusable core: RGB obstacle ROI/hysteresis, pulse-based bypass maneuver execution, operator wizard/keyboard/beeper workflow, and a Python-friendly integration surface.
+Rozeta cannot yet replace the Buchlovice application end-to-end because `kvalifikacia_demo.py` still contains application-specific behaviors that are outside Rozeta's reusable core: field-tuned camera/DNN backends, operator wizard/keyboard/beeper workflow, and deployment-specific glue around the Python-friendly integration surface.
 
 ## Coverage map
 
@@ -23,8 +23,8 @@ Rozeta cannot yet replace the Buchlovice application end-to-end because `kvalifi
 | iPhone GPS via TCP/UDP JSON, `lat,lon`, NMEA | Partial: NMEA serial/file parser only | No TCP/UDP GPS receiver and no JSON/plain coordinate parser receiver |
 | Buchlovice OSM footway CSV graph, Dijkstra, route resampling | Implemented: `BuchloviceFootwayGraphLoader`, `FootwayGraph`, `shortestPath`, `sampleRoute`, and `shouldReuseRoute` | Optional full OSM/PBF import remains future scope |
 | Haversine/bearing/turn-ahead/wrong-direction checks | Implemented: `haversineDistance`, `initialBearing`, `bearingToAheadPoint`, `turnAhead`, and `detectWrongDirection` | Field HUD/telemetry rendering of cues remains future UI scope |
-| Camera OpenCV capture and RGB path/grass feature extraction | Implemented: optional `OpenCvCamera`, `RgbPathConfig`, `detectRgbPath`, and `measureSideCoverage` | Contour geometry beyond center offset remains future tuning scope |
-| RGB obstacle ROI / hysteresis | None | Obstacle detection supports depth/LiDAR sectors, not RGB ROI/hysteresis |
+| Camera OpenCV capture and RGB path/grass feature extraction | Implemented: optional `OpenCvCamera`, `RgbPathConfig`, `detectRgbPath`, `measureSideCoverage`, `detectPeopleOnTrack`, and `analyzeCameraScene` | Field-tuned camera/DNN backends remain deployment scope |
+| RGB obstacle ROI / hysteresis | Implemented: `RgbObstacleConfig`, `detectRgbObstacleDark`, `detectRgbObstacleDiff`, and `RgbObstacleTracker` | Field threshold tuning remains deployment scope |
 | Kinect Linux/Windows adapter probing and profile XML/runtime JSON bridge | Partial: `KinectSensor`, `FreenectKinectSensor`, depth obstacle extraction | No profile schema, backend selection/fallback policy, Buchlovice-compatible object summaries |
 | Wait 10s after obstacle, resume if clear, otherwise bypass | Partial: emergency stop/navigation decision exists | No obstacle behavior state machine or bypass maneuver primitive |
 | Pulse-based bypass and path following using differential drive | Partial: motor commands can express differential speeds | No reusable maneuver planner or pulse executor with safety checks |
@@ -188,6 +188,7 @@ Delivered coverage:
 - Empty ROI (left > right, zero pixel count) returns `dark_coverage = 0.0` and `status.ok()` without crashing.
 - Added tests for dark obstacle detection, reference-frame differencing, hysteresis trigger/clear streaks, empty ROI safety, threshold boundary cases, tracker reset and config validation.
 - Updated perception, API, Robotour, diagram and milestone docs.
+- Added camera-scene helper coverage: `PersonDetectorConfig`, `detectPeopleOnTrack`, `CameraSceneConfig`, and `analyzeCameraScene` combine path, RGB obstacle ROI, and person-on-track blocking facts from one RGB frame.
 
 ### M9 — Depth/Kinect adapter parity
 

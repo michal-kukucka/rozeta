@@ -111,7 +111,7 @@ These examples are deliberately small and should stay buildable in CI:
 - `imu_fusion_demo` — replay recorded odometry/GPS/IMU samples through deterministic pose fusion without hardware.
 - `motor_test` — motor command and safety smoke test.
 - `odometry_test` — odometry smoke test.
-- `camera_capture` — camera capture smoke example with dependency-free `--mock` mode and optional `--opencv` mode.
+- `camera_capture` — camera capture smoke example with dependency-free `--mock` mode and optional `--opencv` mode; captured RGB frames can feed the camera-scene RGB analysis helper (`analyzeCameraScene`) for path, obstacle and people-on-track facts.
 - `depth_obstacle_console` — replay a depth CSV fixture through Kinect helpers and obstacle sector extraction.
 - `c_api_smoke` — compile and run a C translation unit against `rozeta/c_api.h`.
 - `serial_motor_calibrate` — dry-run calibration helper for the optional serial motor backend.

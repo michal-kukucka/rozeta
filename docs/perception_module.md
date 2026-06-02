@@ -78,3 +78,20 @@ seams. Applications can import frames from existing GitHub/OpenCV camera or DNN
 backends, then pass packed RGB8 data into this deterministic fallback. Default
 CI stays hardware-free and dependency-free while real deployments can swap in
 OpenCV/YOLO-style detectors at the frame source boundary.
+
+
+### Integration contract
+
+`analyzeCameraScene` is the recommended one-call RGB camera integration point for
+Robotour/Buchlovice applications. It accepts the same `camera::Frame` produced by
+`OpenCvCamera`, mock cameras, replay fixtures, or imported GitHub/OpenCV camera
+backends. The result carries:
+
+- `path`: path direction, confidence and center offset from `detectRgbPath`;
+- `obstacle`: dark ROI coverage from `detectRgbObstacleDark`;
+- `people`: sorted `PersonDetection` boxes with confidence and track-touch flags;
+- `track_blocked`: a combined safety boolean for obstacle or people-on-track facts.
+
+Keep this module pure: device ownership, DNN inference, threads and GUI rendering
+belong in optional adapters. The checked-in fallback uses classic CV-style masks
+so tests can validate the payload contract without camera hardware.
