@@ -22,11 +22,18 @@ struct RoiStats {
     int green_count{0};
     int dark_count{0};
     double path_x_sum{0.0};
+    int min_path_x{0};
+    int max_path_x{0};
+    int min_path_y{0};
+    int max_path_y{0};
+    bool has_path{false};
 };
 
 bool finiteConfig(const RgbPathConfig& config) {
     return std::isfinite(config.path_min_value) &&
         std::isfinite(config.path_max_saturation) &&
+        std::isfinite(config.path_min_hue_deg) &&
+        std::isfinite(config.path_max_hue_deg) &&
         std::isfinite(config.green_min_hue_deg) &&
         std::isfinite(config.green_max_hue_deg) &&
         std::isfinite(config.green_min_saturation) &&
@@ -34,7 +41,10 @@ bool finiteConfig(const RgbPathConfig& config) {
         std::isfinite(config.dark_max_value) &&
         std::isfinite(config.min_path_coverage) &&
         std::isfinite(config.center_deadband) &&
-        std::isfinite(config.roi_top_fraction);
+        std::isfinite(config.roi_left_fraction) &&
+        std::isfinite(config.roi_right_fraction) &&
+        std::isfinite(config.roi_top_fraction) &&
+        std::isfinite(config.roi_bottom_fraction);
 }
 
 Status validateConfig(const RgbPathConfig& config) {
@@ -43,6 +53,8 @@ Status validateConfig(const RgbPathConfig& config) {
     }
     if (config.path_min_value < 0.0 || config.path_min_value > 1.0 ||
         config.path_max_saturation < 0.0 || config.path_max_saturation > 1.0 ||
+        config.path_min_hue_deg < 0.0 || config.path_min_hue_deg > 360.0 ||
+        config.path_max_hue_deg < 0.0 || config.path_max_hue_deg > 360.0 ||
         config.green_min_hue_deg < 0.0 || config.green_min_hue_deg > 360.0 ||
         config.green_max_hue_deg < 0.0 || config.green_max_hue_deg > 360.0 ||
         config.green_min_saturation < 0.0 || config.green_min_saturation > 1.0 ||
@@ -50,7 +62,10 @@ Status validateConfig(const RgbPathConfig& config) {
         config.dark_max_value < 0.0 || config.dark_max_value > 1.0 ||
         config.min_path_coverage < 0.0 || config.min_path_coverage > 1.0 ||
         config.center_deadband < 0.0 || config.center_deadband > 1.0 ||
-        config.roi_top_fraction < 0.0 || config.roi_top_fraction >= 1.0) {
+        config.roi_left_fraction < 0.0 || config.roi_left_fraction > 1.0 ||
+        config.roi_right_fraction < 0.0 || config.roi_right_fraction > 1.0 ||
+        config.roi_top_fraction < 0.0 || config.roi_top_fraction >= 1.0 ||
+        config.roi_bottom_fraction < 0.0 || config.roi_bottom_fraction > 1.0) {
         return Status::error(ErrorCode::InvalidArgument, "RGB perception config thresholds out of range");
     }
     return Status::okStatus();
@@ -91,7 +106,8 @@ bool hueInRange(double hue_deg, double min_hue_deg, double max_hue_deg) {
 
 bool isPathPixel(const HsvPixel& hsv, const RgbPathConfig& config) {
     return hsv.value >= config.path_min_value &&
-        hsv.saturation <= config.path_max_saturation;
+        hsv.saturation <= config.path_max_saturation &&
+        hueInRange(hsv.hue_deg, config.path_min_hue_deg, config.path_max_hue_deg);
 }
 
 bool isGreenPixel(const HsvPixel& hsv, const RgbPathConfig& config) {
@@ -104,8 +120,23 @@ bool isDarkPixel(const HsvPixel& hsv, const RgbPathConfig& config) {
     return hsv.value <= config.dark_max_value;
 }
 
-int roiStartY(const camera::Frame& frame, const RgbPathConfig& config) {
+int pathRoiXBegin(const camera::Frame& frame, const RgbPathConfig& config) {
+    const double clamped = std::max(0.0, std::min(1.0, config.roi_left_fraction));
+    return static_cast<int>(std::floor(static_cast<double>(frame.metadata.width) * clamped));
+}
+
+int pathRoiXEnd(const camera::Frame& frame, const RgbPathConfig& config) {
+    const double clamped = std::max(0.0, std::min(1.0, config.roi_right_fraction));
+    return static_cast<int>(std::ceil(static_cast<double>(frame.metadata.width) * clamped));
+}
+
+int pathRoiYBegin(const camera::Frame& frame, const RgbPathConfig& config) {
     const double clamped = std::max(0.0, std::min(0.95, config.roi_top_fraction));
+    return static_cast<int>(std::floor(static_cast<double>(frame.metadata.height) * clamped));
+}
+
+int pathRoiYEnd(const camera::Frame& frame, const RgbPathConfig& config) {
+    const double clamped = std::max(0.0, std::min(1.0, config.roi_bottom_fraction));
     return static_cast<int>(std::floor(static_cast<double>(frame.metadata.height) * clamped));
 }
 
@@ -117,11 +148,15 @@ RoiStats collectStats(
     RoiStats stats;
     const int width = frame.metadata.width;
     const int height = frame.metadata.height;
-    const int start_y = roiStartY(frame, config);
-    const int safe_begin = std::max(0, std::min(width, x_begin));
-    const int safe_end = std::max(safe_begin, std::min(width, x_end));
+    const int roi_x_begin = pathRoiXBegin(frame, config);
+    const int roi_x_end = pathRoiXEnd(frame, config);
+    const int start_y = pathRoiYBegin(frame, config);
+    const int end_y = pathRoiYEnd(frame, config);
+    const int safe_begin = std::max(roi_x_begin, std::min(width, x_begin));
+    const int safe_end = std::max(safe_begin, std::min(std::min(width, x_end), roi_x_end));
+    const int safe_y_end = std::max(start_y, std::min(height, end_y));
 
-    for (int y = start_y; y < height; ++y) {
+    for (int y = start_y; y < safe_y_end; ++y) {
         for (int x = safe_begin; x < safe_end; ++x) {
             const std::size_t y_offset = static_cast<std::size_t>(y) * static_cast<std::size_t>(width);
             const std::size_t pixel_offset = y_offset + static_cast<std::size_t>(x);
@@ -134,6 +169,18 @@ RoiStats collectStats(
             if (isPathPixel(hsv, config)) {
                 ++stats.path_count;
                 stats.path_x_sum += static_cast<double>(x);
+                if (!stats.has_path) {
+                    stats.min_path_x = x;
+                    stats.max_path_x = x;
+                    stats.min_path_y = y;
+                    stats.max_path_y = y;
+                    stats.has_path = true;
+                } else {
+                    stats.min_path_x = std::min(stats.min_path_x, x);
+                    stats.max_path_x = std::max(stats.max_path_x, x);
+                    stats.min_path_y = std::min(stats.min_path_y, y);
+                    stats.max_path_y = std::max(stats.max_path_y, y);
+                }
             }
             if (isGreenPixel(hsv, config)) {
                 ++stats.green_count;
@@ -165,6 +212,11 @@ RgbPathResult detectRgbPath(const camera::Frame& frame, const RgbPathConfig& con
         return result;
     }
 
+    result.roi_left = pathRoiXBegin(frame, config);
+    result.roi_right = pathRoiXEnd(frame, config);
+    result.roi_top = pathRoiYBegin(frame, config);
+    result.roi_bottom = pathRoiYEnd(frame, config);
+
     const RoiStats stats = collectStats(frame, config, 0, frame.metadata.width);
     result.path_coverage = coverage(stats.path_count, stats.pixel_count);
     result.green_coverage = coverage(stats.green_count, stats.pixel_count);
@@ -175,6 +227,14 @@ RgbPathResult detectRgbPath(const camera::Frame& frame, const RgbPathConfig& con
         result.direction = PathDirection::Unknown;
         result.confidence = 0.0;
         return result;
+    }
+
+    result.path_bounds_valid = stats.has_path;
+    if (stats.has_path) {
+        result.top_left = {stats.min_path_x, stats.min_path_y, true};
+        result.top_right = {stats.max_path_x, stats.min_path_y, true};
+        result.bottom_left = {stats.min_path_x, stats.max_path_y, true};
+        result.bottom_right = {stats.max_path_x, stats.max_path_y, true};
     }
 
     const double center_x = stats.path_x_sum / static_cast<double>(stats.path_count);
@@ -232,7 +292,8 @@ bool validateObstacleConfig(const RgbObstacleConfig& config) {
         !std::isfinite(config.dark_max_value) ||
         !std::isfinite(config.coverage_threshold) ||
         !std::isfinite(config.diff_threshold) ||
-        !std::isfinite(config.diff_coverage_threshold)) {
+        !std::isfinite(config.diff_coverage_threshold) ||
+        !std::isfinite(config.min_obstacle_area_fraction)) {
         return false;
     }
     if (config.roi_left_fraction < 0.0 || config.roi_left_fraction > 1.0 ||
@@ -243,6 +304,9 @@ bool validateObstacleConfig(const RgbObstacleConfig& config) {
         config.coverage_threshold < 0.0 || config.coverage_threshold > 1.0 ||
         config.diff_threshold < 0.0 ||
         config.diff_coverage_threshold < 0.0 || config.diff_coverage_threshold > 1.0 ||
+        config.min_obstacle_area_fraction < 0.0 ||
+        config.min_obstacle_area_fraction > 1.0 ||
+        config.max_obstacles < 1 ||
         config.trigger_streak < 1 ||
         config.clear_streak < 1) {
         return false;
@@ -327,6 +391,96 @@ RgbObstacleResult detectRgbObstacleDark(
 
     result.dark_coverage = static_cast<double>(dark_count) /
         static_cast<double>(roi_pixels);
+
+    const int min_obstacle_area = std::max(
+        1,
+        static_cast<int>(std::ceil(
+            static_cast<double>(roi_pixels) * config.min_obstacle_area_fraction)));
+    std::vector<unsigned char> visited(
+        static_cast<std::size_t>(frame.metadata.width * frame.metadata.height), 0U);
+    const int dx[4] = {1, -1, 0, 0};
+    const int dy[4] = {0, 0, 1, -1};
+    int reported_count = 0;
+    int largest_area = 0;
+
+    for (int start_y = y_begin; start_y < y_end; ++start_y) {
+        for (int start_x = x_begin; start_x < x_end; ++start_x) {
+            const std::size_t start_index =
+                static_cast<std::size_t>(start_y * width + start_x);
+            if (visited[start_index] != 0U) {
+                continue;
+            }
+            const std::size_t start_base = start_index * 3U;
+            const HsvPixel start_hsv = rgbToHsv(
+                frame.bytes[start_base],
+                frame.bytes[start_base + 1],
+                frame.bytes[start_base + 2]);
+            if (start_hsv.value > config.dark_max_value) {
+                visited[start_index] = 1U;
+                continue;
+            }
+
+            std::queue<std::pair<int, int>> frontier;
+            frontier.push({start_x, start_y});
+            visited[start_index] = 1U;
+
+            int min_x = start_x;
+            int max_x = start_x;
+            int min_y = start_y;
+            int max_y = start_y;
+            int area = 0;
+
+            while (!frontier.empty()) {
+                const auto [x, y] = frontier.front();
+                frontier.pop();
+                ++area;
+                min_x = std::min(min_x, x);
+                max_x = std::max(max_x, x);
+                min_y = std::min(min_y, y);
+                max_y = std::max(max_y, y);
+
+                for (int i = 0; i < 4; ++i) {
+                    const int nx = x + dx[i];
+                    const int ny = y + dy[i];
+                    if (nx < x_begin || nx >= x_end || ny < y_begin || ny >= y_end) {
+                        continue;
+                    }
+                    const std::size_t next_index =
+                        static_cast<std::size_t>(ny * width + nx);
+                    if (visited[next_index] != 0U) {
+                        continue;
+                    }
+                    const std::size_t base = next_index * 3U;
+                    const HsvPixel hsv = rgbToHsv(
+                        frame.bytes[base],
+                        frame.bytes[base + 1],
+                        frame.bytes[base + 2]);
+                    visited[next_index] = 1U;
+                    if (hsv.value <= config.dark_max_value) {
+                        frontier.push({nx, ny});
+                    }
+                }
+            }
+
+            if (area < min_obstacle_area) {
+                continue;
+            }
+            if (reported_count < config.max_obstacles) {
+                ++reported_count;
+            }
+            if (area > largest_area) {
+                largest_area = area;
+                result.largest_obstacle_x = min_x;
+                result.largest_obstacle_y = min_y;
+                result.largest_obstacle_width = max_x - min_x + 1;
+                result.largest_obstacle_height = max_y - min_y + 1;
+            }
+        }
+    }
+
+    result.obstacle_count = reported_count;
+    result.largest_obstacle_area_fraction =
+        static_cast<double>(largest_area) / static_cast<double>(roi_pixels);
     result.source = "dark";
     return result;
 }
@@ -417,6 +571,12 @@ void RgbObstacleTracker::update(const camera::Frame& frame) {
     const auto detection = detectRgbObstacleDark(frame, config_);
     result_.dark_coverage = detection.dark_coverage;
     result_.diff_coverage = -1.0;
+    result_.obstacle_count = detection.obstacle_count;
+    result_.largest_obstacle_area_fraction = detection.largest_obstacle_area_fraction;
+    result_.largest_obstacle_x = detection.largest_obstacle_x;
+    result_.largest_obstacle_y = detection.largest_obstacle_y;
+    result_.largest_obstacle_width = detection.largest_obstacle_width;
+    result_.largest_obstacle_height = detection.largest_obstacle_height;
     result_.source = "dark";
 
     bool obstacle = detection.ok() &&
@@ -432,6 +592,12 @@ void RgbObstacleTracker::updateRef(
         frame, reference, config_);
 
     result_.dark_coverage = dark_detection.dark_coverage;
+    result_.obstacle_count = dark_detection.obstacle_count;
+    result_.largest_obstacle_area_fraction = dark_detection.largest_obstacle_area_fraction;
+    result_.largest_obstacle_x = dark_detection.largest_obstacle_x;
+    result_.largest_obstacle_y = dark_detection.largest_obstacle_y;
+    result_.largest_obstacle_width = dark_detection.largest_obstacle_width;
+    result_.largest_obstacle_height = dark_detection.largest_obstacle_height;
     result_.diff_coverage = diff_detection.ok()
         ? diff_detection.diff_coverage
         : -1.0;

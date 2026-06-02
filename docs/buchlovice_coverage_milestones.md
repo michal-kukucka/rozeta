@@ -163,8 +163,8 @@ Goal: cover the camera-only functionality used for road/path following.
 
 Delivered coverage:
 - Added `include/rozeta/perception.hpp` and `src/perception.cpp` with dependency-free RGB8 analysis helpers.
-- Added `RgbPathConfig`, `RgbPathResult`, `SideCoverageResult` and `PathDirection` stable result types.
-- Added `detectRgbPath` for HSV-style path masking, lower-ROI center offset, direction and confidence.
+- Added `RgbPathConfig`, `RgbPathResult`, `SideCoverageResult`, `PathCorner` and `PathDirection` stable result types.
+- Added `detectRgbPath` for HSV-style path masking, configurable ROI sizing (`roi_left_fraction`, `roi_right_fraction`, `roi_bottom_fraction`), warm path-color gates (`path_min_hue_deg`, `path_max_hue_deg`), lower-ROI center offset, corner bounds, direction and confidence.
 - Added `measureSideCoverage` for left/center/right green coverage and dark coverage diagnostics.
 - Added synthetic RGB tests for centered/left/right paths, grass coverage, all-dark low-confidence frames, invalid payloads and config-safe validation.
 - Updated perception/API/Robotour docs, docs verifier phrases and interactive diagrams.
@@ -180,8 +180,8 @@ Status: implemented in `rozeta::perception`.
 Goal: cover `detect_simple_obstacle` and CameraModule reference-frame obstacle detection.
 
 Delivered coverage:
-- Added `RgbObstacleConfig` with configurable ROI geometry (`roi_left_fraction`, `roi_right_fraction`, `roi_top_fraction`, `roi_bottom_fraction`), dark/diff thresholds, trigger streak and clear streak.
-- Added `detectRgbObstacleDark(frame, config)` for center dark ROI coverage measurement returning `RgbObstacleResult` with `dark_coverage` and source metadata.
+- Added `RgbObstacleConfig` with configurable ROI geometry (`roi_left_fraction`, `roi_right_fraction`, `roi_top_fraction`, `roi_bottom_fraction`), dark/diff thresholds, blob filtering (`min_obstacle_area_fraction`), `max_obstacles`, trigger streak and clear streak.
+- Added `detectRgbObstacleDark(frame, config)` for center dark ROI coverage measurement returning `RgbObstacleResult` with `dark_coverage`, `obstacle_count`, largest obstacle bounding box and source metadata.
 - Added `detectRgbObstacleDiff(frame, reference, config)` for per-channel pixel differencing with `diff_coverage` output.
 - Added `RgbObstacleTracker` hysteresis state machine with `update()` for dark-obstacle accumulation and `updateRef()` for combined dark+diff detection.
 - Tracker enforces configurable hysteresis: 5 consecutive obstacle frames trigger `RgbObstacleState::Triggered`, 3 consecutive clear frames reset to `Clear`.

@@ -6,13 +6,16 @@ The perception module keeps RGB image analysis separate from camera capture. `ca
 
 `include/rozeta/perception.hpp` provides:
 
-- `perception::RgbPathConfig` — HSV-style thresholds for path, grass/green and dark-pixel masks plus ROI/deadband settings.
-- `perception::RgbPathResult` — path `direction`, `confidence`, normalized `center_offset`, and diagnostic path/green/dark coverage values.
+- `perception::RgbPathConfig` — HSV-style thresholds for path, grass/green and dark-pixel masks plus ROI/deadband settings, including `roi_left_fraction`, `roi_right_fraction`, `roi_bottom_fraction`, `path_min_hue_deg` and `path_max_hue_deg`.
+- `perception::RgbPathResult` — path `direction`, `confidence`, normalized `center_offset`, diagnostic path/green/dark coverage values, effective ROI pixels and `PathCorner` bounds for the detected track strip.
 - `perception::SideCoverageResult` — left/center/right green coverage and dark coverage for Buchlovice-style side diagnostics.
 - `perception::detectRgbPath()` — detects a low-saturation path/road strip in the lower camera ROI and reports left/center/right offset.
 - `perception::measureSideCoverage()` — reports configurable green-side coverage and dark-side coverage from the same packed RGB8 frame contract.
 
 ## M7 — RGB path and grass perception
+
+Default path settings are intentionally field-biased rather than generic: the detector looks at the lower, central 80% of the image (`roi_left_fraction=0.10`, `roi_right_fraction=0.90`, `roi_top_fraction=0.50`, `roi_bottom_fraction=1.00`) and treats warm, low-saturation stone/dirt tones (`path_min_hue_deg=20`, `path_max_hue_deg=75`, `path_max_saturation=0.35`) as the path. Grass remains a separate greener mask (`70..170°`) for side coverage. `detectRgbPath` publishes the effective ROI and four `PathCorner` values (`top_left`, `top_right`, `bottom_left`, `bottom_right`) so navigation/HUD code can inspect the detected track geometry, not only the center offset.
+
 
 M7 covers the deterministic camera-only parts of the Buchlovice path-following stack:
 
@@ -49,7 +52,7 @@ M8 adds reference-frame obstacle detection with hysteresis to the perception mod
 4. `RgbObstacleTracker` wraps the detectors with a hysteresis state machine: `update(frame)` feeds dark frames, `updateRef(frame, reference)` feeds diff frames. Five consecutive obstacle frames trigger `RgbObstacleState::Triggered`; three consecutive clear frames reset to `Clear`.
 5. Empty ROI (left > right, top >= bottom) returns `dark_coverage = 0.0` and `status.ok()` without crashing.
 
-Default obstacle ROI: center 40% of width (`roi_left_fraction=0.30`, `roi_right_fraction=0.70`), lower 70% of height (`roi_top_fraction=0.30`). Default hysteresis: 5 trigger, 3 clear. All thresholds and streaks are reconfigurable at runtime.
+Default obstacle ROI: center 40% of width (`roi_left_fraction=0.30`, `roi_right_fraction=0.70`), lower 70% of height (`roi_top_fraction=0.30`). Default dark threshold (`dark_max_value=0.15`) treats near-black/very shadowed blobs as obstacles, while `min_obstacle_area_fraction=0.01` rejects tiny speckles and `max_obstacles=3` reports the strongest field-relevant blobs. `RgbObstacleResult` now includes `obstacle_count`, largest obstacle bounding-box pixels and `largest_obstacle_area_fraction` in addition to coverage. Default hysteresis: 5 trigger, 3 clear. All thresholds and streaks are reconfigurable at runtime.
 
 Like the rest of perception, M8 stays dependency-free. The same packed RGB8 `camera::Frame` contract drives both path analysis and obstacle detection, so OpenCV remains a capture-only concern.
 
@@ -60,7 +63,9 @@ The camera scene helper combines the existing path and obstacle algorithms with 
 dependency-free people-on-track detector:
 
 1. `PersonDetectorConfig` defines ROI, minimum blob area, skin-pixel fraction,
-   upright aspect ratio and track-touch thresholds.
+   upright aspect ratio and track-touch thresholds. The default analyzes the full
+   RGB frame so people entering from the top or side are not hidden before the
+   combined scene blocker evaluates them.
 2. `detectPeopleOnTrack(frame, config)` uses classic computer-vision rules
    compatible with OpenCV-style RGB processing: skin-color gates, saturated
    non-grass clothing masks, connected components and upright blob geometry.

@@ -18,6 +18,8 @@ enum class PathDirection {
 struct RgbPathConfig {
     double path_min_value{0.20};
     double path_max_saturation{0.35};
+    double path_min_hue_deg{20.0};
+    double path_max_hue_deg{75.0};
     double green_min_hue_deg{70.0};
     double green_max_hue_deg{170.0};
     double green_min_saturation{0.30};
@@ -25,7 +27,16 @@ struct RgbPathConfig {
     double dark_max_value{0.18};
     double min_path_coverage{0.03};
     double center_deadband{0.20};
+    double roi_left_fraction{0.10};
+    double roi_right_fraction{0.90};
     double roi_top_fraction{0.50};
+    double roi_bottom_fraction{1.00};
+};
+
+struct PathCorner {
+    int x{0};
+    int y{0};
+    bool valid{false};
 };
 
 struct RgbPathResult {
@@ -35,6 +46,15 @@ struct RgbPathResult {
     double path_coverage{0.0};
     double green_coverage{0.0};
     double dark_coverage{0.0};
+    int roi_left{0};
+    int roi_right{0};
+    int roi_top{0};
+    int roi_bottom{0};
+    bool path_bounds_valid{false};
+    PathCorner top_left{};
+    PathCorner top_right{};
+    PathCorner bottom_left{};
+    PathCorner bottom_right{};
     Status status{};
 
     bool ok() const { return status.ok(); }
@@ -76,6 +96,8 @@ struct RgbObstacleConfig {
     double coverage_threshold{0.15};
     double diff_threshold{30.0};
     double diff_coverage_threshold{0.10};
+    double min_obstacle_area_fraction{0.01};
+    int max_obstacles{3};
     int trigger_streak{5};
     int clear_streak{3};
 };
@@ -84,6 +106,12 @@ struct RgbObstacleResult {
     RgbObstacleState state{RgbObstacleState::Clear};
     double dark_coverage{0.0};
     double diff_coverage{-1.0};
+    int obstacle_count{0};
+    double largest_obstacle_area_fraction{0.0};
+    int largest_obstacle_x{0};
+    int largest_obstacle_y{0};
+    int largest_obstacle_width{0};
+    int largest_obstacle_height{0};
     int streak_count{0};
     std::string source{"none"};
     Status status{};

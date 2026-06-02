@@ -94,6 +94,7 @@ void test_perception_obstacle_tracker_resets_state();
 void test_perception_obstacle_config_validation_handles_bounds();
 void test_perception_detects_people_on_track_from_upright_rgb_blob();
 void test_perception_camera_scene_analysis_combines_path_obstacles_and_people();
+void test_perception_camera_configs_expose_roi_color_corners_and_obstacle_counts();
 void test_kinect_profile_defaults_have_safe_values();
 void test_kinect_profile_validates_rejects_invalid_fields();
 void test_kinect_profile_loads_and_parses_config_file();
@@ -272,6 +273,10 @@ int main(){
         {"perception_config_validation", test_perception_obstacle_config_validation_handles_bounds},
         {"perception_people_on_track", test_perception_detects_people_on_track_from_upright_rgb_blob},
         {"perception_camera_scene", test_perception_camera_scene_analysis_combines_path_obstacles_and_people},
+        {
+            "perception_camera_settings",
+            test_perception_camera_configs_expose_roi_color_corners_and_obstacle_counts,
+        },
         {"kinect_profile_defaults", test_kinect_profile_defaults_have_safe_values},
         {"kinect_profile_validate", test_kinect_profile_validates_rejects_invalid_fields},
         {"kinect_profile_load", test_kinect_profile_loads_and_parses_config_file},

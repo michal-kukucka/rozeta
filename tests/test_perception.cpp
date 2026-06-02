@@ -449,3 +449,58 @@ void test_perception_camera_scene_analysis_combines_path_obstacles_and_people() 
     require(scene.source == "rgb-classic-cv",
         "scene source should identify imported classic CV style processor");
 }
+
+void test_perception_camera_configs_expose_roi_color_corners_and_obstacle_counts() {
+    rozeta::perception::RgbPathConfig path_config;
+    require(path_config.roi_left_fraction == 0.10,
+        "default path ROI should ignore the far-left image edge");
+    require(path_config.roi_right_fraction == 0.90,
+        "default path ROI should ignore the far-right image edge");
+    require(path_config.roi_bottom_fraction == 1.00,
+        "default path ROI should include the lower camera rows");
+    require(path_config.path_min_hue_deg == 20.0,
+        "default path hue should start at warm brown/stone tones");
+    require(path_config.path_max_hue_deg == 75.0,
+        "default path hue should end before grass-green hues");
+
+    const auto path = rozeta::perception::detectRgbPath(pathFrame(20, 12, 10, 6), path_config);
+    require(path.ok(), "configured path detector should accept fixture");
+    require(path.path_bounds_valid, "path detector should expose path corner bounds");
+    require(path.top_left.x <= path.bottom_left.x + 1,
+        "left path corners should stay aligned on synthetic track");
+    require(path.top_right.x >= path.bottom_right.x - 1,
+        "right path corners should stay aligned on synthetic track");
+    require(path.roi_left == 2 && path.roi_right == 18,
+        "result should publish effective ROI pixel bounds");
+
+    rozeta::perception::RgbObstacleConfig obstacle_config;
+    require(obstacle_config.min_obstacle_area_fraction == 0.01,
+        "default obstacle blob gate should ignore tiny dark speckles");
+    require(obstacle_config.max_obstacles == 3,
+        "default obstacle reporting should cap the strongest three blobs");
+
+    auto rgb = std::vector<unsigned char>(static_cast<std::size_t>(30 * 20 * 3), 160);
+    for (int y = 8; y < 13; ++y) {
+        for (int x = 8; x < 13; ++x) {
+            setPixel(rgb, 30, x, y, 3, 3, 3);
+        }
+    }
+    for (int y = 11; y < 17; ++y) {
+        for (int x = 18; x < 25; ++x) {
+            setPixel(rgb, 30, x, y, 5, 5, 5);
+        }
+    }
+    obstacle_config.roi_left_fraction = 0.0;
+    obstacle_config.roi_right_fraction = 1.0;
+    obstacle_config.roi_top_fraction = 0.0;
+    obstacle_config.roi_bottom_fraction = 1.0;
+    const auto obstacles = rozeta::perception::detectRgbObstacleDark(
+        makeFrame(30, 20, rgb),
+        obstacle_config);
+    require(obstacles.ok(), "obstacle blob counting should accept fixture");
+    require(obstacles.obstacle_count == 2, "two dark obstacle blobs should be counted");
+    require(obstacles.largest_obstacle_area_fraction > 0.05,
+        "largest obstacle area fraction should be exposed");
+    require(obstacles.largest_obstacle_width == 7 && obstacles.largest_obstacle_height == 6,
+        "largest obstacle bounding box should be exposed");
+}

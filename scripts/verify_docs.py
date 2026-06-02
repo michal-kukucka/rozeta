@@ -159,6 +159,9 @@ REQUIRED_BUCHLOVICE_M7_PHRASES = [
     "detectRgbPath",
     "measureSideCoverage",
     "green coverage",
+    "PathCorner",
+    "roi_left_fraction",
+    "path_min_hue_deg",
 ]
 
 REQUIRED_BUCHLOVICE_M8_PHRASES = [
@@ -168,6 +171,9 @@ REQUIRED_BUCHLOVICE_M8_PHRASES = [
     "detectRgbObstacleDark",
     "detectRgbObstacleDiff",
     "RgbObstacleState",
+    "obstacle_count",
+    "min_obstacle_area_fraction",
+    "max_obstacles",
 ]
 
 REQUIRED_BUCHLOVICE_M9_PHRASES = [
