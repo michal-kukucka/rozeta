@@ -99,6 +99,17 @@ M22 — Route corridor and geofence enforcement adds map-layer safety checks bef
 
 Both helpers fail closed with `InvalidArgument` and `violation=true` for empty routes, invalid thresholds, too-small polygons or non-finite coordinates. They remain pure data checks in `maps.hpp`; callers can stop, recalculate or fault the mission without coupling the map layer to motors.
 
+## M23 junction helper and route-cue UX
+
+M23 — Junction helper and route-cue UX turns route geometry into an operator-friendly cue that can be rendered by a HUD, terminal dashboard or voice layer without coupling maps to UI output:
+
+- `JunctionCueConfig` sets `lookahead_m`, `arrival_distance_m` and `turn_threshold_deg`.
+- `junctionCue(route, current_position, config)` projects the current fix onto the route, scans upcoming route vertices and reports the first meaningful left/right junction within the lookahead window.
+- `JunctionCueResult` returns `valid`, `junction_detected`, `in_junction_zone`, `direction`, `distance_to_junction_m`, `angle_deg` and a short prompt string.
+- Prompts intentionally use compact field text such as `Turn left in 72 m`, `At junction turn left` or `Continue straight`.
+
+The helper rejects too-short routes, non-finite coordinates and invalid thresholds with `InvalidArgument`. It reuses the route-cue projection helpers already covered by M6 so M23 stays deterministic in CTest and ready for M24 HUD rendering.
+
 ## M6 route cues: bearing, turn-ahead and wrong-direction
 
 M6 — Route cues: bearing, turn-ahead, wrong-direction adds pure helper APIs for Buchlovice map-update logic without owning sensors or motors:

@@ -242,6 +242,16 @@ REQUIRED_BUCHLOVICE_M22_PHRASES = [
     "violation",
 ]
 
+REQUIRED_BUCHLOVICE_M23_PHRASES = [
+    "M23 — Junction helper and route-cue UX",
+    "JunctionCueConfig",
+    "junctionCue",
+    "JunctionCueResult",
+    "distance_to_junction_m",
+    "At junction turn",
+    "Continue straight",
+]
+
 
 def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
@@ -513,6 +523,21 @@ def main() -> int:
     for phrase in REQUIRED_BUCHLOVICE_M22_PHRASES:
         if phrase not in buchlovice_m22_docs:
             fail(f"Buchlovice M22 corridor/geofence documentation coverage missing: {phrase}", failures)
+
+    buchlovice_m23_docs = (
+        read("docs/maps_module.md")
+        + "\n"
+        + read("docs/api-reference.md")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M23_PHRASES:
+        if phrase not in buchlovice_m23_docs:
+            fail(f"Buchlovice M23 junction cue documentation coverage missing: {phrase}", failures)
+
+    maps_source = read("src/maps.cpp")
+    if "JunctionCueResult junctionCue" not in maps_source:
+        fail("M23 junctionCue source implementation is missing", failures)
 
     mission_source = read("src/mission.cpp")
     if "cv::QRCodeDetector" not in mission_source:

@@ -111,6 +111,25 @@ struct TurnAheadResult {
     bool ok() const { return status.ok(); }
 };
 
+struct JunctionCueConfig {
+    double lookahead_m{30.0};
+    double arrival_distance_m{5.0};
+    double turn_threshold_deg{35.0};
+};
+
+struct JunctionCueResult {
+    bool valid{false};
+    bool junction_detected{false};
+    bool in_junction_zone{false};
+    TurnDirection direction{TurnDirection::None};
+    double distance_to_junction_m{0.0};
+    double angle_deg{0.0};
+    std::string prompt;
+    Status status{Status::okStatus()};
+
+    bool ok() const { return status.ok(); }
+};
+
 struct WrongDirectionState {
     unsigned int consecutive_wrong{0};
     double previous_distance_to_goal_m{0.0};
@@ -203,6 +222,10 @@ TurnAheadResult turnAhead(
     const GeoCoordinate& current_position,
     double lookahead_m,
     double threshold_deg);
+JunctionCueResult junctionCue(
+    const std::vector<GeoCoordinate>& route,
+    const GeoCoordinate& current_position,
+    const JunctionCueConfig& config);
 WrongDirectionResult detectWrongDirection(
     const WrongDirectionInput& input,
     const WrongDirectionState& previous_state);

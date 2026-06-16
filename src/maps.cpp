@@ -1129,6 +1129,95 @@ TurnAheadResult turnAhead(
     return result;
 }
 
+JunctionCueResult junctionCue(
+    const std::vector<GeoCoordinate>& route,
+    const GeoCoordinate& current_position,
+    const JunctionCueConfig& config) {
+    if (route.size() < 2 || !isFiniteCoordinate(current_position) ||
+        !routeHasFiniteCoordinates(route) || config.lookahead_m <= 0.0 ||
+        config.arrival_distance_m < 0.0 || config.turn_threshold_deg < 0.0 ||
+        !std::isfinite(config.lookahead_m) || !std::isfinite(config.arrival_distance_m) ||
+        !std::isfinite(config.turn_threshold_deg)) {
+        return {{}, {}, {}, {}, 0.0, 0.0, "",
+            Status::error(ErrorCode::InvalidArgument, "junction cue inputs must be finite and positive")};
+    }
+
+    const RouteProjection projection = projectOntoRoute(route, current_position);
+    if (!projection.valid) {
+        return {{}, {}, {}, {}, 0.0, 0.0, "",
+            Status::error(ErrorCode::InvalidArgument, "junction cue route has no measurable segments")};
+    }
+
+    JunctionCueResult result;
+    result.valid = true;
+    result.prompt = "Continue straight";
+
+    std::vector<double> cumulative(route.size(), 0.0);
+    for (std::size_t index = 1; index < route.size(); ++index) {
+        cumulative[index] = cumulative[index - 1] + distanceMeters(route[index - 1], route[index]);
+    }
+
+    for (std::size_t index = 1; index + 1 < route.size(); ++index) {
+        bool has_previous = false;
+        std::size_t previous_index = 0;
+        for (std::size_t candidate = index; candidate > 0; --candidate) {
+            if (distanceMeters(route[candidate - 1], route[index]) > 0.0) {
+                previous_index = candidate - 1;
+                has_previous = true;
+                break;
+            }
+        }
+        if (!has_previous) {
+            continue;
+        }
+
+        bool has_next = false;
+        std::size_t next_index = index + 1;
+        for (std::size_t candidate = index + 1; candidate < route.size(); ++candidate) {
+            if (distanceMeters(route[index], route[candidate]) > 0.0) {
+                next_index = candidate;
+                has_next = true;
+                break;
+            }
+        }
+        if (!has_next) {
+            continue;
+        }
+
+        const double junction_distance = cumulative[index];
+        const double distance_ahead = junction_distance - projection.along_route_m;
+        if (distance_ahead < 0.0 || distance_ahead > config.lookahead_m) {
+            continue;
+        }
+
+        const double current_bearing = bearingDegreesBetween(route[previous_index], route[index]);
+        const double next_bearing = bearingDegreesBetween(route[index], route[next_index]);
+        const double angle = signedSmallestAngleDifference(current_bearing, next_bearing);
+        if (std::fabs(angle) < config.turn_threshold_deg) {
+            continue;
+        }
+
+        result.junction_detected = true;
+        result.in_junction_zone = distance_ahead <= config.arrival_distance_m;
+        result.direction = angle < 0.0 ? TurnDirection::Left : TurnDirection::Right;
+        result.distance_to_junction_m = std::max(0.0, distance_ahead);
+        result.angle_deg = angle;
+
+        const char* direction_text = result.direction == TurnDirection::Left ? "left" : "right";
+        std::ostringstream prompt;
+        if (result.in_junction_zone) {
+            prompt << "At junction turn " << direction_text;
+        } else {
+            prompt << "Turn " << direction_text << " in "
+                   << static_cast<int>(std::floor(result.distance_to_junction_m + 0.5)) << " m";
+        }
+        result.prompt = prompt.str();
+        return result;
+    }
+
+    return result;
+}
+
 WrongDirectionResult detectWrongDirection(
     const WrongDirectionInput& input,
     const WrongDirectionState& previous_state) {

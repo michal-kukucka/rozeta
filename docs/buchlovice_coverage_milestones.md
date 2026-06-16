@@ -362,6 +362,20 @@ Delivered coverage:
 - Empty routes, invalid corridor thresholds, too-small geofence polygons and non-finite coordinates return `InvalidArgument` with `violation=true` fail-closed statuses.
 - CTest covers inside/warning/violation corridor cases, invalid inputs, inside/outside/boundary geofence cases and invalid polygons.
 
+### M23 — Junction helper and route-cue UX
+
+Status: implemented as a deterministic map-layer route-cue helper for operator/HUD prompts.
+
+Goal: convert graph route geometry into actionable field text before M24 adds the richer operator-grade HUD renderer.
+
+Delivered coverage:
+- `JunctionCueConfig` defines `lookahead_m`, `arrival_distance_m` and `turn_threshold_deg`.
+- `junctionCue()` projects the current GPS fix onto the route, scans upcoming measurable vertices and picks the first junction whose signed turn angle exceeds the configured threshold.
+- `JunctionCueResult` exposes `junction_detected`, `in_junction_zone`, `direction`, `distance_to_junction_m`, `angle_deg` and a compact prompt.
+- Prompt strings include approach cues such as `Turn left in 72 m`, arrival-zone cues such as `At junction turn left`, and default straight-route text `Continue straight`.
+- Invalid thresholds, too-short routes and non-finite coordinates return `InvalidArgument` fail-closed statuses.
+- CTest covers approaching a left junction, being inside the junction zone, straight/no-junction routes and invalid inputs.
+
 
 ## Recommended implementation order
 

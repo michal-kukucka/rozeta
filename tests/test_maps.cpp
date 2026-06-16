@@ -389,6 +389,96 @@ void test_maps_turn_ahead_uses_next_measurable_segment_after_duplicate_vertex() 
     REQUIRE_TRUE(result.angle_deg < -80.0);
 }
 
+void test_maps_junction_cue_reports_upcoming_left_turn_and_prompt() {
+    std::vector<rozeta::GeoCoordinate> route = {
+        {49.1000000, 17.3900000, 0.0},
+        {49.1000000, 17.3910000, 0.0},
+        {49.1010000, 17.3910000, 0.0},
+    };
+    rozeta::maps::JunctionCueConfig config;
+    config.lookahead_m = 90.0;
+    config.arrival_distance_m = 5.0;
+    config.turn_threshold_deg = 45.0;
+
+    auto approach = rozeta::maps::junctionCue(route, route.front(), config);
+    auto at_junction = rozeta::maps::junctionCue(route, {49.1000000, 17.3909600, 0.0}, config);
+
+    REQUIRE_TRUE(approach.ok());
+    REQUIRE_TRUE(approach.valid);
+    REQUIRE_TRUE(approach.junction_detected);
+    REQUIRE_TRUE(!approach.in_junction_zone);
+    REQUIRE_EQ(static_cast<int>(approach.direction), static_cast<int>(rozeta::maps::TurnDirection::Left));
+    REQUIRE_TRUE(approach.distance_to_junction_m > 70.0);
+    REQUIRE_TRUE(approach.distance_to_junction_m < 75.0);
+    REQUIRE_TRUE(approach.prompt.find("Turn left") != std::string::npos);
+
+    REQUIRE_TRUE(at_junction.ok());
+    REQUIRE_TRUE(at_junction.in_junction_zone);
+    REQUIRE_TRUE(at_junction.prompt.find("At junction") != std::string::npos);
+}
+
+void test_maps_junction_cue_reports_no_junction_for_straight_route() {
+    std::vector<rozeta::GeoCoordinate> route = {
+        {49.1000000, 17.3900000, 0.0},
+        {49.1000000, 17.3910000, 0.0},
+        {49.1000000, 17.3920000, 0.0},
+    };
+
+    auto result = rozeta::maps::junctionCue(route, route.front(), {});
+
+    REQUIRE_TRUE(result.ok());
+    REQUIRE_TRUE(result.valid);
+    REQUIRE_TRUE(!result.junction_detected);
+    REQUIRE_EQ(static_cast<int>(result.direction), static_cast<int>(rozeta::maps::TurnDirection::None));
+    REQUIRE_TRUE(result.prompt.find("Continue straight") != std::string::npos);
+}
+
+void test_maps_junction_cue_skips_duplicate_vertices_around_turns() {
+    std::vector<rozeta::GeoCoordinate> route = {
+        {49.1000000, 17.3900000, 0.0},
+        {49.1000000, 17.3900000, 0.0},
+        {49.1000000, 17.3910000, 0.0},
+        {49.1000000, 17.3910000, 0.0},
+        {49.1010000, 17.3910000, 0.0},
+    };
+    rozeta::maps::JunctionCueConfig config;
+    config.lookahead_m = 90.0;
+    config.turn_threshold_deg = 45.0;
+
+    auto result = rozeta::maps::junctionCue(route, route.front(), config);
+
+    REQUIRE_TRUE(result.ok());
+    REQUIRE_TRUE(result.valid);
+    REQUIRE_TRUE(result.junction_detected);
+    REQUIRE_EQ(static_cast<int>(result.direction), static_cast<int>(rozeta::maps::TurnDirection::Left));
+    REQUIRE_TRUE(result.prompt.find("Turn left") != std::string::npos);
+}
+
+void test_maps_junction_cue_rejects_invalid_inputs() {
+    std::vector<rozeta::GeoCoordinate> route = {
+        {49.1000000, 17.3900000, 0.0},
+        {49.1000000, 17.3910000, 0.0},
+        {49.1010000, 17.3910000, 0.0},
+    };
+    rozeta::maps::JunctionCueConfig config;
+    config.lookahead_m = -1.0;
+
+    auto bad_config = rozeta::maps::junctionCue(route, route.front(), config);
+    auto bad_route = rozeta::maps::junctionCue(
+        {{49.1000000, 17.3900000, 0.0}},
+        route.front(),
+        {});
+    auto bad_position = rozeta::maps::junctionCue(
+        route,
+        {std::numeric_limits<double>::quiet_NaN(), 17.3900000, 0.0},
+        {});
+
+    REQUIRE_TRUE(!bad_config.ok());
+    REQUIRE_TRUE(!bad_route.ok());
+    REQUIRE_TRUE(!bad_position.ok());
+    REQUIRE_EQ(static_cast<int>(bad_config.status.code), static_cast<int>(rozeta::ErrorCode::InvalidArgument));
+}
+
 void test_maps_route_cues_reject_non_finite_coordinates() {
     const double bad = std::numeric_limits<double>::quiet_NaN();
     std::vector<rozeta::GeoCoordinate> route = {

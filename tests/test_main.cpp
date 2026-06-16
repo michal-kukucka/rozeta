@@ -61,6 +61,10 @@ void test_maps_bearing_to_ahead_point_follows_straight_route();
 void test_maps_turn_ahead_detects_left_and_right_turns();
 void test_maps_turn_ahead_handles_duplicate_leading_route_points();
 void test_maps_turn_ahead_uses_next_measurable_segment_after_duplicate_vertex();
+void test_maps_junction_cue_reports_upcoming_left_turn_and_prompt();
+void test_maps_junction_cue_reports_no_junction_for_straight_route();
+void test_maps_junction_cue_skips_duplicate_vertices_around_turns();
+void test_maps_junction_cue_rejects_invalid_inputs();
 void test_maps_route_cues_reject_non_finite_coordinates();
 void test_maps_turn_ahead_returns_none_for_straight_and_empty_routes();
 void test_maps_wrong_direction_detector_uses_persistence_and_distance_growth();
@@ -269,6 +273,10 @@ int main(){
         {"maps_turn_ahead", test_maps_turn_ahead_detects_left_and_right_turns},
         {"maps_turn_duplicate_points", test_maps_turn_ahead_handles_duplicate_leading_route_points},
         {"maps_turn_duplicate_vertex", test_maps_turn_ahead_uses_next_measurable_segment_after_duplicate_vertex},
+        {"maps_junction_cue", test_maps_junction_cue_reports_upcoming_left_turn_and_prompt},
+        {"maps_junction_cue_straight", test_maps_junction_cue_reports_no_junction_for_straight_route},
+        {"maps_junction_cue_duplicates", test_maps_junction_cue_skips_duplicate_vertices_around_turns},
+        {"maps_junction_cue_invalid", test_maps_junction_cue_rejects_invalid_inputs},
         {"maps_route_cue_invalid", test_maps_route_cues_reject_non_finite_coordinates},
         {"maps_turn_ahead_none", test_maps_turn_ahead_returns_none_for_straight_and_empty_routes},
         {"maps_wrong_direction", test_maps_wrong_direction_detector_uses_persistence_and_distance_growth},
