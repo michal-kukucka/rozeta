@@ -142,6 +142,11 @@ void test_c_api_haversine_distance();
 void test_field_preset_buchlovice_has_safe_defaults();
 void test_field_preset_no_hardware_demo_is_headless();
 void test_field_preset_validate_rejects_invalid();
+void test_field_preset_loads_key_value_file();
+void test_field_preset_load_rejects_bad_file_values();
+void test_field_preset_load_rejects_integer_overflow();
+void test_field_preset_load_rejects_non_finite_numbers();
+void test_field_preset_load_rejects_malformed_keys_and_booleans();
 void test_physical_estop_latch_asserts_and_requires_reset();
 void test_runtime_physical_estop_latch_forces_fault();
 void test_safety_motor_gate_refuses_motion_until_latch_reset();
@@ -335,10 +340,15 @@ int main(){
         {"capi_mission_inv", test_c_api_parse_mission_target_invalid},
         {"capi_coord", test_c_api_valid_coordinate},
         {"capi_haversine", test_c_api_haversine_distance},
-        {"fpreset_buchlovice", test_field_preset_buchlovice_has_safe_defaults},
-        {"fpreset_demo", test_field_preset_no_hardware_demo_is_headless},
-        {"fpreset_validate", test_field_preset_validate_rejects_invalid},
-        {"safety_latch", test_physical_estop_latch_asserts_and_requires_reset},
+        {"field_preset_buchlovice", test_field_preset_buchlovice_has_safe_defaults},
+        {"field_preset_demo", test_field_preset_no_hardware_demo_is_headless},
+        {"field_preset_invalid", test_field_preset_validate_rejects_invalid},
+        {"field_preset_load_file", test_field_preset_loads_key_value_file},
+        {"field_preset_load_bad", test_field_preset_load_rejects_bad_file_values},
+        {"field_preset_load_overflow", test_field_preset_load_rejects_integer_overflow},
+        {"field_preset_load_non_finite", test_field_preset_load_rejects_non_finite_numbers},
+        {"field_preset_load_malformed", test_field_preset_load_rejects_malformed_keys_and_booleans},
+        {"safety_estop_latch", test_physical_estop_latch_asserts_and_requires_reset},
         {"safety_runtime_estop", test_runtime_physical_estop_latch_forces_fault},
         {"safety_motor_gate", test_safety_motor_gate_refuses_motion_until_latch_reset},
         {"field_runner_no_hardware", test_field_runner_no_hardware_plan_uses_mocks_and_allows_fixture_run},

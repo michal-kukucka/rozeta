@@ -44,6 +44,7 @@ Current public surface:
 - `include/rozeta/imu.hpp` — inertial samples, tilt/collision helpers and deterministic odometry/GPS/IMU pose fusion.
 - `include/rozeta/maps.hpp` — offline CSV route loader, `OfflineMap` paths, Buchlovice footway graph loader, Dijkstra `shortestPath`, route sampling/reuse helpers, M6 route cues (`haversineDistance`, `initialBearing`, `bearingToAheadPoint`, `turnAhead`, `detectWrongDirection`), explicit load results and nearest-path/vertex lookup.
 - `include/rozeta/c_api.h` — stable C ABI for value-type integrations: library version, angle normalization, 2D distance and LiDAR obstacle sector calculation.
+- `include/rozeta/robotour_config.hpp` — M15/M18 field presets for Buchlovice and no-hardware Robotour runs. `FieldPreset` bundles runtime, obstacle behavior, mission targets and device settings; `loadPreset(path)` parses dependency-free key/value config files, rejects malformed keys/values, rejects non-finite numeric values, and runs final preset validation for `obstacle.wait_duration_ms`, `obstacle.max_bypass_attempts` and `mission.arrival_radius_m`.
 
 ## Stable C ABI
 

@@ -206,6 +206,15 @@ REQUIRED_BUCHLOVICE_M11_PHRASES = [
     "arrival_radius_m",
 ]
 
+REQUIRED_BUCHLOVICE_M18_PHRASES = [
+    "M18 — File-based field preset loading",
+    "loadPreset(path)",
+    "key = value",
+    "obstacle.wait_duration_ms",
+    "mission.arrival_radius_m",
+    "std::runtime_error",
+]
+
 
 def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
@@ -431,6 +440,17 @@ def main() -> int:
     for phrase in REQUIRED_BUCHLOVICE_M11_PHRASES:
         if phrase not in buchlovice_m11_docs:
             fail(f"Buchlovice M11 mission state machine documentation coverage missing: {phrase}", failures)
+
+    buchlovice_m18_docs = (
+        read("docs/module_overview.md")
+        + "\n"
+        + read("docs/api-reference.md")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M18_PHRASES:
+        if phrase not in buchlovice_m18_docs:
+            fail(f"Buchlovice M18 config-loader documentation coverage missing: {phrase}", failures)
 
     doxygen = read("Doxyfile")
     for required in ["INPUT                  = include src examples", "OUTPUT_DIRECTORY       = docs/generated", "GENERATE_HTML", "GENERATE_XML", "EXTRACT_ALL"]:

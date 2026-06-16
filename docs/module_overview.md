@@ -99,7 +99,7 @@ M12 — Operator I/O, HUD, and beeper abstractions for operator io. `operator_io
 
 ## Robotour config
 
-M15 — Configuration schema and field presets for robotour_config. `robotour_config::FieldPreset` bundles runtime, obstacle behavior, and mission config into named presets: `buchloviceFieldPreset()` (hardware with camera+depth, 10s wait) and `noHardwareDemoPreset()` (mock-only, fast 200ms cycles). `validatePreset()` rejects invalid arrival radii and negative durations. `loadPreset(path)` placeholder for future file-based config.
+M15 — Configuration schema and field presets for robotour_config. `robotour_config::FieldPreset` bundles runtime, obstacle behavior, and mission config into named presets: `buchloviceFieldPreset()` (hardware with camera+depth, 10s wait) and `noHardwareDemoPreset()` (mock-only, fast 200ms cycles). M18 turns `loadPreset(path)` into a dependency-free file-based config parser for key/value settings such as `motor_device`, `gps_device`, `lidar_device`, `camera_enabled`, `obstacle.wait_duration_ms`, `obstacle.max_bypass_attempts` and `mission.arrival_radius_m`. `validatePreset()` rejects invalid arrival radii and negative durations.
 
 ## UI
 

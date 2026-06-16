@@ -279,8 +279,20 @@ Delivered coverage:
 - Added `buchloviceFieldPreset()` with hardware defaults (camera+depth enabled, 10s wait, 3m arrival radius).
 - Added `noHardwareDemoPreset()` with mock-only settings (no GPS/camera/depth, fast 200ms cycles, 1m arrival).
 - Added `validatePreset()` rejecting negative durations and zero arrival radius.
-- Added `loadPreset(path)` placeholder for future file-based config loader.
-- Added tests for buchlovice preset safety, demo preset headless mock mode, and validation.
+- M18 replaced the earlier placeholder with a real `loadPreset(path)` key/value parser covering device paths, camera/depth/headless flags, runtime criticality, obstacle wait/max-bypass settings and mission arrival radius.
+- Added tests for buchlovice preset safety, demo preset headless mock mode, validation and file-based preset loading.
+
+### M18 — File-based field preset loading
+
+Status: implemented in `rozeta::robotour_config`.
+
+Goal: let field operators load checked-in or per-robot config files instead of recompiling scattered constants.
+
+Delivered coverage:
+- `loadPreset(path)` now parses dependency-free `key = value` files with comments and whitespace trimming.
+- Supported keys include `motor_device`, `gps_device`, `lidar_device`, `gps_baud_rate`, `camera_index`, `camera_enabled`, `depth_enabled`, `headless`, `runtime.gps_critical`, `runtime.depth_critical`, `obstacle.wait_duration_ms`, `obstacle.max_bypass_attempts` and `mission.arrival_radius_m`.
+- Bad numeric, boolean, unknown-key, malformed-line and invalid validated values fail closed with `std::runtime_error`.
+- Added RED/GREEN tests for full field preset load and invalid arrival-radius rejection.
 
 ### M16 — Real Buchlovice field runner / hardware composition
 
