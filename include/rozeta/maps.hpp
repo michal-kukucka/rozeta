@@ -137,6 +137,11 @@ public:
     GraphLoadResult loadDetailed(const std::string& path) const;
 };
 
+class OsmFootwayGraphLoader final {
+public:
+    GraphLoadResult loadDetailed(const std::string& path) const;
+};
+
 std::size_t nearestPathIndex(const OfflineMap& map, const GeoCoordinate& point);
 std::size_t nearestVertexIndex(const FootwayGraph& graph, const GeoCoordinate& point);
 GraphRouteResult shortestPath(

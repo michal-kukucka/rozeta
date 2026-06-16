@@ -24,6 +24,12 @@ struct PendingPoint {
     std::size_t file_order{0};
 };
 
+struct PendingOsmWay {
+    std::string id;
+    std::vector<std::string> node_refs;
+    bool walkable{false};
+};
+
 std::string trim(std::string value) {
     auto is_space = [](unsigned char c) {
         return std::isspace(c) != 0;
@@ -124,6 +130,68 @@ bool routeHasFiniteCoordinates(const std::vector<GeoCoordinate>& route) {
 
 std::string lineContext(std::size_t line_number) {
     return "line " + std::to_string(line_number);
+}
+
+bool isAttributeNameBoundary(char value) {
+    return std::isspace(static_cast<unsigned char>(value)) || value == '<' || value == '/';
+}
+
+std::string xmlAttribute(const std::string& tag, const std::string& name) {
+    const std::string needle = name + "=";
+    std::size_t search_from = 0;
+    while (true) {
+        const auto begin = tag.find(needle, search_from);
+        if (begin == std::string::npos) {
+            return {};
+        }
+        if (begin == 0 || isAttributeNameBoundary(tag[begin - 1])) {
+            const auto quote_pos = begin + needle.size();
+            if (quote_pos >= tag.size() || (tag[quote_pos] != '"' && tag[quote_pos] != '\'')) {
+                return {};
+            }
+            const char quote = tag[quote_pos];
+            const auto value_begin = quote_pos + 1;
+            const auto value_end = tag.find(quote, value_begin);
+            if (value_end == std::string::npos) {
+                return {};
+            }
+            return tag.substr(value_begin, value_end - value_begin);
+        }
+        search_from = begin + needle.size();
+    }
+}
+
+std::vector<std::string> extractXmlTags(const std::string& xml, Status& status) {
+    std::vector<std::string> tags;
+    std::size_t cursor = 0;
+    while (true) {
+        const auto begin = xml.find('<', cursor);
+        if (begin == std::string::npos) {
+            break;
+        }
+        const auto end = xml.find('>', begin + 1);
+        if (end == std::string::npos) {
+            status = Status::error(ErrorCode::ParseError, "OSM XML tag is not closed");
+            return {};
+        }
+        tags.push_back(trim(xml.substr(begin, end - begin + 1)));
+        cursor = end + 1;
+    }
+    status = Status::okStatus();
+    return tags;
+}
+
+bool isIgnoredXmlTag(const std::string& tag) {
+    return tag.rfind("<?", 0) == 0 || tag.rfind("<!--", 0) == 0 || tag.rfind("<osm", 0) == 0 || tag.rfind("</osm", 0) == 0;
+}
+
+bool isSelfClosingXmlTag(const std::string& tag) {
+    return tag.size() >= 2 && tag[tag.size() - 2] == '/';
+}
+
+bool isWalkableHighway(const std::string& value) {
+    return value == "footway" || value == "path" || value == "pedestrian" ||
+        value == "steps" || value == "living_street" || value == "track";
 }
 
 double distanceMeters(const GeoCoordinate& a, const GeoCoordinate& b) {
@@ -501,6 +569,120 @@ GraphLoadResult parseFootwayGraphCsv(std::istream& input) {
     return {graph, Status::okStatus()};
 }
 
+GraphLoadResult parseOsmFootwayGraphXml(std::istream& input) {
+    std::ostringstream xml_buffer;
+    xml_buffer << input.rdbuf();
+
+    Status tag_status;
+    const auto tags = extractXmlTags(xml_buffer.str(), tag_status);
+    if (!tag_status.ok()) {
+        return {{}, tag_status};
+    }
+
+    std::map<std::string, GeoCoordinate> nodes;
+    std::vector<PendingOsmWay> ways;
+    PendingOsmWay current_way;
+    bool in_way = false;
+
+    for (const auto& tag : tags) {
+        if (tag.empty() || isIgnoredXmlTag(tag)) {
+            continue;
+        }
+
+        if (tag.rfind("<node", 0) == 0) {
+            const auto id = xmlAttribute(tag, "id");
+            const auto lat_text = xmlAttribute(tag, "lat");
+            const auto lon_text = xmlAttribute(tag, "lon");
+            if (id.empty() || lat_text.empty() || lon_text.empty()) {
+                return {{}, Status::error(ErrorCode::ParseError, "OSM node missing id/lat/lon")};
+            }
+            GeoCoordinate coordinate;
+            Status status = parseDoubleField(lat_text, coordinate.latitude, "OSM node lat");
+            if (!status.ok()) {
+                return {{}, status};
+            }
+            status = parseDoubleField(lon_text, coordinate.longitude, "OSM node lon");
+            if (!status.ok()) {
+                return {{}, status};
+            }
+            nodes[id] = coordinate;
+            continue;
+        }
+
+        if (tag.rfind("<way", 0) == 0) {
+            if (in_way) {
+                return {{}, Status::error(ErrorCode::ParseError, "nested OSM way is invalid")};
+            }
+            current_way = {};
+            current_way.id = xmlAttribute(tag, "id");
+            if (current_way.id.empty()) {
+                current_way.id = "way_" + std::to_string(ways.size());
+            }
+            in_way = !isSelfClosingXmlTag(tag);
+            if (!in_way) {
+                ways.push_back(current_way);
+            }
+            continue;
+        }
+
+        if (tag.rfind("</way", 0) == 0) {
+            if (!in_way) {
+                return {{}, Status::error(ErrorCode::ParseError, "unexpected OSM way closing tag")};
+            }
+            ways.push_back(current_way);
+            in_way = false;
+            continue;
+        }
+        if (tag.rfind("</", 0) == 0) {
+            return {{}, Status::error(ErrorCode::ParseError, "unexpected OSM closing tag")};
+        }
+
+        if (!in_way) {
+            continue;
+        }
+        if (tag.rfind("<nd", 0) == 0) {
+            const auto ref = xmlAttribute(tag, "ref");
+            if (ref.empty()) {
+                return {{}, Status::error(ErrorCode::ParseError, "OSM way node ref missing")};
+            }
+            current_way.node_refs.push_back(ref);
+            continue;
+        }
+        if (tag.rfind("<tag", 0) == 0 && xmlAttribute(tag, "k") == "highway") {
+            current_way.walkable = isWalkableHighway(xmlAttribute(tag, "v"));
+        }
+    }
+
+    if (in_way) {
+        return {{}, Status::error(ErrorCode::ParseError, "OSM way is not closed")};
+    }
+
+    FootwayGraph graph;
+    std::map<std::string, std::size_t> vertex_by_coordinate;
+    for (const auto& way : ways) {
+        if (!way.walkable || way.node_refs.size() < 2) {
+            continue;
+        }
+        std::size_t previous = kInvalidPathIndex;
+        for (const auto& ref : way.node_refs) {
+            const auto found = nodes.find(ref);
+            if (found == nodes.end()) {
+                return {{}, Status::error(ErrorCode::ParseError, "OSM way references missing node: " + ref)};
+            }
+            const auto current = addVertex(graph, vertex_by_coordinate, found->second);
+            if (previous != kInvalidPathIndex) {
+                addBidirectionalEdge(graph, previous, current, way.id);
+            }
+            previous = current;
+        }
+    }
+
+    if (graph.vertices.empty()) {
+        return {{}, Status::error(ErrorCode::InvalidArgument, "OSM file does not contain walkable footways")};
+    }
+    return {graph, Status::okStatus()};
+}
+
 } // namespace
 
 OfflineMap CsvMapLoader::load(const std::string& path) {
@@ -529,6 +711,21 @@ GraphLoadResult BuchloviceFootwayGraphLoader::loadDetailed(const std::string& pa
         return {{}, Status::error(ErrorCode::IoError, "failed to open footway CSV: " + path)};
     }
     return parseFootwayGraphCsv(input);
+}
+
+GraphLoadResult OsmFootwayGraphLoader::loadDetailed(const std::string& path) const {
+    if (path.empty()) {
+        return {{}, Status::error(ErrorCode::InvalidArgument, "OSM path is empty")};
+    }
+    if (path.size() >= 4 && path.substr(path.size() - 4) == ".pbf") {
+        return {{}, Status::error(ErrorCode::NotImplemented, "OSM PBF decoding is not implemented yet")};
+    }
+
+    std::ifstream input(path);
+    if (!input) {
+        return {{}, Status::error(ErrorCode::IoError, "failed to open OSM file: " + path)};
+    }
+    return parseOsmFootwayGraphXml(input);
 }
 
 std::size_t nearestPathIndex(const OfflineMap& map, const GeoCoordinate& point) {

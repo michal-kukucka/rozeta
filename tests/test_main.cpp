@@ -44,6 +44,11 @@ void test_maps_csv_loader_reports_invalid_row();
 void test_maps_csv_loader_reports_empty_route();
 void test_maps_buchlovice_graph_loader_builds_bidirectional_edges();
 void test_maps_buchlovice_graph_loader_reports_invalid_rows();
+void test_maps_osm_footway_loader_builds_walkable_graph();
+void test_maps_osm_footway_loader_rejects_missing_node_refs();
+void test_maps_osm_footway_loader_accepts_inline_single_quote_xml();
+void test_maps_osm_footway_loader_rejects_malformed_xml();
+void test_maps_osm_footway_loader_rejects_unexpected_closing_tags();
 void test_maps_graph_nearest_vertex_and_shortest_path();
 void test_maps_graph_sample_route_adds_spacing_points();
 void test_maps_route_reuse_decision_uses_distance_from_current_route();
@@ -243,6 +248,11 @@ int main(){
         {"maps_empty_route", test_maps_csv_loader_reports_empty_route},
         {"maps_buchlovice_graph", test_maps_buchlovice_graph_loader_builds_bidirectional_edges},
         {"maps_buchlovice_graph_invalid", test_maps_buchlovice_graph_loader_reports_invalid_rows},
+        {"maps_osm_footways", test_maps_osm_footway_loader_builds_walkable_graph},
+        {"maps_osm_footways_invalid", test_maps_osm_footway_loader_rejects_missing_node_refs},
+        {"maps_osm_footways_inline", test_maps_osm_footway_loader_accepts_inline_single_quote_xml},
+        {"maps_osm_footways_malformed", test_maps_osm_footway_loader_rejects_malformed_xml},
+        {"maps_osm_footways_bad_close", test_maps_osm_footway_loader_rejects_unexpected_closing_tags},
         {"maps_graph_shortest_path", test_maps_graph_nearest_vertex_and_shortest_path},
         {"maps_graph_sample_route", test_maps_graph_sample_route_adds_spacing_points},
         {"maps_graph_route_reuse", test_maps_route_reuse_decision_uses_distance_from_current_route},

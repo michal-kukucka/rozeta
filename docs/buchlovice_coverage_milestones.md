@@ -335,6 +335,19 @@ Delivered coverage:
 - Empty QR decode returns `ParseError`; valid payloads reuse `parseMissionTargetFromQr()` and the existing coordinate parser/bounds checks.
 - `ROZETA_WITH_OPENCV=ON` now requires OpenCV `core`, `imgproc`, `videoio` and `objdetect` components.
 - Added `scripts/smoke_opencv_qr_stub.sh` so guarded QR source is syntax-checked on machines without OpenCV development packages.
+### M21 — OSM/PBF footway import pipeline
+
+Status: implemented as a dependency-free OSM XML loader plus a tested PBF conversion helper.
+
+Goal: move field map intake beyond hand-authored CSV while preserving the stable `FootwayGraph` graph/routing API.
+
+Delivered coverage:
+- `OsmFootwayGraphLoader` loads small `.osm`/`.xml` extracts into weighted bidirectional `FootwayGraph` edges.
+- Walkable OSM highway tags include `footway`, `path`, `pedestrian`, `steps`, `living_street` and `track`; non-walkable ways are ignored.
+- Invalid OSM extracts fail closed when walkable ways reference missing nodes or produce no walkable graph.
+- `scripts/import_osm_footways.py` converts `.osm`, `.xml` or `.pbf` inputs into the stable `way_id,point_index,lat,lon` CSV consumed by `BuchloviceFootwayGraphLoader`.
+- PBF conversion uses `osmium cat` through `subprocess.run([...], shell=False)` and is covered by a fake-`osmium` CTest so default CI does not require the real tool.
+- Added fixtures for a minimized Buchlovice-style OSM extract plus malformed missing-node input.
 
 
 ## Recommended implementation order

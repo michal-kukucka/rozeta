@@ -223,6 +223,15 @@ REQUIRED_BUCHLOVICE_M20_PHRASES = [
     "objdetect",
 ]
 
+REQUIRED_BUCHLOVICE_M21_PHRASES = [
+    "M21 — OSM/PBF footway import pipeline",
+    "OsmFootwayGraphLoader",
+    "scripts/import_osm_footways.py",
+    ".pbf",
+    "osmium cat",
+    "way_id,point_index,lat,lon",
+]
+
 
 def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
@@ -470,6 +479,19 @@ def main() -> int:
     for phrase in REQUIRED_BUCHLOVICE_M20_PHRASES:
         if phrase not in buchlovice_m20_docs:
             fail(f"Buchlovice M20 OpenCV QR documentation coverage missing: {phrase}", failures)
+
+    buchlovice_m21_docs = (
+        read("docs/maps_module.md")
+        + "\n"
+        + read("docs/api-reference.md")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+        + "\n"
+        + read("scripts/import_osm_footways.py")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M21_PHRASES:
+        if phrase not in buchlovice_m21_docs:
+            fail(f"Buchlovice M21 OSM/PBF documentation coverage missing: {phrase}", failures)
 
     mission_source = read("src/mission.cpp")
     if "cv::QRCodeDetector" not in mission_source:

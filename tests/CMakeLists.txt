@@ -58,6 +58,7 @@ add_test(NAME rozeta_optional_backend_header_smoke COMMAND rozeta_optional_backe
 find_package(Python3 COMPONENTS Interpreter)
 if(Python3_Interpreter_FOUND)
   add_test(NAME rozeta_docs_contract COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/verify_docs.py)
+  add_test(NAME rozeta_osm_import_tool COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_osm_import_tool.py)
 endif()
 
 if(UNIX)

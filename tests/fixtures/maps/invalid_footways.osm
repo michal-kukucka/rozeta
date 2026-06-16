@@ -1,0 +1,8 @@
+<osm version="0.6">
+  <node id="1" lat="49.0" lon="17.0" />
+  <way id="broken">
+    <nd ref="1" />
+    <nd ref="999" />
+    <tag k="highway" v="footway" />
+  </way>
+</osm>

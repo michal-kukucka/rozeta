@@ -105,6 +105,56 @@ void test_maps_buchlovice_graph_loader_reports_invalid_rows() {
     REQUIRE_EQ(static_cast<int>(result.status.code), static_cast<int>(rozeta::ErrorCode::ParseError));
 }
 
+void test_maps_osm_footway_loader_builds_walkable_graph() {
+    rozeta::maps::OsmFootwayGraphLoader loader;
+
+    auto result = loader.loadDetailed(fixturePath("buchlovice_park_footways.osm"));
+
+    REQUIRE_TRUE(result.ok());
+    REQUIRE_EQ(result.graph.vertices.size(), static_cast<std::size_t>(4));
+    REQUIRE_EQ(result.graph.edges.size(), static_cast<std::size_t>(6));
+    REQUIRE_EQ(result.graph.edges[0].way_id, std::string("main"));
+    REQUIRE_TRUE(result.graph.vertices[0].coordinate.latitude > 49.09);
+}
+
+void test_maps_osm_footway_loader_rejects_missing_node_refs() {
+    rozeta::maps::OsmFootwayGraphLoader loader;
+
+    auto result = loader.loadDetailed(fixturePath("invalid_footways.osm"));
+
+    REQUIRE_TRUE(!result.ok());
+    REQUIRE_EQ(static_cast<int>(result.status.code), static_cast<int>(rozeta::ErrorCode::ParseError));
+}
+
+void test_maps_osm_footway_loader_accepts_inline_single_quote_xml() {
+    rozeta::maps::OsmFootwayGraphLoader loader;
+
+    auto result = loader.loadDetailed(fixturePath("inline_single_quote_footways.osm"));
+
+    REQUIRE_TRUE(result.ok());
+    REQUIRE_EQ(result.graph.vertices.size(), static_cast<std::size_t>(3));
+    REQUIRE_EQ(result.graph.edges.size(), static_cast<std::size_t>(4));
+    REQUIRE_EQ(result.graph.edges[0].way_id, std::string("inline"));
+}
+
+void test_maps_osm_footway_loader_rejects_malformed_xml() {
+    rozeta::maps::OsmFootwayGraphLoader loader;
+
+    auto result = loader.loadDetailed(fixturePath("malformed_footways.osm"));
+
+    REQUIRE_TRUE(!result.ok());
+    REQUIRE_EQ(static_cast<int>(result.status.code), static_cast<int>(rozeta::ErrorCode::ParseError));
+}
+
+void test_maps_osm_footway_loader_rejects_unexpected_closing_tags() {
+    rozeta::maps::OsmFootwayGraphLoader loader;
+
+    auto result = loader.loadDetailed(fixturePath("unexpected_close_footways.osm"));
+
+    REQUIRE_TRUE(!result.ok());
+    REQUIRE_EQ(static_cast<int>(result.status.code), static_cast<int>(rozeta::ErrorCode::ParseError));
+}
+
 void test_maps_graph_nearest_vertex_and_shortest_path() {
     rozeta::maps::BuchloviceFootwayGraphLoader loader;
     auto result = loader.loadDetailed(fixturePath("buchlovice_park_footways.csv"));

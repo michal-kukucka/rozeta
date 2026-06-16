@@ -80,6 +80,14 @@ Core graph helpers:
 
 `examples/buchlovice_graph_route.cpp` is executable documentation for loading a Buchlovice-style graph, snapping start/goal points, computing the shortest path and resampling it without hardware.
 
+## M21 OSM/PBF footway import pipeline
+
+`OsmFootwayGraphLoader` imports small OSM XML extracts (`.osm`/`.xml`) directly into the existing `FootwayGraph` contract. It reads `<node id lat lon>` coordinates, keeps walkable `<way>` elements tagged with `highway=footway`, `path`, `pedestrian`, `steps`, `living_street` or `track`, de-duplicates vertices by coordinate, and builds weighted bidirectional edges that work with `nearestVertexIndex()`, `shortestPath()`, `sampleRoute()` and `shouldReuseRoute()`.
+
+For field `.pbf` downloads, `scripts/import_osm_footways.py <input.osm|input.xml|input.pbf> <output.csv>` provides the tested import pipeline. XML inputs use only Python stdlib parsing. PBF inputs invoke `osmium cat` with an argument list (no shell), convert to temporary OSM XML, filter the same walkable ways, and emit the stable `way_id,point_index,lat,lon` CSV consumed by `BuchloviceFootwayGraphLoader`. If `osmium` is not installed, the helper fails closed with an installation hint instead of silently producing a partial map.
+
+The importer is covered by `tests/test_osm_import_tool.py`, including a fake-`osmium` PBF path test and fixture checks that non-walkable service roads are excluded. The C++ XML loader is tested with `tests/fixtures/maps/buchlovice_park_footways.osm` and rejects ways that reference missing nodes.
+
 ## M6 route cues: bearing, turn-ahead and wrong-direction
 
 M6 — Route cues: bearing, turn-ahead, wrong-direction adds pure helper APIs for Buchlovice map-update logic without owning sensors or motors:
