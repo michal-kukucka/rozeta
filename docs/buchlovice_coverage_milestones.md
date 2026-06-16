@@ -349,6 +349,19 @@ Delivered coverage:
 - PBF conversion uses `osmium cat` through `subprocess.run([...], shell=False)` and is covered by a fake-`osmium` CTest so default CI does not require the real tool.
 - Added fixtures for a minimized Buchlovice-style OSM extract plus malformed missing-node input.
 
+### M22 — Route corridor and geofence enforcement
+
+Status: implemented as pure maps helpers that callers can use before issuing route-following or motor commands.
+
+Goal: detect GPS drift away from the active path and enforce an operator-defined field polygon without coupling `maps` to runtime, safety or motors.
+
+Delivered coverage:
+- `RouteCorridorConfig` defines `warning_distance_m` and `max_distance_m` for an active route polyline.
+- `checkRouteCorridor()` measures horizontal current-position distance to route segments, reports `inside_corridor`, marks `warning` near the outer limit and sets `violation` outside the configured corridor.
+- `Geofence` stores a polygon and `checkGeofence()` performs a dependency-free point-in-polygon check that treats boundary fixes as inside.
+- Empty routes, invalid corridor thresholds, too-small geofence polygons and non-finite coordinates return `InvalidArgument` with `violation=true` fail-closed statuses.
+- CTest covers inside/warning/violation corridor cases, invalid inputs, inside/outside/boundary geofence cases and invalid polygons.
+
 
 ## Recommended implementation order
 

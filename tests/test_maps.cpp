@@ -197,6 +197,112 @@ void test_maps_route_reuse_decision_uses_distance_from_current_route() {
     REQUIRE_TRUE(far_decision.distance_from_route_m > near_decision.distance_from_route_m);
 }
 
+void test_maps_route_corridor_reports_inside_warning_and_violation() {
+    std::vector<rozeta::GeoCoordinate> route = {
+        {49.1000000, 17.3900000, 100.0},
+        {49.1000000, 17.3902000, 100.0},
+    };
+    rozeta::maps::RouteCorridorConfig config;
+    config.warning_distance_m = 2.0;
+    config.max_distance_m = 5.0;
+
+    auto inside = rozeta::maps::checkRouteCorridor(route, {49.1000001, 17.3901000, 140.0}, config);
+    auto warning = rozeta::maps::checkRouteCorridor(route, {49.1000300, 17.3901000, 140.0}, config);
+    auto violation = rozeta::maps::checkRouteCorridor(route, {49.1000800, 17.3901000, 140.0}, config);
+
+    REQUIRE_TRUE(inside.ok());
+    REQUIRE_TRUE(inside.inside_corridor);
+    REQUIRE_TRUE(!inside.warning);
+    REQUIRE_TRUE(warning.inside_corridor);
+    REQUIRE_TRUE(warning.warning);
+    REQUIRE_TRUE(!violation.inside_corridor);
+    REQUIRE_TRUE(violation.violation);
+    REQUIRE_TRUE(violation.distance_from_route_m > warning.distance_from_route_m);
+}
+
+void test_maps_route_corridor_rejects_invalid_inputs() {
+    std::vector<rozeta::GeoCoordinate> route = {
+        {49.1000000, 17.3900000, 0.0},
+        {49.1000000, 17.3902000, 0.0},
+    };
+    rozeta::maps::RouteCorridorConfig config;
+    config.warning_distance_m = 6.0;
+    config.max_distance_m = 5.0;
+
+    auto bad_config = rozeta::maps::checkRouteCorridor(route, route.front(), config);
+    auto empty = rozeta::maps::checkRouteCorridor({}, route.front(), {});
+    config.warning_distance_m = 1.0;
+    config.max_distance_m = std::numeric_limits<double>::infinity();
+    auto non_finite_config = rozeta::maps::checkRouteCorridor(route, route.front(), config);
+    auto non_finite_position = rozeta::maps::checkRouteCorridor(
+        route,
+        {std::numeric_limits<double>::quiet_NaN(), 17.3900000, 0.0},
+        {});
+
+    REQUIRE_TRUE(!bad_config.ok());
+    REQUIRE_TRUE(bad_config.violation);
+    REQUIRE_EQ(static_cast<int>(bad_config.status.code), static_cast<int>(rozeta::ErrorCode::InvalidArgument));
+    REQUIRE_TRUE(!empty.ok());
+    REQUIRE_TRUE(empty.violation);
+    REQUIRE_EQ(static_cast<int>(empty.status.code), static_cast<int>(rozeta::ErrorCode::InvalidArgument));
+    REQUIRE_TRUE(!non_finite_config.ok());
+    REQUIRE_TRUE(non_finite_config.violation);
+    REQUIRE_TRUE(!non_finite_position.ok());
+    REQUIRE_TRUE(non_finite_position.violation);
+}
+
+void test_maps_geofence_contains_points_and_enforces_boundary() {
+    rozeta::maps::Geofence fence;
+    fence.id = "buchlovice_demo";
+    fence.vertices = {
+        {49.0999000, 17.3899000, 0.0},
+        {49.0999000, 17.3903000, 0.0},
+        {49.1002000, 17.3903000, 0.0},
+        {49.1002000, 17.3899000, 0.0},
+    };
+
+    auto inside = rozeta::maps::checkGeofence(fence, {49.1000000, 17.3901000, 50.0});
+    auto outside = rozeta::maps::checkGeofence(fence, {49.1005000, 17.3901000, 50.0});
+    auto boundary = rozeta::maps::checkGeofence(fence, {49.0999000, 17.3901000, 50.0});
+
+    REQUIRE_TRUE(inside.ok());
+    REQUIRE_TRUE(inside.inside);
+    REQUIRE_TRUE(!inside.violation);
+    REQUIRE_TRUE(!outside.inside);
+    REQUIRE_TRUE(outside.violation);
+    REQUIRE_TRUE(boundary.inside);
+    REQUIRE_TRUE(!boundary.violation);
+}
+
+void test_maps_geofence_rejects_invalid_polygons_and_non_finite_points() {
+    rozeta::maps::Geofence fence;
+    fence.vertices = {
+        {49.0999000, 17.3899000, 0.0},
+        {49.0999000, 17.3903000, 0.0},
+    };
+
+    auto too_small = rozeta::maps::checkGeofence(fence, {49.1000000, 17.3901000, 0.0});
+    fence.vertices.push_back({std::numeric_limits<double>::quiet_NaN(), 17.3903000, 0.0});
+    auto non_finite = rozeta::maps::checkGeofence(fence, {49.1000000, 17.3901000, 0.0});
+    fence.vertices = {
+        {49.0999000, 17.3899000, 0.0},
+        {49.0999000, 17.3903000, 0.0},
+        {49.1002000, 17.3903000, 0.0},
+    };
+    auto non_finite_position = rozeta::maps::checkGeofence(
+        fence,
+        {49.1000000, std::numeric_limits<double>::quiet_NaN(), 0.0});
+
+    REQUIRE_TRUE(!too_small.ok());
+    REQUIRE_TRUE(too_small.violation);
+    REQUIRE_EQ(static_cast<int>(too_small.status.code), static_cast<int>(rozeta::ErrorCode::InvalidArgument));
+    REQUIRE_TRUE(!non_finite.ok());
+    REQUIRE_TRUE(non_finite.violation);
+    REQUIRE_EQ(static_cast<int>(non_finite.status.code), static_cast<int>(rozeta::ErrorCode::InvalidArgument));
+    REQUIRE_TRUE(!non_finite_position.ok());
+    REQUIRE_TRUE(non_finite_position.violation);
+}
+
 void test_maps_geo_helpers_compute_distance_bearing_and_signed_angle() {
     const rozeta::GeoCoordinate origin{49.1000000, 17.3900000, 0.0};
     const rozeta::GeoCoordinate east{49.1000000, 17.3910000, 0.0};

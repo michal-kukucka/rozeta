@@ -232,6 +232,16 @@ REQUIRED_BUCHLOVICE_M21_PHRASES = [
     "way_id,point_index,lat,lon",
 ]
 
+REQUIRED_BUCHLOVICE_M22_PHRASES = [
+    "M22 — Route corridor and geofence enforcement",
+    "RouteCorridorConfig",
+    "checkRouteCorridor",
+    "Geofence",
+    "checkGeofence",
+    "inside_corridor",
+    "violation",
+]
+
 
 def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
@@ -492,6 +502,17 @@ def main() -> int:
     for phrase in REQUIRED_BUCHLOVICE_M21_PHRASES:
         if phrase not in buchlovice_m21_docs:
             fail(f"Buchlovice M21 OSM/PBF documentation coverage missing: {phrase}", failures)
+
+    buchlovice_m22_docs = (
+        read("docs/maps_module.md")
+        + "\n"
+        + read("docs/api-reference.md")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M22_PHRASES:
+        if phrase not in buchlovice_m22_docs:
+            fail(f"Buchlovice M22 corridor/geofence documentation coverage missing: {phrase}", failures)
 
     mission_source = read("src/mission.cpp")
     if "cv::QRCodeDetector" not in mission_source:

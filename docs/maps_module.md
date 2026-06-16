@@ -88,6 +88,17 @@ For field `.pbf` downloads, `scripts/import_osm_footways.py <input.osm|input.xml
 
 The importer is covered by `tests/test_osm_import_tool.py`, including a fake-`osmium` PBF path test and fixture checks that non-walkable service roads are excluded. The C++ XML loader is tested with `tests/fixtures/maps/buchlovice_park_footways.osm` and rejects ways that reference missing nodes.
 
+## M22 route corridor and geofence enforcement
+
+M22 — Route corridor and geofence enforcement adds map-layer safety checks before the runtime or motor layer decides what to do with a GPS fix:
+
+- `RouteCorridorConfig` sets `warning_distance_m` and `max_distance_m` thresholds around the active route polyline.
+- `checkRouteCorridor(route, current_position, config)` projects the current fix to the route segments using horizontal ground distance, reports `inside_corridor`, raises `warning` inside the outer limit, and marks `violation` when the robot leaves the corridor.
+- `Geofence` stores an operator-defined polygon around the allowed field area.
+- `checkGeofence(geofence, current_position)` treats boundary points as inside and returns `violation` when the current fix leaves the polygon.
+
+Both helpers fail closed with `InvalidArgument` and `violation=true` for empty routes, invalid thresholds, too-small polygons or non-finite coordinates. They remain pure data checks in `maps.hpp`; callers can stop, recalculate or fault the mission without coupling the map layer to motors.
+
 ## M6 route cues: bearing, turn-ahead and wrong-direction
 
 M6 — Route cues: bearing, turn-ahead, wrong-direction adds pure helper APIs for Buchlovice map-update logic without owning sensors or motors:

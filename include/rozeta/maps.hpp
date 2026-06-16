@@ -56,6 +56,34 @@ struct RouteReuseDecision {
     double distance_from_route_m{0.0};
 };
 
+struct RouteCorridorConfig {
+    double max_distance_m{5.0};
+    double warning_distance_m{3.0};
+};
+
+struct RouteCorridorResult {
+    bool inside_corridor{false};
+    bool warning{false};
+    bool violation{false};
+    double distance_from_route_m{0.0};
+    Status status{Status::okStatus()};
+
+    bool ok() const { return status.ok(); }
+};
+
+struct Geofence {
+    std::string id;
+    std::vector<GeoCoordinate> vertices;
+};
+
+struct GeofenceResult {
+    bool inside{false};
+    bool violation{false};
+    Status status{Status::okStatus()};
+
+    bool ok() const { return status.ok(); }
+};
+
 enum class TurnDirection {
     None,
     Left,
@@ -156,6 +184,13 @@ RouteReuseDecision shouldReuseRoute(
     const std::vector<GeoCoordinate>& route,
     const GeoCoordinate& current_position,
     double max_distance_from_route_m);
+RouteCorridorResult checkRouteCorridor(
+    const std::vector<GeoCoordinate>& route,
+    const GeoCoordinate& current_position,
+    const RouteCorridorConfig& config);
+GeofenceResult checkGeofence(
+    const Geofence& geofence,
+    const GeoCoordinate& current_position);
 double haversineDistance(const GeoCoordinate& a, const GeoCoordinate& b);
 double initialBearing(const GeoCoordinate& from, const GeoCoordinate& to);
 double signedSmallestAngleDifference(double from_deg, double to_deg);

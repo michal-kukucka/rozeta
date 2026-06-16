@@ -223,6 +223,54 @@ double distanceToSegmentMeters(
     return std::sqrt(dx * dx + dy * dy + dz * dz);
 }
 
+double distanceToLocalSegmentHorizontalMeters(
+    const LocalCoordinate& point,
+    const LocalCoordinate& from,
+    const LocalCoordinate& to) {
+    const double segment_x = to.x - from.x;
+    const double segment_y = to.y - from.y;
+    const double segment_length_squared = segment_x * segment_x + segment_y * segment_y;
+    if (segment_length_squared <= 0.0) {
+        const double dx = point.x - from.x;
+        const double dy = point.y - from.y;
+        return std::sqrt(dx * dx + dy * dy);
+    }
+
+    double t = ((point.x - from.x) * segment_x + (point.y - from.y) * segment_y) /
+        segment_length_squared;
+    t = std::max(0.0, std::min(1.0, t));
+
+    const double dx = point.x - (from.x + segment_x * t);
+    const double dy = point.y - (from.y + segment_y * t);
+    return std::sqrt(dx * dx + dy * dy);
+}
+
+double distanceToRouteHorizontalMeters(
+    const std::vector<GeoCoordinate>& route,
+    const GeoCoordinate& current_position) {
+    if (route.empty()) {
+        return std::numeric_limits<double>::infinity();
+    }
+
+    const GeoCoordinate origin = current_position;
+    const auto point = geoToLocal(origin, current_position);
+    if (route.size() == 1) {
+        const auto vertex = geoToLocal(origin, route.front());
+        return distanceToLocalSegmentHorizontalMeters(point, vertex, vertex);
+    }
+
+    double best = std::numeric_limits<double>::infinity();
+    for (std::size_t index = 1; index < route.size(); ++index) {
+        best = std::min(
+            best,
+            distanceToLocalSegmentHorizontalMeters(
+                point,
+                geoToLocal(origin, route[index - 1]),
+                geoToLocal(origin, route[index])));
+    }
+    return best;
+}
+
 GeoCoordinate interpolateGeo(
     const GeoCoordinate& from,
     const GeoCoordinate& to,
@@ -885,6 +933,83 @@ RouteReuseDecision shouldReuseRoute(
         std::isfinite(max_distance_from_route_m) &&
         decision.distance_from_route_m <= max_distance_from_route_m;
     return decision;
+}
+
+RouteCorridorResult checkRouteCorridor(
+    const std::vector<GeoCoordinate>& route,
+    const GeoCoordinate& current_position,
+    const RouteCorridorConfig& config) {
+    RouteCorridorResult result;
+    result.status = Status::okStatus();
+
+    if (route.empty() || !isFiniteCoordinate(current_position) || !routeHasFiniteCoordinates(route)) {
+        result.status = Status::error(
+            ErrorCode::InvalidArgument,
+            "route corridor requires finite current position and route");
+        result.violation = true;
+        return result;
+    }
+    if (config.max_distance_m < 0.0 || config.warning_distance_m < 0.0 ||
+        config.warning_distance_m > config.max_distance_m ||
+        !std::isfinite(config.max_distance_m) || !std::isfinite(config.warning_distance_m)) {
+        result.status = Status::error(
+            ErrorCode::InvalidArgument,
+            "route corridor distances must be finite, non-negative and ordered");
+        result.violation = true;
+        return result;
+    }
+
+    result.distance_from_route_m = distanceToRouteHorizontalMeters(route, current_position);
+    result.inside_corridor = result.distance_from_route_m <= config.max_distance_m;
+    result.violation = !result.inside_corridor;
+    result.warning = result.inside_corridor && result.distance_from_route_m >= config.warning_distance_m;
+    return result;
+}
+
+GeofenceResult checkGeofence(
+    const Geofence& geofence,
+    const GeoCoordinate& current_position) {
+    GeofenceResult result;
+    result.status = Status::okStatus();
+
+    if (geofence.vertices.size() < 3 || !isFiniteCoordinate(current_position) ||
+        !routeHasFiniteCoordinates(geofence.vertices)) {
+        result.status = Status::error(
+            ErrorCode::InvalidArgument,
+            "geofence requires at least three finite vertices and finite current position");
+        result.violation = true;
+        return result;
+    }
+
+    const GeoCoordinate origin = geofence.vertices.front();
+    const auto point = geoToLocal(origin, current_position);
+    bool inside = false;
+    constexpr double boundary_epsilon_m = 0.05;
+
+    for (std::size_t index = 0, previous = geofence.vertices.size() - 1;
+         index < geofence.vertices.size();
+         previous = index++) {
+        const auto a = geoToLocal(origin, geofence.vertices[previous]);
+        const auto b = geoToLocal(origin, geofence.vertices[index]);
+        if (distanceToLocalSegmentHorizontalMeters(point, a, b) <= boundary_epsilon_m) {
+            result.inside = true;
+            result.violation = false;
+            return result;
+        }
+
+        const bool crosses = (a.y > point.y) != (b.y > point.y);
+        if (crosses) {
+            const double x_at_y =
+                (b.x - a.x) * (point.y - a.y) / (b.y - a.y) + a.x;
+            if (point.x < x_at_y) {
+                inside = !inside;
+            }
+        }
+    }
+
+    result.inside = inside;
+    result.violation = !inside;
+    return result;
 }
 
 double haversineDistance(const GeoCoordinate& a, const GeoCoordinate& b) {
