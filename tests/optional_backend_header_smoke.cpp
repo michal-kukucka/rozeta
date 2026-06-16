@@ -1,6 +1,7 @@
 #include <rozeta/camera.hpp>
 #include <rozeta/kinect.hpp>
 #include <rozeta/lidar.hpp>
+#include <rozeta/mission.hpp>
 #include <rozeta/ui.hpp>
 
 #include <type_traits>
@@ -9,6 +10,9 @@ int main() {
 #ifdef ROZETA_WITH_OPENCV
     static_assert(std::is_base_of<rozeta::camera::Camera, rozeta::camera::OpenCvCamera>::value,
                   "OpenCvCamera must remain a camera backend");
+    static_assert(std::is_base_of<rozeta::mission::QrDecoder,
+                                  rozeta::mission::OpenCvQrDecoder>::value,
+                  "OpenCvQrDecoder must remain a QR decoder backend");
 #endif
 
 #ifdef ROZETA_WITH_KINECT

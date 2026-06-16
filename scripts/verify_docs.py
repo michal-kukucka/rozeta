@@ -215,6 +215,14 @@ REQUIRED_BUCHLOVICE_M18_PHRASES = [
     "std::runtime_error",
 ]
 
+REQUIRED_BUCHLOVICE_M20_PHRASES = [
+    "M20 — OpenCV QR decoder backend",
+    "OpenCvQrDecoder",
+    "cv::QRCodeDetector",
+    "ROZETA_WITH_OPENCV=ON",
+    "objdetect",
+]
+
 
 def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
@@ -451,6 +459,23 @@ def main() -> int:
     for phrase in REQUIRED_BUCHLOVICE_M18_PHRASES:
         if phrase not in buchlovice_m18_docs:
             fail(f"Buchlovice M18 config-loader documentation coverage missing: {phrase}", failures)
+
+    buchlovice_m20_docs = (
+        read("docs/mission_module.md")
+        + "\n"
+        + read("docs/api-reference.md")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M20_PHRASES:
+        if phrase not in buchlovice_m20_docs:
+            fail(f"Buchlovice M20 OpenCV QR documentation coverage missing: {phrase}", failures)
+
+    mission_source = read("src/mission.cpp")
+    if "cv::QRCodeDetector" not in mission_source:
+        fail("M20 OpenCvQrDecoder source does not use cv::QRCodeDetector", failures)
+    if "OpenCV QR decoder hook is declared; backend implementation is a later optional adapter" in mission_source:
+        fail("M20 OpenCvQrDecoder still returns the old NotImplemented placeholder", failures)
 
     doxygen = read("Doxyfile")
     for required in ["INPUT                  = include src examples", "OUTPUT_DIRECTORY       = docs/generated", "GENERATE_HTML", "GENERATE_XML", "EXTRACT_ALL"]:

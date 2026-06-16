@@ -7,6 +7,10 @@
 #include <sstream>
 #include <string>
 
+#ifdef ROZETA_WITH_OPENCV
+#include <opencv2/objdetect.hpp>
+#endif
+
 namespace rozeta::mission {
 namespace {
 
@@ -166,10 +170,31 @@ Status parseMissionTargetFromQr(
 }
 
 #ifdef ROZETA_WITH_OPENCV
-Status OpenCvQrDecoder::decode(const QrImage&, std::string&) {
-    return Status::error(
-        ErrorCode::NotImplemented,
-        "OpenCV QR decoder hook is declared; backend implementation is a later optional adapter");
+Status OpenCvQrDecoder::decode(const QrImage& image, std::string& payload) {
+    if (image.width <= 0 || image.height <= 0) {
+        return Status::error(ErrorCode::InvalidArgument, "QR image dimensions must be positive");
+    }
+    constexpr int kMaxQrPixels = 100000000;
+    if (image.width > kMaxQrPixels / image.height) {
+        return Status::error(ErrorCode::InvalidArgument, "QR image dimensions are too large");
+    }
+    const auto expected = static_cast<std::size_t>(image.width) * static_cast<std::size_t>(image.height);
+    if (image.grayscale.size() != expected) {
+        return Status::error(ErrorCode::InvalidArgument, "QR image grayscale payload size mismatch");
+    }
+
+    std::vector<std::uint8_t> mutable_gray = image.grayscale;
+    const cv::Mat gray(
+        image.height,
+        image.width,
+        CV_8UC1,
+        mutable_gray.data());
+    cv::QRCodeDetector detector;
+    payload = detector.detectAndDecode(gray);
+    if (payload.empty()) {
+        return Status::error(ErrorCode::ParseError, "OpenCV QR decoder found no QR payload");
+    }
+    return Status::okStatus();
 }
 #endif
 

@@ -323,6 +323,19 @@ Delivered coverage:
 - `SafetyMotorGate` calls the underlying motor controller emergency stop and refuses motion until reset.
 - Added tests for latch behavior, runtime fault propagation and motor command refusal.
 
+### M20 — OpenCV QR decoder backend
+
+Status: implemented behind `ROZETA_WITH_OPENCV=ON` in `rozeta::mission::OpenCvQrDecoder`.
+
+Goal: replace the placeholder optional QR hook with a real OpenCV adapter while keeping default CI dependency-free.
+
+Delivered coverage:
+- `OpenCvQrDecoder::decode()` validates `QrImage` dimensions, maximum pixel count and grayscale payload size before calling OpenCV.
+- The backend wraps grayscale bytes as `CV_8UC1` and decodes with `cv::QRCodeDetector` from OpenCV `objdetect`.
+- Empty QR decode returns `ParseError`; valid payloads reuse `parseMissionTargetFromQr()` and the existing coordinate parser/bounds checks.
+- `ROZETA_WITH_OPENCV=ON` now requires OpenCV `core`, `imgproc`, `videoio` and `objdetect` components.
+- Added `scripts/smoke_opencv_qr_stub.sh` so guarded QR source is syntax-checked on machines without OpenCV development packages.
+
 
 ## Recommended implementation order
 

@@ -34,7 +34,13 @@ public:
 };
 ```
 
-An OpenCV QR hook is declared behind `ROZETA_WITH_OPENCV` as `OpenCvQrDecoder`. The default build remains dependency-free; the M3 public seam and fake-decoder tests are already in place for the later optional OpenCV QR adapter.
+An OpenCV QR backend is implemented behind `ROZETA_WITH_OPENCV` as `OpenCvQrDecoder`. The default build remains dependency-free; enabling `ROZETA_WITH_OPENCV=ON` requires OpenCV `core`, `imgproc`, `videoio` and `objdetect`, and the decoder body uses `cv::QRCodeDetector` on validated grayscale `QrImage` frames.
+
+## M20 — OpenCV QR decoder backend
+
+`OpenCvQrDecoder::decode()` validates dimensions and grayscale byte count, wraps the buffer as a `CV_8UC1` `cv::Mat`, then calls `cv::QRCodeDetector::detectAndDecode()`. Empty decoded text returns `ParseError`; valid decoded text flows through the same `parseMissionTargetFromQr()` parser path as fake decoders, so coordinate formats and bounds stay identical across CI and hardware builds.
+
+The repository also includes `scripts/smoke_opencv_qr_stub.sh`, a dependency-free syntax smoke that stubs the minimal OpenCV `objdetect` API and compiles `src/mission.cpp` with `ROZETA_WITH_OPENCV=ON` on hosts without OpenCV dev packages.
 
 ## M11 — Robotour mission state machine
 

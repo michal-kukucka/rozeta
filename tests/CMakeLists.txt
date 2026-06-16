@@ -59,3 +59,7 @@ find_package(Python3 COMPONENTS Interpreter)
 if(Python3_Interpreter_FOUND)
   add_test(NAME rozeta_docs_contract COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/verify_docs.py)
 endif()
+
+if(UNIX)
+  add_test(NAME rozeta_opencv_qr_stub_smoke COMMAND ${CMAKE_SOURCE_DIR}/scripts/smoke_opencv_qr_stub.sh)
+endif()

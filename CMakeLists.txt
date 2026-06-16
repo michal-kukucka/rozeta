@@ -19,12 +19,12 @@ option(ROZETA_WITH_KINECT "Enable optional libfreenect Kinect backend" OFF)
 find_package(Doxygen QUIET)
 
 if(ROZETA_WITH_OPENCV)
-  find_package(OpenCV QUIET COMPONENTS core imgproc videoio)
+  find_package(OpenCV QUIET COMPONENTS core imgproc videoio objdetect)
   if(NOT OpenCV_FOUND)
     message(FATAL_ERROR
-        "ROZETA_WITH_OPENCV=ON requires OpenCV with core, imgproc and videoio "
-        "components. Install OpenCV development packages or configure with "
-        "-DROZETA_WITH_OPENCV=OFF.")
+        "ROZETA_WITH_OPENCV=ON requires OpenCV with core, imgproc, videoio "
+        "and objdetect components. Install OpenCV development packages or configure "
+        "with -DROZETA_WITH_OPENCV=OFF.")
   endif()
 endif()
 
