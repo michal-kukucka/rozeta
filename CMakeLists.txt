@@ -59,6 +59,7 @@ set(ROZETA_SOURCES
     src/imu.cpp
     src/camera.cpp
     src/calibration.cpp
+    src/hardware_smoke.cpp
     src/perception.cpp
     src/kinect.cpp
     src/maps.cpp

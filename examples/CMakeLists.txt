@@ -17,6 +17,7 @@ set(ROZETA_EXAMPLES
     robotour_buchlovice_demo
     buchlovice_graph_route
     depth_obstacle_console
+    hardware_smoke_matrix
 )
 if(ROZETA_WITH_SERIAL_MOTORS)
   list(APPEND ROZETA_EXAMPLES serial_motor_calibrate)

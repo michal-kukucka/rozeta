@@ -41,6 +41,11 @@ void test_calibration_load_fails_closed_for_bad_files();
 void test_calibration_load_requires_complete_unique_snapshot_keys();
 void test_calibration_rejects_revision_values_that_break_key_value_files();
 void test_calibration_checklist_reports_camera_motor_gps_and_threshold_steps();
+void test_hardware_smoke_matrix_builds_lifted_wheel_and_sensor_checks();
+void test_hardware_smoke_matrix_fails_closed_without_estop_or_wheel_lift();
+void test_hardware_smoke_matrix_renders_deterministic_operator_plan();
+void test_hardware_smoke_matrix_validates_only_enabled_source_groups();
+void test_hardware_smoke_matrix_rejects_invalid_calibration_and_quotes_commands();
 void test_maps_nearest_path_index_selects_closest_path();
 void test_maps_nearest_path_index_empty_map_returns_invalid_index();
 void test_maps_csv_loader_loads_fixture_route_and_sorts_by_sequence();
@@ -261,6 +266,11 @@ int main(){
         {"calibration_required_keys", test_calibration_load_requires_complete_unique_snapshot_keys},
         {"calibration_revision_chars", test_calibration_rejects_revision_values_that_break_key_value_files},
         {"calibration_checklist", test_calibration_checklist_reports_camera_motor_gps_and_threshold_steps},
+        {"hardware_smoke_matrix", test_hardware_smoke_matrix_builds_lifted_wheel_and_sensor_checks},
+        {"hardware_smoke_fail_closed", test_hardware_smoke_matrix_fails_closed_without_estop_or_wheel_lift},
+        {"hardware_smoke_render", test_hardware_smoke_matrix_renders_deterministic_operator_plan},
+        {"hardware_smoke_enabled_sources", test_hardware_smoke_matrix_validates_only_enabled_source_groups},
+        {"hardware_smoke_quote", test_hardware_smoke_matrix_rejects_invalid_calibration_and_quotes_commands},
         {"maps_nearest_path", test_maps_nearest_path_index_selects_closest_path},
         {"maps_empty_index", test_maps_nearest_path_index_empty_map_returns_invalid_index},
         {"maps_csv_fixture", test_maps_csv_loader_loads_fixture_route_and_sorts_by_sequence},

@@ -22,6 +22,7 @@ PUBLIC_HEADER_DOCS = {
     "depth": "docs/navigation.md",
     "field_runner": "docs/field_runner_module.md",
     "gps": "docs/gps_module.md",
+    "hardware_smoke": "docs/hardware_smoke_module.md",
     "imu": "docs/imu_module.md",
     "kinect": "docs/kinect_module.md",
     "lidar": "docs/lidar_module.md",
@@ -275,6 +276,18 @@ REQUIRED_BUCHLOVICE_M25_PHRASES = [
     "MotorTrimCalibration",
     "GpsCalibration",
     "SensorThresholdCalibration",
+]
+
+REQUIRED_BUCHLOVICE_M26_PHRASES = [
+    "M26 — Unified hardware smoke matrix",
+    "HardwareSmokeConfig",
+    "HardwareSmokeMatrix",
+    "buildHardwareSmokeMatrix",
+    "renderHardwareSmokeMatrix",
+    "hardware_smoke_matrix",
+    "physical-estop",
+    "lifted-wheel-motors",
+    "SENSOR_ONLY",
 ]
 
 
@@ -591,6 +604,23 @@ def main() -> int:
     calibration_source = read("src/calibration.cpp")
     if "FieldCalibrationLoadResult loadFieldCalibration" not in calibration_source:
         fail("M25 loadFieldCalibration source implementation is missing", failures)
+
+    buchlovice_m26_docs = (
+        read("docs/hardware_smoke_module.md")
+        + "\n"
+        + read("docs/module_overview.md")
+        + "\n"
+        + read("docs/api-reference.md")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M26_PHRASES:
+        if phrase not in buchlovice_m26_docs:
+            fail(f"Buchlovice M26 hardware smoke documentation coverage missing: {phrase}", failures)
+
+    hardware_smoke_source = read("src/hardware_smoke.cpp")
+    if "HardwareSmokeMatrix buildHardwareSmokeMatrix" not in hardware_smoke_source:
+        fail("M26 buildHardwareSmokeMatrix source implementation is missing", failures)
 
     maps_source = read("src/maps.cpp")
     if "JunctionCueResult junctionCue" not in maps_source:

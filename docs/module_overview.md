@@ -85,6 +85,12 @@ M25 — Field calibration tools live in `include/rozeta/calibration.hpp`. `Field
 
 See `docs/calibration_module.md` for the calibration file format and operator checklist.
 
+## Hardware smoke
+
+M26 — Unified hardware smoke matrix lives in `include/rozeta/hardware_smoke.hpp`. `HardwareSmokeConfig`, `HardwareSmokeMatrix`, `buildHardwareSmokeMatrix()` and `renderHardwareSmokeMatrix()` build a deterministic lifted-wheel and sensor-only runbook headed by `ROZETA HARDWARE SMOKE MATRIX`.
+
+See `docs/hardware_smoke_module.md` for the `hardware_smoke_matrix` example and field safety gate details.
+
 ## Perception
 
 `perception::detectRgbPath` and `perception::measureSideCoverage` analyze packed RGB8 camera frames with dependency-free HSV-style masks. M7 — RGB path and grass perception reports path left/center/right direction, normalized center offset, confidence, green coverage and dark-side coverage without owning cameras or motor decisions.

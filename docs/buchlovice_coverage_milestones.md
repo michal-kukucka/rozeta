@@ -403,6 +403,20 @@ Delivered coverage:
 - `buildFieldCalibrationChecklist()` returns the ordered camera, motors, GPS and thresholds operator procedure for future CLI/HUD rendering.
 - CTest covers round-trip persistence, parser failures, non-finite/out-of-range validation and checklist content.
 
+### M26 — Unified hardware smoke matrix
+
+Status: implemented as deterministic no-hardware matrix planning and example rendering.
+
+Goal: provide one operator-facing preflight plan for lifted-wheel and sensor-only checks before full Buchlovice/Robotour field runs.
+
+Delivered coverage:
+- `HardwareSmokeConfig` declares physical E-STOP, lifted-wheel, motor-motion, GPS, camera, Kinect, LiDAR and calibration inputs.
+- `buildHardwareSmokeMatrix()` returns a `HardwareSmokeMatrix` with ordered `HardwareSmokeCheck` rows for `physical-estop`, optional `lifted-wheel-motors`, `gps-feed`, `camera-capture`, `kinect-depth`, `lidar-scan` and `calibration-file`.
+- Safety gates fail closed: disabled E-STOP latching returns `EmergencyStopped`, motor motion without lifted wheels returns `InvalidArgument`, empty sources fail and M25 calibration validation is reused.
+- `renderHardwareSmokeMatrix()` emits `ROZETA HARDWARE SMOKE MATRIX` text with explicit `SENSOR_ONLY` versus motion rows.
+- `hardware_smoke_matrix` executable renders the default sensor-only runbook, can add `--with-motors`, and intentionally blocks with `--no-estop`.
+- CTest covers full lifted-wheel plus sensor matrix, fail-closed gates and deterministic operator-plan rendering.
+
 
 ## Recommended implementation order
 
