@@ -390,6 +390,19 @@ Delivered coverage:
 - Route-cue text is pinned behind a `JUNCTION:` label so prompts from `junctionCue()` remain visible while the HUD repaints in place.
 - CTest covers non-ANSI deterministic content, ANSI clear/home prefix output, route warning/violation text and invalid HUD config validation.
 
+### M25 — Field calibration tools
+
+Status: implemented as deterministic no-hardware calibration records, validation and checklist helpers.
+
+Goal: give operators a strict file format and reusable calibration workflow for cameras, motors, GPS and sensor thresholds before M26 hardware smoke commands exercise the physical stack.
+
+Delivered coverage:
+- `FieldCalibration` stores `CameraCalibration`, `MotorTrimCalibration`, `GpsCalibration` and `SensorThresholdCalibration` values with a revision label.
+- `validateFieldCalibration()` rejects non-finite values and out-of-range camera FOV, mounting height, motor trim, PWM, GPS offset and threshold values with `InvalidArgument`.
+- `saveFieldCalibration()` and `loadFieldCalibration()` persist strict `key=value` snapshots for field laptops; missing files return `HardwareUnavailable`, while malformed lines, unknown keys and bad numbers fail closed.
+- `buildFieldCalibrationChecklist()` returns the ordered camera, motors, GPS and thresholds operator procedure for future CLI/HUD rendering.
+- CTest covers round-trip persistence, parser failures, non-finite/out-of-range validation and checklist content.
+
 
 ## Recommended implementation order
 

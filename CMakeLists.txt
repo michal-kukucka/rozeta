@@ -58,6 +58,7 @@ set(ROZETA_SOURCES
     src/lidar.cpp
     src/imu.cpp
     src/camera.cpp
+    src/calibration.cpp
     src/perception.cpp
     src/kinect.cpp
     src/maps.cpp

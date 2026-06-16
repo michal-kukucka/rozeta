@@ -35,6 +35,12 @@ void test_serial_port_rejects_invalid_configuration();
 void test_motor_calibration_save_load_round_trip();
 void test_motor_calibration_load_rejects_invalid_values();
 void test_motor_calibration_load_missing_file_returns_error();
+void test_calibration_save_load_round_trip_for_field_tools();
+void test_calibration_rejects_non_finite_and_out_of_range_values();
+void test_calibration_load_fails_closed_for_bad_files();
+void test_calibration_load_requires_complete_unique_snapshot_keys();
+void test_calibration_rejects_revision_values_that_break_key_value_files();
+void test_calibration_checklist_reports_camera_motor_gps_and_threshold_steps();
 void test_maps_nearest_path_index_selects_closest_path();
 void test_maps_nearest_path_index_empty_map_returns_invalid_index();
 void test_maps_csv_loader_loads_fixture_route_and_sorts_by_sequence();
@@ -249,6 +255,12 @@ int main(){
         {"motor_calibration_round_trip", test_motor_calibration_save_load_round_trip},
         {"motor_calibration_invalid", test_motor_calibration_load_rejects_invalid_values},
         {"motor_calibration_missing", test_motor_calibration_load_missing_file_returns_error},
+        {"calibration_round_trip", test_calibration_save_load_round_trip_for_field_tools},
+        {"calibration_invalid", test_calibration_rejects_non_finite_and_out_of_range_values},
+        {"calibration_bad_files", test_calibration_load_fails_closed_for_bad_files},
+        {"calibration_required_keys", test_calibration_load_requires_complete_unique_snapshot_keys},
+        {"calibration_revision_chars", test_calibration_rejects_revision_values_that_break_key_value_files},
+        {"calibration_checklist", test_calibration_checklist_reports_camera_motor_gps_and_threshold_steps},
         {"maps_nearest_path", test_maps_nearest_path_index_selects_closest_path},
         {"maps_empty_index", test_maps_nearest_path_index_empty_map_returns_invalid_index},
         {"maps_csv_fixture", test_maps_csv_loader_loads_fixture_route_and_sorts_by_sequence},

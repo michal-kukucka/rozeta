@@ -10,6 +10,7 @@ add_executable(rozeta_tests
     test_config.cpp
     test_serial_port.cpp
     test_motor_calibration.cpp
+    test_calibration.cpp
     test_maps.cpp
     test_navigation.cpp
     test_runtime.cpp

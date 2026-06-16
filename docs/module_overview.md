@@ -79,6 +79,12 @@ M10 — Obstacle wait and bypass behavior adds `obstacle_behavior::ObstacleBehav
 
 See `docs/camera_module.md` for mock and OpenCV capture usage.
 
+## Calibration
+
+M25 — Field calibration tools live in `include/rozeta/calibration.hpp`. `FieldCalibration` stores camera geometry, motor trim, GPS antenna offsets and sensor thresholds; `validateFieldCalibration()`, `saveFieldCalibration()`, `loadFieldCalibration()` and `buildFieldCalibrationChecklist()` provide deterministic no-hardware tooling for field laptops.
+
+See `docs/calibration_module.md` for the calibration file format and operator checklist.
+
 ## Perception
 
 `perception::detectRgbPath` and `perception::measureSideCoverage` analyze packed RGB8 camera frames with dependency-free HSV-style masks. M7 — RGB path and grass perception reports path left/center/right direction, normalized center offset, confidence, green coverage and dark-side coverage without owning cameras or motor decisions.

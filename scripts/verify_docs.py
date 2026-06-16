@@ -15,6 +15,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 
 PUBLIC_HEADER_DOCS = {
+    "calibration": "docs/calibration_module.md",
     "camera": "docs/camera_module.md",
     "c_api": "docs/api-reference.md",
     "core": "docs/module_overview.md",
@@ -261,6 +262,19 @@ REQUIRED_BUCHLOVICE_M24_PHRASES = [
     "ROZETA FIELD HUD",
     "CORRIDOR: VIOLATION",
     "JUNCTION:",
+]
+
+REQUIRED_BUCHLOVICE_M25_PHRASES = [
+    "M25 — Field calibration tools",
+    "FieldCalibration",
+    "validateFieldCalibration",
+    "saveFieldCalibration",
+    "loadFieldCalibration",
+    "buildFieldCalibrationChecklist",
+    "CameraCalibration",
+    "MotorTrimCalibration",
+    "GpsCalibration",
+    "SensorThresholdCalibration",
 ]
 
 
@@ -560,6 +574,23 @@ def main() -> int:
     ui_source = read("src/ui.cpp")
     if "std::string renderOperatorHud" not in ui_source:
         fail("M24 renderOperatorHud source implementation is missing", failures)
+
+    buchlovice_m25_docs = (
+        read("docs/calibration_module.md")
+        + "\n"
+        + read("docs/module_overview.md")
+        + "\n"
+        + read("docs/api-reference.md")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M25_PHRASES:
+        if phrase not in buchlovice_m25_docs:
+            fail(f"Buchlovice M25 calibration documentation coverage missing: {phrase}", failures)
+
+    calibration_source = read("src/calibration.cpp")
+    if "FieldCalibrationLoadResult loadFieldCalibration" not in calibration_source:
+        fail("M25 loadFieldCalibration source implementation is missing", failures)
 
     maps_source = read("src/maps.cpp")
     if "JunctionCueResult junctionCue" not in maps_source:
