@@ -48,8 +48,7 @@ Current public surface:
 
 ## Stable C ABI
 
-The C ABI intentionally wraps only pure, value-type operations that do not expose
-C++ ownership, templates or exceptions. Include `rozeta/c_api.h` from C or C++
+The C ABI intentionally wraps pure value-type operations and small opaque handles that do not expose C++ templates or exceptions. Include `rozeta/c_api.h` from C or C++
 and link the installed `rozeta::rozeta` CMake target.
 
 Available C entry points:
@@ -59,6 +58,7 @@ Available C entry points:
 - `rozeta_distance_2d(ax, ay, bx, by)` computes planar distance.
 - `rozeta_obstacles_from_lidar(points, count, threshold_m)` maps C scan points to
   ahead/left/right obstacle sectors and nearest valid distance.
+- M19 Python migration bridge helpers expose `rozeta_runtime_create`, `rozeta_runtime_tick`, `rozeta_safety_latch_step`, `rozeta_plan_field_runner`, and `rozeta_operator_dashboard_phase` so ctypes users can drive runtime, safety, field-runner and operator dashboard workflows without C++ ownership details.
 
 The smoke example is executable documentation:
 

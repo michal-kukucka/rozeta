@@ -139,6 +139,7 @@ void test_c_api_parse_mission_target_valid();
 void test_c_api_parse_mission_target_invalid();
 void test_c_api_valid_coordinate();
 void test_c_api_haversine_distance();
+void test_c_api_runtime_safety_field_runner_operator_bridge();
 void test_field_preset_buchlovice_has_safe_defaults();
 void test_field_preset_no_hardware_demo_is_headless();
 void test_field_preset_validate_rejects_invalid();
@@ -340,6 +341,7 @@ int main(){
         {"capi_mission_inv", test_c_api_parse_mission_target_invalid},
         {"capi_coord", test_c_api_valid_coordinate},
         {"capi_haversine", test_c_api_haversine_distance},
+        {"capi_runtime_safety_field_operator", test_c_api_runtime_safety_field_runner_operator_bridge},
         {"field_preset_buchlovice", test_field_preset_buchlovice_has_safe_defaults},
         {"field_preset_demo", test_field_preset_no_hardware_demo_is_headless},
         {"field_preset_invalid", test_field_preset_validate_rejects_invalid},

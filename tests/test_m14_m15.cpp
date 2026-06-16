@@ -36,6 +36,40 @@ void test_c_api_haversine_distance() {
     REQUIRE_TRUE(d < 200.0);
 }
 
+void test_c_api_runtime_safety_field_runner_operator_bridge() {
+    RozetaRuntimeInputs inputs{};
+    inputs.start_requested = 1;
+    inputs.motors_healthy = 1;
+    inputs.gps_healthy = 1;
+    inputs.camera_healthy = 1;
+    inputs.depth_healthy = 1;
+    inputs.map_healthy = 1;
+    inputs.communication_healthy = 1;
+    inputs.logging_healthy = 1;
+
+    auto runtime = rozeta_runtime_create();
+    REQUIRE_TRUE(runtime != nullptr);
+    auto output = rozeta_runtime_tick(runtime, inputs, 0);
+    REQUIRE_TRUE(output.request_stop == 1);
+    REQUIRE_TRUE(std::strlen(output.reason) > 0);
+    rozeta_runtime_destroy(runtime);
+
+    auto latch = rozeta_safety_latch_step(0, 1, 0);
+    REQUIRE_TRUE(latch.latched == 1);
+    REQUIRE_TRUE(std::strlen(latch.reason) > 0);
+    latch = rozeta_safety_latch_step(latch.latched, 0, 1);
+    REQUIRE_TRUE(latch.latched == 0);
+
+    auto plan = rozeta_plan_field_runner(0, 0, "", "");
+    REQUIRE_TRUE(plan.ready == 1);
+    REQUIRE_TRUE(plan.uses_mock_motors == 1);
+
+    char dashboard[128]{};
+    int written = rozeta_operator_dashboard_phase("Driving", 2, 48.1, 17.2, dashboard, sizeof(dashboard));
+    REQUIRE_TRUE(written > 0);
+    REQUIRE_TRUE(std::string(dashboard).find("Driving") != std::string::npos);
+}
+
 void test_field_preset_buchlovice_has_safe_defaults() {
     auto preset = robotour_config::buchloviceFieldPreset();
     REQUIRE_TRUE(preset.name == "buchlovice_field");

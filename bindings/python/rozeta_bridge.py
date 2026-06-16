@@ -11,7 +11,17 @@ Build the shared library first:
 import ctypes
 import os
 from ctypes import (
-    Structure, c_char, c_double, c_int, c_size_t, c_char_p, POINTER, CDLL,
+    Structure,
+    c_char,
+    c_double,
+    c_int,
+    c_size_t,
+    c_char_p,
+    c_longlong,
+    c_void_p,
+    create_string_buffer,
+    POINTER,
+    CDLL,
 )
 
 
@@ -53,9 +63,56 @@ class RozetaLidarScanPoint(Structure):
     ]
 
 
+class RozetaRuntimeInputs(Structure):
+    _fields_ = [
+        ("start_requested", c_int),
+        ("shutdown_requested", c_int),
+        ("arrived", c_int),
+        ("obstacle_ahead", c_int),
+        ("motors_healthy", c_int),
+        ("gps_healthy", c_int),
+        ("camera_healthy", c_int),
+        ("depth_healthy", c_int),
+        ("map_healthy", c_int),
+        ("communication_healthy", c_int),
+        ("logging_healthy", c_int),
+        ("physical_estop_latched", c_int),
+    ]
+
+
+class RozetaRuntimeOutput(Structure):
+    _fields_ = [
+        ("phase", c_int),
+        ("request_stop", c_int),
+        ("emergency_stop", c_int),
+        ("request_bypass", c_int),
+        ("resend_last_motor_command", c_int),
+        ("reason", c_char * 256),
+    ]
+
+
+class RozetaSafetyLatchState(Structure):
+    _fields_ = [
+        ("latched", c_int),
+        ("reason", c_char * 256),
+    ]
+
+
+class RozetaFieldRunnerPlan(Structure):
+    _fields_ = [
+        ("ready", c_int),
+        ("uses_mock_motors", c_int),
+        ("uses_serial_motors", c_int),
+        ("component_count", c_int),
+        ("error_count", c_int),
+        ("first_error", c_char * 256),
+    ]
+
+
 def _load_lib():
     """Find and load librozeta.so from standard locations."""
     candidates = [
+        os.path.join(os.path.dirname(__file__), "..", "..", "build-final", "librozeta.so"),
         os.path.join(os.path.dirname(__file__), "..", "..", "build", "librozeta.so"),
         "librozeta.so",
     ]
@@ -100,6 +157,31 @@ _lib.rozeta_valid_coordinate.restype = c_int
 
 _lib.rozeta_haversine_distance.argtypes = [c_double] * 4
 _lib.rozeta_haversine_distance.restype = c_double
+
+_lib.rozeta_runtime_create.argtypes = []
+_lib.rozeta_runtime_create.restype = c_void_p
+_lib.rozeta_runtime_destroy.argtypes = [c_void_p]
+_lib.rozeta_runtime_destroy.restype = None
+_lib.rozeta_runtime_reset.argtypes = [c_void_p]
+_lib.rozeta_runtime_reset.restype = None
+_lib.rozeta_runtime_tick.argtypes = [c_void_p, RozetaRuntimeInputs, c_longlong]
+_lib.rozeta_runtime_tick.restype = RozetaRuntimeOutput
+
+_lib.rozeta_safety_latch_step.argtypes = [c_int, c_int, c_int]
+_lib.rozeta_safety_latch_step.restype = RozetaSafetyLatchState
+
+_lib.rozeta_plan_field_runner.argtypes = [c_int, c_int, c_char_p, c_char_p]
+_lib.rozeta_plan_field_runner.restype = RozetaFieldRunnerPlan
+
+_lib.rozeta_operator_dashboard_phase.argtypes = [
+    c_char_p,
+    c_int,
+    c_double,
+    c_double,
+    POINTER(c_char),
+    c_size_t,
+]
+_lib.rozeta_operator_dashboard_phase.restype = c_int
 
 
 # ── Pythonic wrappers ─────────────────────────────────────────────
@@ -170,3 +252,87 @@ def valid_coordinate(lat, lon):
 
 def haversine_distance(lat1, lon1, lat2, lon2):
     return _lib.rozeta_haversine_distance(lat1, lon1, lat2, lon2)
+
+
+class MissionRuntime:
+    """Stateful MissionRuntime handle for Python migration code."""
+
+    def __init__(self):
+        self._handle = _lib.rozeta_runtime_create()
+        if not self._handle:
+            raise RuntimeError("failed to create Rozeta MissionRuntime")
+
+    def close(self):
+        if self._handle:
+            _lib.rozeta_runtime_destroy(self._handle)
+            self._handle = None
+
+    def __del__(self):
+        self.close()
+
+    def reset(self):
+        _lib.rozeta_runtime_reset(self._handle)
+
+    def tick(self, now_ms=0, **inputs):
+        c_inputs = RozetaRuntimeInputs(
+            int(bool(inputs.get("start_requested", False))),
+            int(bool(inputs.get("shutdown_requested", False))),
+            int(bool(inputs.get("arrived", False))),
+            int(bool(inputs.get("obstacle_ahead", False))),
+            int(bool(inputs.get("motors_healthy", True))),
+            int(bool(inputs.get("gps_healthy", True))),
+            int(bool(inputs.get("camera_healthy", True))),
+            int(bool(inputs.get("depth_healthy", True))),
+            int(bool(inputs.get("map_healthy", True))),
+            int(bool(inputs.get("communication_healthy", True))),
+            int(bool(inputs.get("logging_healthy", True))),
+            int(bool(inputs.get("physical_estop_latched", False))),
+        )
+        output = _lib.rozeta_runtime_tick(self._handle, c_inputs, now_ms)
+        return {
+            "phase": output.phase,
+            "request_stop": bool(output.request_stop),
+            "emergency_stop": bool(output.emergency_stop),
+            "request_bypass": bool(output.request_bypass),
+            "resend_last_motor_command": bool(output.resend_last_motor_command),
+            "reason": output.reason.decode("utf-8", errors="replace").strip("\x00"),
+        }
+
+
+def safety_latch_step(previous_latched=False, asserted=False, acknowledge_cleared=False):
+    state = _lib.rozeta_safety_latch_step(
+        int(bool(previous_latched)),
+        int(bool(asserted)),
+        int(bool(acknowledge_cleared)),
+    )
+    return {
+        "latched": bool(state.latched),
+        "reason": state.reason.decode("utf-8", errors="replace").strip("\x00"),
+    }
+
+
+def plan_field_runner(hardware=False, physical_estop_configured=False, motor_device="", gps_device=""):
+    plan = _lib.rozeta_plan_field_runner(
+        1 if hardware else 0,
+        int(bool(physical_estop_configured)),
+        motor_device.encode("utf-8"),
+        gps_device.encode("utf-8"),
+    )
+    return {
+        "ready": bool(plan.ready),
+        "uses_mock_motors": bool(plan.uses_mock_motors),
+        "uses_serial_motors": bool(plan.uses_serial_motors),
+        "component_count": plan.component_count,
+        "error_count": plan.error_count,
+        "first_error": plan.first_error.decode("utf-8", errors="replace").strip("\x00"),
+    }
+
+
+def render_dashboard_phase(phase, leg, lat, lon):
+    buffer = create_string_buffer(512)
+    written = _lib.rozeta_operator_dashboard_phase(
+        phase.encode("utf-8"), leg, lat, lon, buffer, len(buffer)
+    )
+    if written < 0:
+        raise ValueError("invalid dashboard phase arguments")
+    return buffer.value.decode("utf-8", errors="replace")

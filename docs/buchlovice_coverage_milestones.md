@@ -266,7 +266,8 @@ Goal: allow the existing Python Buchlovice app to adopt Rozeta incrementally.
 Delivered coverage:
 - Expanded `c_api.h` with `rozeta_parse_nmea`, `rozeta_parse_gps_payload`, `rozeta_parse_mission_target`, `rozeta_valid_coordinate`, and `rozeta_haversine_distance`. Added C-compatible `RozetaGpsFix` and `RozetaMissionTargetResult` value types.
 - Created `bindings/python/rozeta_bridge.py` — ctypes wrapper loading `librozeta.so` with Pythonic wrappers for all C API functions. Drop-in replacement for GPS parse, QR GPS parse, route cues, RGB coverage, obstacle state machine.
-- Added C API tests for mission target parsing, coordinate validation, and haversine distance.
+- M19 widened the bridge with `MissionRuntime`, `safety_latch_step()`, `plan_field_runner()` and `render_dashboard_phase()` for runtime, safety, field-runner and operator workflows.
+- Added C API tests for mission target parsing, coordinate validation, haversine distance and the M19 runtime/safety/field-runner/operator bridge.
 
 ### M15 — Configuration schema and field presets
 
