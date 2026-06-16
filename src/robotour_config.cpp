@@ -20,6 +20,8 @@ FieldPreset buchloviceFieldPreset() {
     p.mission = mission::RobotourMissionConfig{};
     p.mission.arrival_radius_m = 3.0;
     p.gps_baud_rate = 115200;
+    p.motor_device = "/dev/ttyUSB0";
+    p.gps_device = "/dev/ttyACM0";
     p.camera_enabled = true;
     p.depth_enabled = true;
     p.headless = true;

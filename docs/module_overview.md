@@ -26,6 +26,15 @@ Shared definitions: `Status`, `ErrorCode`, timestamps, geometry, robot state, co
 
 See `docs/runtime_module.md` for M2 supervisor usage.
 
+
+## Safety
+
+The safety module (`include/rozeta/safety.hpp`) contains the physical E-STOP integration seam. `DigitalEmergencyReading` normalizes button/GPIO/serial-line samples, `PhysicalEstopLatch` keeps the stop latched until an operator acknowledges a cleared input, and `SafetyMotorGate` refuses motor motion while latched. `MissionRuntime` consumes `RuntimeInputs::physical_estop_latched` and enters fault with `physical E-STOP latched`.
+
+## Field runner
+
+The field runner module (`include/rozeta/field_runner.hpp`) describes the Buchlovice deployment stack before a production executable opens hardware. `FieldRunnerConfig` selects no-hardware or hardware mode, `planBuchloviceFieldRunner()` validates motor/GPS device settings and physical E-STOP readiness, and `FieldRunnerPlan` reports components plus preflight errors.
+
 ## Motors
 
 `motors::MotorController` with differential-drive speed control, stop, emergency stop, encoder feedback and calibration. `MockMotorController` is available for tests and demos.

@@ -34,7 +34,7 @@ Current public surface:
 - `include/rozeta/motors.hpp` — differential-drive motor control, mock controller, optional serial motor controller, encoder feedback, calibration persistence and emergency stop semantics.
 - `include/rozeta/gps.hpp` — NMEA checksum validation, stream buffering, serial/file GPS receiver, M4 TCP/UDP `NetworkGpsReceiver`, `parseGpsPayload` for JSON/plain coordinate feeds, parsed GPS fix model and local conversion helpers.
 - `include/rozeta/odometry.hpp` — differential-drive odometry and pose integration.
-- `include/rozeta/lidar.hpp` — LiDAR scan types, scanner interface, filtering, console visualization and optional YDLIDAR-style backend/parser helper.
+- `include/rozeta/lidar.hpp` — LiDAR scan types, scanner interface, filtering, console visualization, optional YDLIDAR-style backend/parser helper, and optional LDROBOT LD06/LD19-compatible backend/parser helper with configurable stream detection (`LdRobotLidarDetectionConfig`).
 - `include/rozeta/obstacle_detection.hpp` — obstacle sector calculation from LiDAR scans and depth frames.
 - `include/rozeta/obstacle_behavior.hpp` — M10 obstacle wait and bypass behavior: `ObstacleBehavior` deterministic state machine with configurable wait/recheck/bypass pulse sequence, bypass direction selection from combined LiDAR/depth/RGB side coverage, max attempt gating, and in-maneuver emergency stop safety.
 - `include/rozeta/navigation.hpp` — waypoint navigation, route-following progress state and obstacle-aware motor decisions.
@@ -105,6 +105,7 @@ These examples are deliberately small and should stay buildable in CI:
 - `gps_network_reader` — M4 TCP/UDP GPS receiver and payload parser for JSON/plain/NMEA iPhone-style feeds.
 - `lidar_scan_console` — work with LiDAR scan structures.
 - `ydlidar_scan_console` — replay a YDLIDAR-style binary fixture or read a serial YDLIDAR device when `ROZETA_WITH_YDLIDAR=ON`.
+- `ldrobot_lidar_scan_console` — replay an LDROBOT LD06/LD19-compatible `0x54 0x2C` binary fixture, probe configurable detection settings, or read a serial device at 230400 baud when `ROZETA_WITH_LDROBOT_LIDAR=ON`.
 - `route_follower_demo` — load an offline CSV route and drive it through `navigation::RouteFollower` without hardware.
 - `buchlovice_graph_route` — load Buchlovice-style footway CSV, snap start/goal vertices, run graph `shortestPath`, and `sampleRoute` for route-following waypoints.
 - `mission_runtime_demo` — deterministic, tick-based MissionRuntime supervisor flow with module health, ObstacleWait/Bypass and motor keepalive hooks.
@@ -147,3 +148,8 @@ If you add, rename or remove a public header or example, the verifier tells you 
 ## Mission target API
 
 `include/rozeta/mission.hpp` exposes `mission::parseMissionTarget`, `MissionTarget`, `QrImage`, `QrDecoder`, and `parseMissionTargetFromQr` for M3 QR mission target intake. The default parser supports `geo:lat,lon`, `gps lat,lon`, labeled `lat`/`lon`, and `N ... E ...` coordinate text. M11 adds `RobotourMission` three-leg state machine (Service→ToLoading→AtLoading→ToUnloading→AtUnloading→Returning→Complete/Aborted), `MissionAck` operator acknowledgements, `MissionEvent` queue, haversine arrival-radius checks, and dynamic QR target loading.
+
+## M16/M17 field-runner and safety references
+
+- `docs/safety_module.md` documents `rozeta::safety`, `PhysicalEstopLatch`, `MockDigitalEmergencyInput` and `SafetyMotorGate`.
+- `docs/field_runner_module.md` documents `rozeta::field_runner`, `FieldRunnerConfig`, `FieldRunnerPlan` and `planBuchloviceFieldRunner`.

@@ -36,6 +36,60 @@ private:
     Scan scan_{};
 };
 
+#ifdef ROZETA_WITH_LDROBOT_LIDAR
+
+struct LdRobotLidarDetectionConfig {
+    std::size_t required_valid_frames{2};
+    std::size_t max_probe_bytes{512};
+    double min_distance_m{0.05};
+    double max_distance_m{12.0};
+    std::uint8_t min_intensity{0};
+    bool require_any_valid_point{true};
+};
+
+struct LdRobotLidarDetectionResult {
+    bool compatible{false};
+    std::size_t valid_frames{0};
+    std::size_t bytes_consumed{0};
+    std::string protocol_name{};
+};
+
+struct LdRobotLidarConfig {
+    std::string device{"/dev/ttyUSB0"};
+    int baud_rate{230400};
+    std::chrono::milliseconds read_timeout{100};
+    std::chrono::milliseconds write_timeout{100};
+    std::size_t read_buffer_size{256};
+    LdRobotLidarDetectionConfig detection{};
+};
+
+class LdRobotLidarScanner final : public LidarScanner {
+public:
+    explicit LdRobotLidarScanner(LdRobotLidarConfig config = {});
+    ~LdRobotLidarScanner() override;
+
+    Status initialize(const std::string& device) override;
+    Status start() override;
+    Status stop() override;
+    Scan readScan() override;
+    void close() noexcept;
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+};
+
+std::vector<ScanPoint> parseLdRobotLidarPacketStream(
+    const std::uint8_t* data,
+    std::size_t size,
+    LdRobotLidarDetectionConfig config = {});
+LdRobotLidarDetectionResult detectLdRobotLidarPacketStream(
+    const std::uint8_t* data,
+    std::size_t size,
+    LdRobotLidarDetectionConfig config = {});
+
+#endif
+
 #ifdef ROZETA_WITH_YDLIDAR
 
 struct YdLidarConfig {

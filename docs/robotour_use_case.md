@@ -11,7 +11,7 @@ Rozeta is inspired by the Buchlovice/Robotour style workflow, but rebuilt as C/C
 2. Read checksum-validated GPS fixes from sample files, serial NMEA devices, or M4 TCP/UDP iPhone-style feeds.
 3. Convert route GPS coordinates to local waypoints with `geoToLocal`.
 4. Read odometry.
-5. Read normalized LiDAR scans from mock data, sample replay or optional YDLIDAR serial devices.
+5. Read normalized LiDAR scans from mock data, sample replay, optional YDLIDAR serial devices, or optional LDROBOT LD06/LD19-compatible serial devices such as probable AliExpress delta2/delta2g modules.
 6. Optionally replay or capture depth frames with `depth_obstacle_console --sample` and convert them into obstacle sectors.
 7. Optionally capture validated camera frames through `camera_capture --mock` or the OpenCV backend, then run `perception::detectRgbPath` and `perception::measureSideCoverage` for M7 RGB path and grass perception hints. For M8 RGB obstacle detection, use `perception::RgbObstacleTracker` with `update()` to accumulate dark-obstacle measurements and `updateRef()` for reference-frame difference detection; the tracker's configurable hysteresis (5-frame trigger, 3-frame clear) suppresses transient false positives before feeding obstacle state into navigation decisions.
 8. Update robot state.
@@ -23,7 +23,7 @@ Rozeta is inspired by the Buchlovice/Robotour style workflow, but rebuilt as C/C
 
 ## Competition-oriented priorities
 
-- safe stop behavior before clever navigation
+- safe stop behavior before clever navigation, including the physical E-STOP latch in `rozeta::safety`
 - mock/demo mode for development without hardware
 - structured logs for later replay and analysis
 - fixture-driven `replay_robotour_log` checks for deterministic no-hardware integration testing
@@ -58,3 +58,9 @@ Use `mission::parseMissionTarget` to convert QR payload text such as `geo:lat,lo
 ## M7 RGB path and grass perception
 
 M7 — RGB path and grass perception adds dependency-free camera-frame masks on top of the existing camera module. `RgbPathConfig` controls HSV-style thresholds, `detectRgbPath` reports path direction/offset/confidence from the lower ROI, and `measureSideCoverage` reports green coverage plus dark coverage on the left, center and right image thirds. Optional OpenCV capture can feed these same packed RGB frames, but the perception helpers themselves stay hardware-free for CI.
+
+## Buchlovice field runner and physical E-STOP
+
+M16 adds `field_runner::planBuchloviceFieldRunner()` as the preflight planner for the production Buchlovice stack. No-hardware mode lists mock components for CI and desk demos. Hardware mode refuses to report `safe_to_start` unless the preset includes motor and GPS device settings and the physical E-STOP is configured.
+
+M17 adds `safety::PhysicalEstopLatch` and `safety::SafetyMotorGate`. Field applications should sample the physical input, update the latch, pass `physical_estop_latched` into `runtime::MissionRuntime`, and route motor commands through `SafetyMotorGate` so motion is refused until the latch is acknowledged clear.

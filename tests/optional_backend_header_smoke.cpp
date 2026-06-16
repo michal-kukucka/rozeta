@@ -1,5 +1,6 @@
 #include <rozeta/camera.hpp>
 #include <rozeta/kinect.hpp>
+#include <rozeta/lidar.hpp>
 #include <rozeta/ui.hpp>
 
 #include <type_traits>
@@ -14,6 +15,12 @@ int main() {
     static_assert(std::is_base_of<rozeta::kinect::KinectSensor,
                                   rozeta::kinect::FreenectKinectSensor>::value,
                   "FreenectKinectSensor must remain a Kinect backend");
+#endif
+
+#ifdef ROZETA_WITH_LDROBOT_LIDAR
+    static_assert(std::is_base_of<rozeta::lidar::LidarScanner,
+                                  rozeta::lidar::LdRobotLidarScanner>::value,
+                  "LdRobotLidarScanner must remain a LiDAR backend");
 #endif
 
     rozeta::ui::Viewport viewport{640, 480, 16};

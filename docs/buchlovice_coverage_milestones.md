@@ -282,6 +282,35 @@ Delivered coverage:
 - Added `loadPreset(path)` placeholder for future file-based config loader.
 - Added tests for buchlovice preset safety, demo preset headless mock mode, and validation.
 
+### M16 — Real Buchlovice field runner / hardware composition
+
+Status: implemented in `rozeta::field_runner`.
+
+Goal: describe and validate the production Buchlovice stack before hardware is opened.
+
+Delivered coverage:
+- Added `include/rozeta/field_runner.hpp` and `src/field_runner.cpp` with `HardwareMode`, `FieldRunnerConfig`, `FieldRunnerPlan`, `defaultBuchloviceFieldRunnerConfig()` and `planBuchloviceFieldRunner()`.
+- No-hardware mode reports a safe mock stack for CI and desk demos.
+- Hardware mode validates motor device, GPS device and physical E-STOP readiness before reporting `safe_to_start`.
+- Hardware plan lists serial Buchlovice motor, GPS receiver, OpenCV camera, optional Freenect Kinect, MissionRuntime, obstacle behavior, telemetry logging and operator controls.
+- `robotour_config::FieldPreset` now carries `gps_device`; the Buchlovice preset defaults to `/dev/ttyUSB0` motor and `/dev/ttyACM0` GPS.
+- Added tests for no-hardware planning, E-STOP-required failure and safe hardware composition.
+
+### M17 — Physical E-STOP input and safety latch
+
+Status: implemented in `rozeta::safety` and wired into `rozeta::runtime`.
+
+Goal: make a physical emergency-stop input visible to software and prevent motor restart until acknowledged.
+
+Delivered coverage:
+- Added `include/rozeta/safety.hpp` and `src/safety.cpp` with `DigitalEmergencyReading`, `MockDigitalEmergencyInput`, `PhysicalEstopLatch` and `SafetyMotorGate`.
+- `PhysicalEstopLatch` stays latched after the input clears and only clears through `acknowledgeCleared()` when the current input is not asserted.
+- `runtime::RuntimeInputs` now includes `physical_estop_latched`.
+- `MissionRuntime::tick()` faults with `physical E-STOP latched`, requests stop and marks emergency stop when the physical latch is active.
+- `SafetyMotorGate` calls the underlying motor controller emergency stop and refuses motion until reset.
+- Added tests for latch behavior, runtime fault propagation and motor command refusal.
+
+
 ## Recommended implementation order
 
 1. M1 motor backend, because safe actuation compatibility is required before real robot tests.
@@ -291,8 +320,9 @@ Delivered coverage:
 5. M10 obstacle wait/bypass behavior, once sensors and motors have normalized interfaces.
 6. M11 mission state machine and M12 operator/HUD layer, to replace `kvalifikacia_demo.py` orchestration.
 7. M13 telemetry mapping and M14 Python bridge, to migrate safely and replay field behavior.
-8. M15 config schema, then polish docs/examples around the full Robotour qualification flow.
+8. M15 config schema, then M16/M17 field-runner and physical E-STOP safety integration.
+9. M18+ config parser, QR backend, OSM/geofence, HUD, calibration, smoke matrix and packaging polish.
 
 ## Immediate next deliverable suggestion
 
-Build a `robotour_buchlovice_demo` example in Rozeta that uses mock motors, fixture GPS/route data, and synthetic RGB/depth obstacle inputs. It should demonstrate QR/target parse, graph route creation, turn/wrong-direction cues, obstacle wait/bypass decisions, mission phases, and telemetry output without requiring hardware. After that passes in CI, swap in the Buchlovice serial motor backend and real GPS/camera/Kinect adapters one by one.
+M16/M17 now provide a field-runner preflight plan and physical E-STOP latch. Next, implement M18 file-based config loading and M26 hardware smoke commands so lifted-wheel motor, GPS, camera, Kinect and physical E-STOP checks can be run one by one before a full field mission.

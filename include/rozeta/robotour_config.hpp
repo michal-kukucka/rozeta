@@ -16,6 +16,7 @@ struct FieldPreset {
     mission::RobotourMissionConfig mission{};
     double gps_baud_rate{115200};
     std::string motor_device{};
+    std::string gps_device{};
     std::string lidar_device{};
     int camera_index{0};
     bool camera_enabled{false};

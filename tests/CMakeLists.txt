@@ -25,12 +25,17 @@ add_executable(rozeta_tests
     test_operator_io.cpp
     test_telemetry_mission.cpp
     test_m14_m15.cpp
+    test_safety.cpp
+    test_field_runner.cpp
 )
 if(ROZETA_WITH_SERIAL_MOTORS)
   target_sources(rozeta_tests PRIVATE test_serial_motors.cpp)
 endif()
 if(ROZETA_WITH_YDLIDAR)
   target_sources(rozeta_tests PRIVATE test_ydlidar_parser.cpp)
+endif()
+if(ROZETA_WITH_LDROBOT_LIDAR)
+  target_sources(rozeta_tests PRIVATE test_ldrobot_lidar_parser.cpp)
 endif()
 target_link_libraries(rozeta_tests PRIVATE rozeta_static)
 target_include_directories(rozeta_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
@@ -46,7 +51,7 @@ add_test(NAME rozeta_c_api_smoke COMMAND rozeta_c_api_smoke)
 add_executable(rozeta_optional_backend_header_smoke optional_backend_header_smoke.cpp)
 target_link_libraries(rozeta_optional_backend_header_smoke PRIVATE rozeta_static)
 target_compile_definitions(rozeta_optional_backend_header_smoke
-    PRIVATE ROZETA_WITH_OPENCV ROZETA_WITH_KINECT)
+    PRIVATE ROZETA_WITH_OPENCV ROZETA_WITH_KINECT ROZETA_WITH_LDROBOT_LIDAR)
 target_compile_options(rozeta_optional_backend_header_smoke PRIVATE -Wall -Wextra -Wpedantic)
 add_test(NAME rozeta_optional_backend_header_smoke COMMAND rozeta_optional_backend_header_smoke)
 

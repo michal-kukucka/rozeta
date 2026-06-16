@@ -52,6 +52,13 @@ void MissionRuntime::markMotorCommandSent(std::chrono::milliseconds now_ms) noex
 }
 
 RuntimeOutput MissionRuntime::tick(const RuntimeInputs& inputs, std::chrono::milliseconds now_ms) {
+    if (inputs.physical_estop_latched) {
+        enterPhase(MissionPhase::Fault);
+        RuntimeOutput out = output("physical E-STOP latched");
+        out.emergency_stop = true;
+        return out;
+    }
+
     std::string failed_module;
     bool stale_module = false;
     if (!criticalModulesHealthy(inputs, now_ms, failed_module, stale_module)) {

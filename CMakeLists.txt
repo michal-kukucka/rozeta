@@ -13,6 +13,7 @@ option(ROZETA_BUILD_TESTS "Build tests" ON)
 option(ROZETA_WITH_OPENCV "Enable optional OpenCV camera backend hooks" OFF)
 option(ROZETA_WITH_SERIAL_MOTORS "Enable optional serial motor backend" OFF)
 option(ROZETA_WITH_YDLIDAR "Enable optional YDLIDAR serial LiDAR backend" OFF)
+option(ROZETA_WITH_LDROBOT_LIDAR "Enable optional LDROBOT LD06/LD19-compatible serial LiDAR backend" OFF)
 option(ROZETA_WITH_KINECT "Enable optional libfreenect Kinect backend" OFF)
 
 find_package(Doxygen QUIET)
@@ -62,6 +63,8 @@ set(ROZETA_SOURCES
     src/maps.cpp
     src/navigation.cpp
     src/runtime.cpp
+    src/safety.cpp
+    src/field_runner.cpp
     src/mission.cpp
     src/ui.cpp
     src/obstacle_detection.cpp
@@ -76,6 +79,9 @@ if(ROZETA_WITH_SERIAL_MOTORS)
 endif()
 if(ROZETA_WITH_YDLIDAR)
   list(APPEND ROZETA_SOURCES src/internal/ydlidar_parser.cpp src/lidar_ydlidar.cpp)
+endif()
+if(ROZETA_WITH_LDROBOT_LIDAR)
+  list(APPEND ROZETA_SOURCES src/internal/ldrobot_lidar_parser.cpp src/lidar_ldrobot.cpp)
 endif()
 if(ROZETA_WITH_OPENCV)
   list(APPEND ROZETA_SOURCES src/camera_opencv.cpp)
@@ -103,6 +109,9 @@ if(ROZETA_WITH_SERIAL_MOTORS)
 endif()
 if(ROZETA_WITH_YDLIDAR)
   target_compile_definitions(rozeta_static PUBLIC ROZETA_WITH_YDLIDAR)
+endif()
+if(ROZETA_WITH_LDROBOT_LIDAR)
+  target_compile_definitions(rozeta_static PUBLIC ROZETA_WITH_LDROBOT_LIDAR)
 endif()
 if(ROZETA_WITH_OPENCV)
   target_compile_definitions(rozeta_static PUBLIC ROZETA_WITH_OPENCV)
@@ -133,6 +142,9 @@ if(ROZETA_BUILD_SHARED)
   endif()
   if(ROZETA_WITH_YDLIDAR)
     target_compile_definitions(rozeta_shared PUBLIC ROZETA_WITH_YDLIDAR)
+  endif()
+  if(ROZETA_WITH_LDROBOT_LIDAR)
+    target_compile_definitions(rozeta_shared PUBLIC ROZETA_WITH_LDROBOT_LIDAR)
   endif()
   if(ROZETA_WITH_OPENCV)
     target_compile_definitions(rozeta_shared PUBLIC ROZETA_WITH_OPENCV)

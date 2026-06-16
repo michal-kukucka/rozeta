@@ -14,7 +14,7 @@ The initial milestone focuses on the foundation, not final hardware drivers:
 - differential-drive motor interface with mock implementation, calibration persistence, optional serial backend and emergency stop
 - NMEA GPS parser/validator for GGA/RMC plus serial and M4 TCP/UDP network receivers with stream buffering
 - differential-drive odometry
-- LiDAR interface, filtering, console visualization and optional YDLIDAR-style packet parser/backend
+- LiDAR interface, filtering, console visualization, optional YDLIDAR-style packet parser/backend, and optional LDROBOT LD06/LD19-compatible parser/backend for AliExpress delta2/delta2g-style modules
 - offline CSV maps/route loading with explicit status errors plus Buchlovice footway graph routing, Dijkstra shortest paths, route resampling, and M6 bearing/turn/wrong-direction route cues
 - obstacle sector calculation from LiDAR scans
 - simple waypoint navigator plus monotonic route follower
@@ -26,6 +26,8 @@ The initial milestone focuses on the foundation, not final hardware drivers:
 - mission target parser for QR payload text such as `geo:lat,lon`, `gps lat,lon`, labeled lat/lon and hemisphere formats
 - iPhone-style GPS payload parsing for NMEA, JSON `{ "lat": ..., "lon": ... }`, and plain `lat,lon` TCP/UDP feeds
 - RGB path and grass perception helpers for camera frames, with dependency-free HSV masks plus optional OpenCV capture feeding the same API
+- physical E-STOP safety latch and motor gate for field runs
+- Buchlovice field-runner planning/preflight API for no-hardware and hardware stacks
 - examples and standalone C++ test binary
 
 ## Project layout
@@ -57,6 +59,7 @@ cmake .. -DROZETA_BUILD_EXAMPLES=ON -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_SHARE
 cmake .. -DROZETA_WITH_OPENCV=ON   # optional OpenCV camera backend
 cmake .. -DROZETA_WITH_SERIAL_MOTORS=ON   # optional POSIX serial motor backend
 cmake .. -DROZETA_WITH_YDLIDAR=ON   # optional YDLIDAR-style serial LiDAR backend
+cmake .. -DROZETA_WITH_LDROBOT_LIDAR=ON   # optional LDROBOT LD06/LD19-compatible LiDAR backend
 cmake .. -DROZETA_WITH_KINECT=ON   # optional libfreenect Kinect backend
 ```
 
@@ -128,6 +131,12 @@ YDLIDAR sample replay without hardware:
 
 ```bash
 ./build/examples/ydlidar_scan_console --sample tests/fixtures/lidar/ydlidar_frame.bin
+```
+
+LDROBOT LD06/LD19-compatible sample replay for AliExpress delta2/delta2g-style modules without hardware:
+
+```bash
+./build/examples/ldrobot_lidar_scan_console --sample tests/fixtures/lidar/ldrobot_ld06_frame.bin
 ```
 
 Offline route following without hardware:
@@ -203,13 +212,15 @@ Detailed docs are included in `docs/` and are ready to be reused as a future off
 - `docs/module_overview.md` — module-by-module status and responsibilities
 - `docs/motor_module.md` — differential-drive motor API, mock backend and safety behavior
 - `docs/gps_module.md` — NMEA parsing and geo/local coordinate usage
-- `docs/lidar_module.md` — LiDAR scan structures, filtering, YDLIDAR backend and sample replay
+- `docs/lidar_module.md` — LiDAR scan structures, filtering, YDLIDAR backend, LDROBOT LD06/LD19-compatible backend and sample replay
 - `docs/maps_module.md` — offline CSV route format, loader behavior, Buchlovice graph routing, M6 route cues and fixtures
 - `docs/mission_module.md` — M3 QR mission target intake parser and QR decoder seam
 - `docs/navigation.md` — waypoint navigation, route following and obstacle-aware decisions
 - `docs/imu_module.md` — IMU thresholds, pose fusion and sample replay
 - `docs/camera_module.md` — camera frame validation, mock capture and optional OpenCV backend
 - `docs/perception_module.md` — M7 RGB path/grass masks, `detectRgbPath` and `measureSideCoverage`
+- `docs/safety_module.md` — physical E-STOP latch, runtime fault integration and motor safety gate
+- `docs/field_runner_module.md` — Buchlovice field-runner planning/preflight for no-hardware and hardware stacks
 - `docs/hardware_ui_backends.md` — optional OpenCV/libfreenect UI backend runbook and smoke hooks
 - `docs/buchlovice_motor_hardware_smoke.md` — M1 Buchlovice motor hardware smoke runbook
 - `docs/ui_module.md` — realtime mission UI snapshots, text dashboard and optional renderer bridge seam
@@ -253,10 +264,12 @@ Covered behavior:
 - realtime UI snapshot composition, text dashboard rendering and renderer status propagation
 - hardware-free optional backend header smoke coverage for OpenCV/Kinect UI declarations
 - telemetry replay conversion into deterministic UI snapshot sequences
+- physical E-STOP latch behavior, runtime fault propagation and motor command refusal through `SafetyMotorGate`
+- Buchlovice field-runner preflight planning for no-hardware and hardware modes
 
 ## Status
 
-Rozeta now includes milestone 1 through milestone 10 foundations: mockable core APIs, an internal POSIX serial transport, motor calibration persistence, optional serial motor, YDLIDAR-style LiDAR, OpenCV camera and libfreenect Kinect flags, a serial/file GPS receiver with robust NMEA validation, offline CSV route loading with monotonic route following, IMU pose fusion, CI-testable depth-to-obstacle processing, telemetry replay hardening with UI snapshot playback, realtime UI snapshot/dashboard primitives with an optional renderer bridge seam, an installable CMake package export, and a stable value-type C ABI for version, angle normalization, 2D distance and LiDAR obstacle sector calculation.
+Rozeta now includes milestone 1 through milestone 17 foundations: mockable core APIs, an internal POSIX serial transport, motor calibration persistence, optional serial motor, YDLIDAR-style LiDAR, OpenCV camera and libfreenect Kinect flags, a serial/file GPS receiver with robust NMEA validation, offline CSV route loading with monotonic route following, IMU pose fusion, CI-testable depth-to-obstacle processing, telemetry replay hardening with UI snapshot playback, realtime UI snapshot/dashboard primitives with an optional renderer bridge seam, an installable CMake package export, and a stable value-type C ABI for version, angle normalization, 2D distance and LiDAR obstacle sector calculation.
 
 
 ## License

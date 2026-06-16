@@ -142,6 +142,12 @@ void test_c_api_haversine_distance();
 void test_field_preset_buchlovice_has_safe_defaults();
 void test_field_preset_no_hardware_demo_is_headless();
 void test_field_preset_validate_rejects_invalid();
+void test_physical_estop_latch_asserts_and_requires_reset();
+void test_runtime_physical_estop_latch_forces_fault();
+void test_safety_motor_gate_refuses_motion_until_latch_reset();
+void test_field_runner_no_hardware_plan_uses_mocks_and_allows_fixture_run();
+void test_field_runner_hardware_plan_requires_physical_estop();
+void test_field_runner_hardware_plan_composes_real_backends_when_safe();
 void test_telemetry_parser_loads_robotour_fixture();
 void test_telemetry_parser_rejects_bad_schema_and_rows();
 void test_telemetry_replay_produces_deterministic_navigation_decisions();
@@ -169,6 +175,14 @@ void test_serial_motor_propagates_transport_write_errors();
 void test_serial_motor_formats_buchlovice_binary_packets();
 void test_serial_motor_buchlovice_stop_and_spin_packets();
 void test_serial_motor_buchlovice_emergency_stop_bypasses_invalid_motion_config();
+#endif
+#ifdef ROZETA_WITH_LDROBOT_LIDAR
+void test_ldrobot_lidar_parser_parses_ld06_fixture();
+void test_ldrobot_lidar_parser_accepts_fragments_and_garbage();
+void test_ldrobot_lidar_parser_rejects_bad_crc_and_recovers();
+void test_ldrobot_lidar_parser_detects_stream_after_required_valid_frames();
+void test_ldrobot_lidar_parser_honors_detection_config_for_public_parse();
+void test_ldrobot_lidar_backend_invalid_device_reports_hardware_unavailable();
 #endif
 #ifdef ROZETA_WITH_YDLIDAR
 void test_ydlidar_parser_parses_sample_frame();
@@ -324,6 +338,12 @@ int main(){
         {"fpreset_buchlovice", test_field_preset_buchlovice_has_safe_defaults},
         {"fpreset_demo", test_field_preset_no_hardware_demo_is_headless},
         {"fpreset_validate", test_field_preset_validate_rejects_invalid},
+        {"safety_latch", test_physical_estop_latch_asserts_and_requires_reset},
+        {"safety_runtime_estop", test_runtime_physical_estop_latch_forces_fault},
+        {"safety_motor_gate", test_safety_motor_gate_refuses_motion_until_latch_reset},
+        {"field_runner_no_hardware", test_field_runner_no_hardware_plan_uses_mocks_and_allows_fixture_run},
+        {"field_runner_requires_estop", test_field_runner_hardware_plan_requires_physical_estop},
+        {"field_runner_hardware_plan", test_field_runner_hardware_plan_composes_real_backends_when_safe},
         {"telemetry_parser_fixture", test_telemetry_parser_loads_robotour_fixture},
         {"telemetry_parser_errors", test_telemetry_parser_rejects_bad_schema_and_rows},
         {"telemetry_replay_deterministic", test_telemetry_replay_produces_deterministic_navigation_decisions},
@@ -354,6 +374,14 @@ int main(){
         {"serial_motor_buchlovice_packet", test_serial_motor_formats_buchlovice_binary_packets},
         {"serial_motor_buchlovice_stop_spin", test_serial_motor_buchlovice_stop_and_spin_packets},
         {"serial_motor_buchlovice_estop", test_serial_motor_buchlovice_emergency_stop_bypasses_invalid_motion_config},
+#endif
+#ifdef ROZETA_WITH_LDROBOT_LIDAR
+        {"ldrobot_lidar_fixture", test_ldrobot_lidar_parser_parses_ld06_fixture},
+        {"ldrobot_lidar_fragments", test_ldrobot_lidar_parser_accepts_fragments_and_garbage},
+        {"ldrobot_lidar_bad_crc", test_ldrobot_lidar_parser_rejects_bad_crc_and_recovers},
+        {"ldrobot_lidar_detect", test_ldrobot_lidar_parser_detects_stream_after_required_valid_frames},
+        {"ldrobot_lidar_config", test_ldrobot_lidar_parser_honors_detection_config_for_public_parse},
+        {"ldrobot_lidar_invalid_device", test_ldrobot_lidar_backend_invalid_device_reports_hardware_unavailable},
 #endif
 #ifdef ROZETA_WITH_YDLIDAR
         {"ydlidar_parse_fixture", test_ydlidar_parser_parses_sample_frame},

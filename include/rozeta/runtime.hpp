@@ -52,6 +52,7 @@ struct RuntimeInputs {
     bool map_healthy{true};
     bool communication_healthy{true};
     bool logging_healthy{true};
+    bool physical_estop_latched{false};
     std::chrono::milliseconds motors_last_update{0};
     std::chrono::milliseconds gps_last_update{0};
     std::chrono::milliseconds camera_last_update{0};
