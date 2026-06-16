@@ -376,6 +376,20 @@ Delivered coverage:
 - Invalid thresholds, too-short routes and non-finite coordinates return `InvalidArgument` fail-closed statuses.
 - CTest covers approaching a left junction, being inside the junction zone, straight/no-junction routes and invalid inputs.
 
+### M24 — Operator-grade HUD renderer
+
+Status: implemented as a dependency-free terminal HUD renderer in `rozeta::ui`.
+
+Goal: give operators one compact repaintable field frame that combines mission state, robot pose, stream health and the M22/M23 route-safety signals without requiring Qt/GTK/SDL/OpenCV.
+
+Delivered coverage:
+- `OperatorHudConfig` controls ANSI in-place repainting and terminal width; `validateOperatorHudConfig()` rejects widths below 40 columns.
+- `OperatorHudInput` combines `UiSnapshot`, mission phase/tick, mission status, `RouteCorridorResult`, `GeofenceResult` and `JunctionCueResult`.
+- `renderOperatorHud()` produces a `ROZETA FIELD HUD` frame with GPS, heading, speed, mission status, marker count and camera/Kinect stream cards.
+- Route-safety cards surface warning/OK/violation states, including explicit `CORRIDOR: VIOLATION` and geofence violation text for fail-closed operator visibility.
+- Route-cue text is pinned behind a `JUNCTION:` label so prompts from `junctionCue()` remain visible while the HUD repaints in place.
+- CTest covers non-ANSI deterministic content, ANSI clear/home prefix output, route warning/violation text and invalid HUD config validation.
+
 
 ## Recommended implementation order
 

@@ -36,6 +36,20 @@ Status validateImageMetadata(const ImageMetadata& metadata, const std::string& l
     return Status::okStatus();
 }
 
+std::string sanitizeHudText(const std::string& text) {
+    std::string sanitized;
+    sanitized.reserve(text.size());
+    for (const char ch : text) {
+        const auto value = static_cast<unsigned char>(ch);
+        if (value < 32U || value == 127U || (value >= 128U && value <= 159U)) {
+            sanitized.push_back(' ');
+        } else {
+            sanitized.push_back(ch);
+        }
+    }
+    return sanitized;
+}
+
 } // namespace
 
 void MissionOverlay::setStart(const GeoCoordinate& start) {
@@ -317,6 +331,97 @@ Status renderFrame(UiRenderer& renderer, const UiSnapshot& snapshot, UiEventSink
         event_sink->onRenderStatus(status);
     }
     return status;
+}
+
+Status validateOperatorHudConfig(const OperatorHudConfig& config) {
+    if (config.width < 40) {
+        return Status::error(ErrorCode::InvalidArgument, "operator HUD width must be at least 40 columns");
+    }
+    return Status::okStatus();
+}
+
+std::string renderOperatorHud(
+    const OperatorHudInput& input,
+    const OperatorHudConfig& config) {
+    std::ostringstream out;
+    out << std::fixed << std::setprecision(2);
+    if (config.ansi_frame) {
+        out << "\033[H\033[J";
+    }
+
+    const int width = std::max(40, config.width);
+    const std::string rule(static_cast<std::size_t>(width), '=');
+    out << rule << "\n";
+    out << "ROZETA FIELD HUD  Tick: " << input.tick
+        << "  Phase: " << sanitizeHudText(input.phase.empty() ? "UNKNOWN" : input.phase) << "\n";
+    out << rule << "\n";
+
+    out << std::setprecision(6);
+    out << "GPS: " << input.snapshot.robot.gps.latitude
+        << "," << input.snapshot.robot.gps.longitude;
+    out << std::setprecision(2);
+    out << "  Heading: " << input.snapshot.robot.pose.heading
+        << "  Speed: " << input.snapshot.robot.linear_velocity_mps << " m/s\n";
+
+    out << "Mission: ";
+    if (input.mission_status.ok()) {
+        out << "OK";
+    } else {
+        out << "FAULT " << sanitizeHudText(input.mission_status.message);
+    }
+    out << "  Markers: " << input.snapshot.markers.size() << "\n";
+
+    out << "CORRIDOR: ";
+    if (!input.corridor.ok() || input.corridor.violation) {
+        out << "VIOLATION";
+    } else if (input.corridor.warning) {
+        out << "WARN " << std::setprecision(1) << input.corridor.distance_from_route_m << "m";
+    } else if (input.corridor.inside_corridor) {
+        out << "OK " << std::setprecision(1) << input.corridor.distance_from_route_m << "m";
+    } else {
+        out << "UNKNOWN";
+    }
+    out << std::setprecision(2) << "  GEOFENCE: ";
+    if (!input.geofence.ok() || input.geofence.violation) {
+        out << "VIOLATION";
+    } else if (input.geofence.inside) {
+        out << "OK";
+    } else {
+        out << "UNKNOWN";
+    }
+    out << "\n";
+
+    out << "JUNCTION: ";
+    if (input.junction.ok() && input.junction.valid) {
+        out << sanitizeHudText(input.junction.prompt);
+        if (input.junction.junction_detected) {
+            out << " (" << std::setprecision(1) << input.junction.distance_to_junction_m << "m)";
+        }
+    } else {
+        out << "n/a";
+    }
+    out << std::setprecision(2) << "\n";
+
+    out << "Streams: cam=";
+    if (input.snapshot.camera.available) {
+        out << input.snapshot.camera.width << "x" << input.snapshot.camera.height;
+    } else {
+        out << "off";
+    }
+    out << " kinect-depth=";
+    if (input.snapshot.kinect_depth.available) {
+        out << input.snapshot.kinect_depth.width << "x" << input.snapshot.kinect_depth.height;
+    } else {
+        out << "off";
+    }
+    out << " kinect-rgb=";
+    if (input.snapshot.kinect_rgb.available) {
+        out << input.snapshot.kinect_rgb.width << "x" << input.snapshot.kinect_rgb.height;
+    } else {
+        out << "off";
+    }
+    out << "\n" << rule << "\n";
+    return out.str();
 }
 
 std::string renderTextDashboard(const UiSnapshot& snapshot) {

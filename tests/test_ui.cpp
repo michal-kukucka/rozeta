@@ -184,6 +184,88 @@ void test_ui_viewport_validation_rejects_excessive_padding_without_overflow() {
     REQUIRE_EQ(static_cast<int>(status.code), static_cast<int>(rozeta::ErrorCode::InvalidArgument));
 }
 
+void test_ui_operator_hud_renders_field_status_cards_and_route_cues() {
+    rozeta::ui::MissionOverlay overlay;
+    overlay.setStart({48.0000, 17.0000, 200.0});
+    overlay.setFinal({48.0010, 17.0010, 200.0});
+
+    rozeta::ui::SnapshotComposer composer;
+    composer.setMap(sampleMap());
+    composer.setOverlay(overlay);
+    composer.setCameraFrame(rgbFrame(2, 2));
+    composer.setKinectDepthFrame(depthFrame(3, 2));
+
+    rozeta::RobotState robot;
+    robot.gps = {48.0005, 17.0005, 200.0};
+    robot.pose.heading = 0.5;
+    robot.linear_velocity_mps = 0.42;
+
+    const auto snapshot = composer.compose(robot, {640, 480, 12});
+    REQUIRE_TRUE(snapshot.ok());
+
+    rozeta::maps::RouteCorridorResult corridor;
+    corridor.inside_corridor = true;
+    corridor.warning = true;
+    corridor.distance_from_route_m = 3.4;
+
+    rozeta::maps::GeofenceResult geofence;
+    geofence.inside = true;
+
+    rozeta::maps::JunctionCueResult junction;
+    junction.valid = true;
+    junction.junction_detected = true;
+    junction.direction = rozeta::maps::TurnDirection::Left;
+    junction.distance_to_junction_m = 72.0;
+    junction.prompt = "Turn left in 72 m";
+
+    rozeta::ui::OperatorHudInput input;
+    input.snapshot = snapshot.snapshot;
+    input.phase = "RUN";
+    input.tick = 42;
+    input.corridor = corridor;
+    input.geofence = geofence;
+    input.junction = junction;
+
+    const auto hud = rozeta::ui::renderOperatorHud(input, {false, 80});
+
+    REQUIRE_TRUE(hud.find("ROZETA FIELD HUD") != std::string::npos);
+    REQUIRE_TRUE(hud.find("Tick: 42") != std::string::npos);
+    REQUIRE_TRUE(hud.find("Phase: RUN") != std::string::npos);
+    REQUIRE_TRUE(hud.find("GPS: 48.000500,17.000500") != std::string::npos);
+    REQUIRE_TRUE(hud.find("CORRIDOR: WARN 3.4m") != std::string::npos);
+    REQUIRE_TRUE(hud.find("GEOFENCE: OK") != std::string::npos);
+    REQUIRE_TRUE(hud.find("JUNCTION: Turn left in 72 m") != std::string::npos);
+    REQUIRE_TRUE(hud.find("Streams: cam=2x2 kinect-depth=3x2") != std::string::npos);
+}
+
+void test_ui_operator_hud_uses_ansi_in_place_frame_and_fail_closed_statuses() {
+    rozeta::ui::OperatorHudInput input;
+    input.snapshot.robot.gps = {48.0, 17.0, 0.0};
+    input.phase = "FAULT\nESC\033";
+    input.corridor.status = rozeta::Status::error(rozeta::ErrorCode::InvalidArgument, "bad corridor");
+    input.corridor.violation = true;
+    input.geofence.status = rozeta::Status::error(rozeta::ErrorCode::InvalidArgument, "bad geofence");
+    input.geofence.violation = true;
+    input.junction.valid = true;
+    input.junction.prompt = "Turn\nleft\033 now";
+    input.mission_status = rozeta::Status::error(
+        rozeta::ErrorCode::IoError,
+        std::string("fault\nlatched\033") + static_cast<char>(0x90));
+
+    const auto hud = rozeta::ui::renderOperatorHud(input, {});
+    const auto bad_config = rozeta::ui::validateOperatorHudConfig({true, 39});
+
+    REQUIRE_TRUE(hud.rfind("\033[H\033[J", 0) == 0);
+    REQUIRE_TRUE(hud.find("Phase: FAULT ESC ") != std::string::npos);
+    REQUIRE_TRUE(hud.find("CORRIDOR: VIOLATION") != std::string::npos);
+    REQUIRE_TRUE(hud.find("GEOFENCE: VIOLATION") != std::string::npos);
+    REQUIRE_TRUE(hud.find("FAULT fault latched ") != std::string::npos);
+    REQUIRE_TRUE(hud.find("JUNCTION: Turn left  now") != std::string::npos);
+    REQUIRE_TRUE(hud.find("\nESC") == std::string::npos);
+    REQUIRE_TRUE(!bad_config.ok());
+    REQUIRE_EQ(static_cast<int>(bad_config.code), static_cast<int>(rozeta::ErrorCode::InvalidArgument));
+}
+
 void test_ui_text_dashboard_renders_mission_stream_and_marker_summary() {
     rozeta::ui::MissionOverlay overlay;
     overlay.setStart({48.0000, 17.0000, 200.0});

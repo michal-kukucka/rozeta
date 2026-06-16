@@ -86,6 +86,29 @@ while (mission_running) {
 
 Default CI uses fake/fixture frames. Real OpenCV camera and libfreenect Kinect integration stays behind the existing optional `ROZETA_WITH_OPENCV` and `ROZETA_WITH_KINECT` flags.
 
+## Operator-grade HUD renderer
+
+M24 — Operator-grade HUD renderer adds a deterministic, dependency-free terminal HUD for lifted-wheel checks, SSH sessions and field laptops where a full GUI is not yet connected.
+
+Public API:
+
+- `OperatorHudConfig` selects ANSI in-place frame rendering and validates terminal width.
+- `validateOperatorHudConfig(config)` rejects widths below 40 columns with `InvalidArgument`.
+- `OperatorHudInput` combines a `UiSnapshot`, mission phase/tick, route corridor state, geofence state, junction cue state and mission status.
+- `renderOperatorHud(input, config)` returns one compact text frame headed by `ROZETA FIELD HUD`.
+
+The HUD keeps high-risk field signals visible without scrolling logs:
+
+- robot GPS, heading and speed;
+- mission status and marker count;
+- route safety cards including `CORRIDOR: VIOLATION`, warning/OK distance states and geofence violation/OK states;
+- route cue line prefixed with `JUNCTION:` so prompts from `junctionCue()` stay operator-visible;
+- stream summary for camera, Kinect depth and Kinect RGB.
+
+Operator-visible phase, mission-status and route-cue strings are sanitized by replacing control characters with spaces before rendering, preserving terminal frame readability even when upstream status text contains newlines or escape bytes.
+
+With the default `OperatorHudConfig`, the frame starts with ANSI clear/home (`ESC[H ESC[J`) so a loop can repaint in place. Tests also cover non-ANSI output for deterministic CI assertions.
+
 ## No-hardware dashboard example
 
 `ui::renderTextDashboard` converts a `UiSnapshot` into a deterministic text dashboard for development, SSH sessions and CI logs. The `mission_ui_dashboard` example loads an optional route CSV, builds fake camera/Kinect streams and prints the map, stream and marker summary without requiring real hardware:

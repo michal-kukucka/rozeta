@@ -252,6 +252,17 @@ REQUIRED_BUCHLOVICE_M23_PHRASES = [
     "Continue straight",
 ]
 
+REQUIRED_BUCHLOVICE_M24_PHRASES = [
+    "M24 — Operator-grade HUD renderer",
+    "OperatorHudConfig",
+    "OperatorHudInput",
+    "renderOperatorHud",
+    "validateOperatorHudConfig",
+    "ROZETA FIELD HUD",
+    "CORRIDOR: VIOLATION",
+    "JUNCTION:",
+]
+
 
 def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
@@ -534,6 +545,21 @@ def main() -> int:
     for phrase in REQUIRED_BUCHLOVICE_M23_PHRASES:
         if phrase not in buchlovice_m23_docs:
             fail(f"Buchlovice M23 junction cue documentation coverage missing: {phrase}", failures)
+
+    buchlovice_m24_docs = (
+        read("docs/ui_module.md")
+        + "\n"
+        + read("docs/api-reference.md")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M24_PHRASES:
+        if phrase not in buchlovice_m24_docs:
+            fail(f"Buchlovice M24 operator HUD documentation coverage missing: {phrase}", failures)
+
+    ui_source = read("src/ui.cpp")
+    if "std::string renderOperatorHud" not in ui_source:
+        fail("M24 renderOperatorHud source implementation is missing", failures)
 
     maps_source = read("src/maps.cpp")
     if "JunctionCueResult junctionCue" not in maps_source:

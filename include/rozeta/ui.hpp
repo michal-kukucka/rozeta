@@ -65,6 +65,21 @@ struct UiSnapshot {
     RobotState robot{};
 };
 
+struct OperatorHudConfig {
+    bool ansi_frame{true};
+    int width{80};
+};
+
+struct OperatorHudInput {
+    UiSnapshot snapshot{};
+    std::string phase{"UNKNOWN"};
+    unsigned long tick{0};
+    maps::RouteCorridorResult corridor{};
+    maps::GeofenceResult geofence{};
+    maps::JunctionCueResult junction{};
+    Status mission_status{Status::okStatus()};
+};
+
 struct SnapshotResult {
     UiSnapshot snapshot{};
     Status status{Status::okStatus()};
@@ -141,6 +156,10 @@ Status validateDepthFrame(const depth::DepthFrame& frame);
 StreamStatus cameraStreamStatus(const camera::Frame& frame, const std::string& label);
 StreamStatus depthStreamStatus(const depth::DepthFrame& frame, const std::string& label);
 Status renderFrame(UiRenderer& renderer, const UiSnapshot& snapshot, UiEventSink* event_sink = nullptr);
+Status validateOperatorHudConfig(const OperatorHudConfig& config);
+std::string renderOperatorHud(
+    const OperatorHudInput& input,
+    const OperatorHudConfig& config = {});
 std::string renderTextDashboard(const UiSnapshot& snapshot);
 
 } // namespace rozeta::ui
