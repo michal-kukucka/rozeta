@@ -66,3 +66,28 @@ endif()
 if(UNIX)
   add_test(NAME rozeta_opencv_qr_stub_smoke COMMAND ${CMAKE_SOURCE_DIR}/scripts/smoke_opencv_qr_stub.sh)
 endif()
+
+if(TARGET field_operator_wizard)
+  add_test(
+      NAME field_operator_wizard_script_complete
+      COMMAND field_operator_wizard --script continue,continue,continue,continue)
+  add_test(
+      NAME field_operator_wizard_script_incomplete_fails
+      COMMAND field_operator_wizard --script continue)
+  set_tests_properties(field_operator_wizard_script_incomplete_fails PROPERTIES WILL_FAIL TRUE)
+  add_test(
+      NAME field_operator_wizard_script_abort_fails
+      COMMAND field_operator_wizard --script quit)
+  set_tests_properties(field_operator_wizard_script_abort_fails PROPERTIES WILL_FAIL TRUE)
+  add_test(
+      NAME field_operator_wizard_script_unknown_fails
+      COMMAND field_operator_wizard --script nope)
+  set_tests_properties(field_operator_wizard_script_unknown_fails PROPERTIES WILL_FAIL TRUE)
+  if(Python3_Interpreter_FOUND)
+    add_test(
+        NAME field_operator_wizard_cli_contract
+        COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/test_field_operator_wizard_cli.py
+            $<TARGET_FILE:field_operator_wizard>)
+  endif()
+endif()

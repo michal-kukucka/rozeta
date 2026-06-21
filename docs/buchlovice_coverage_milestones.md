@@ -8,9 +8,9 @@ Source audited:
 
 ## High-level conclusion
 
-Rozeta can already cover a meaningful foundation of the Buchlovice Robotour stack: differential-drive motor commands, emergency stop, NMEA GPS parsing, serial/network GPS reads, camera capture lifecycle, M7 RGB path and grass perception, M8 RGB obstacle ROI/hysteresis, camera-scene people-on-track detection, depth/Kinect frame contracts, obstacle sectors from depth/LiDAR, offline CSV route loading, Buchlovice footway graph routing, route resampling/reuse, bearing/turn-ahead/wrong-direction route cues, simple route following, logging, telemetry replay, and mission UI snapshots.
+Rozeta can already cover a meaningful foundation of the Buchlovice Robotour stack: differential-drive motor commands, emergency stop, NMEA GPS parsing, serial/network GPS reads, camera capture lifecycle, M7 RGB path and grass perception, M8 RGB obstacle ROI/hysteresis, camera-scene people-on-track detection, depth/Kinect frame contracts, obstacle sectors from depth/LiDAR, offline CSV route loading, Buchlovice footway graph routing, route resampling/reuse, bearing/turn-ahead/wrong-direction route cues, simple route following, logging, telemetry replay, mission UI snapshots, legacy telemetry conversion, and a dependency-free field operator wizard.
 
-Rozeta cannot yet replace the Buchlovice application end-to-end because `kvalifikacia_demo.py` still contains application-specific behaviors that are outside Rozeta's reusable core: field-tuned camera/DNN backends, operator wizard/keyboard/beeper workflow, and deployment-specific glue around the Python-friendly integration surface.
+Rozeta cannot yet replace the Buchlovice application end-to-end because `kvalifikacia_demo.py` still contains deployment-specific behaviors that are outside Rozeta's reusable core: field-tuned camera/DNN backends, physical hardware validation, and production glue around the Python-friendly integration surface.
 
 ## Coverage map
 
@@ -29,10 +29,10 @@ Rozeta cannot yet replace the Buchlovice application end-to-end because `kvalifi
 | Wait 10s after obstacle, resume if clear, otherwise bypass | Partial: emergency stop/navigation decision exists | No obstacle behavior state machine or bypass maneuver primitive |
 | Pulse-based bypass and path following using differential drive | Partial: motor commands can express differential speeds | No reusable maneuver planner or pulse executor with safety checks |
 | Multi-phase Robotour mission: service -> loading QR -> unloading QR -> return | Partial: UI mission markers and route follower | No mission state machine and target acquisition workflow |
-| Operator wizard, camera switching, hotkeys, beeper, headless GUI handling | Minimal: UI snapshot model only | No CLI/operator control layer or audio/beeper abstraction |
-| Screenshots, OpenCV HUD, map panel rendering | Partial: UI snapshots/text dashboard | No OpenCV renderer/backend matching Buchlovice live HUD/panel |
-| Logs flushed to disk plus replayable telemetry | Partial/strong: logging and `rozeta.telemetry.v1` replay | Need mapping from Buchlovice events into telemetry samples and mission events |
-| Python integration from existing project | None | Rozeta is C/C++; no Python bindings/package yet |
+| Operator wizard, camera switching, hotkeys, beeper, headless GUI handling | Implemented core: `operator_io::FieldOperatorWizard`, `OperatorInput`, `Beeper`, `HeadlessDashboard`, and `field_operator_wizard` no-hardware example | Production keyboard backend/audio device integration remains deployment scope |
+| Screenshots, OpenCV HUD, map panel rendering | Partial: UI snapshots/text dashboard/operator HUD | No OpenCV renderer/backend matching Buchlovice live HUD/panel |
+| Logs flushed to disk plus replayable telemetry | Implemented: logging, `rozeta.telemetry.v1` replay, M13 mission telemetry rows and M27 Buchlovice text-log conversion | Field log corpus validation remains deployment scope |
+| Python integration from existing project | Implemented: C ABI and Python ctypes bridge for incremental adoption | Packaging/release workflow remains deployment scope |
 
 ## Milestones / action points
 
@@ -431,6 +431,18 @@ Delivered coverage:
 - The parser rejects unknown record kinds, malformed or duplicate keys, missing required fields, non-finite values, invalid GPS/target/motor pairs, out-of-range coordinates, commas/control characters in text fields, spreadsheet formula prefixes and empty logs.
 - Added `buchlovice_telemetry_converter` executable documentation that reads a legacy log from stdin or a file and writes normalized mission-tick CSV.
 - CTest covers successful tick/event conversion, malformed and unsafe input rejection, and CSV-compatible output.
+### M28 — Field operator wizard
+
+Status: implemented in `rozeta::operator_io` as a dependency-free operator preflight wizard.
+
+Goal: close the remaining reusable operator workflow gap without coupling Rozeta to a terminal, OpenCV highgui, GPIO beeper, or audio backend.
+
+Delivered coverage:
+- Added `OperatorWizardStep`, `OperatorWizardState`, `FieldOperatorWizard`, and `renderOperatorWizard()` to guide field operators through E-STOP release, lifted-wheel confirmation, field preset review and final mission arm confirmation.
+- The wizard is deterministic and no-hardware by default: only `Continue` advances ordered safety confirmations, invalid camera/Kinect keys stay on the current step with an `invalid` beep pattern, and Quit/Spacebar aborts fail-closed.
+- `renderOperatorWizard()` emits a fixed `ROZETA FIELD OPERATOR WIZARD` frame and sanitizes control characters so operator-visible prompts cannot inject terminal escape sequences or split the frame.
+- Added `field_operator_wizard` executable documentation with interactive stdin operation and `--script continue,continue,continue,continue` for CI/no-hardware smoke runs.
+- CTest covers ordered confirmations, invalid-key handling, abort behavior, ready-to-start gating and render sanitization.
 
 
 ## Recommended implementation order

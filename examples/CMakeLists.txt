@@ -18,6 +18,7 @@ set(ROZETA_EXAMPLES
     buchlovice_graph_route
     depth_obstacle_console
     hardware_smoke_matrix
+    field_operator_wizard
     buchlovice_telemetry_converter
 )
 if(ROZETA_WITH_SERIAL_MOTORS)

@@ -155,6 +155,8 @@ void test_operator_input_inject_all_keys();
 void test_beeper_mock_records_beeps();
 void test_beeper_mock_silence_until_beeped();
 void test_operator_io_headless_text_dashboard_renders_phase();
+void test_operator_wizard_requires_ordered_field_confirmations();
+void test_operator_wizard_quit_aborts_and_render_sanitizes_controls();
 void test_mission_event_logger_stores_events();
 void test_mission_event_logger_bypass_events();
 void test_mission_tick_logger_captures_all_fields();
@@ -386,6 +388,8 @@ int main(){
         {"opio_beeper", test_beeper_mock_records_beeps},
         {"opio_beeper_silent", test_beeper_mock_silence_until_beeped},
         {"opio_dashboard", test_operator_io_headless_text_dashboard_renders_phase},
+        {"opio_field_wizard", test_operator_wizard_requires_ordered_field_confirmations},
+        {"opio_field_wizard_abort", test_operator_wizard_quit_aborts_and_render_sanitizes_controls},
         {"telm_events", test_mission_event_logger_stores_events},
         {"telm_bypass", test_mission_event_logger_bypass_events},
         {"telm_tick_csv", test_mission_tick_logger_captures_all_fields},

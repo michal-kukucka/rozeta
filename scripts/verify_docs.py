@@ -321,6 +321,26 @@ REQUIRED_BUCHLOVICE_M27_TEST_PHRASES = [
     "test_telemetry_converter_rejects_malformed_and_unsafe_lines",
     "test_telemetry_converter_outputs_replay_csv_compatible_ticks",
 ]
+REQUIRED_BUCHLOVICE_M28_PHRASES = [
+    "M28 — Field operator wizard",
+    "OperatorWizardStep",
+    "OperatorWizardState",
+    "FieldOperatorWizard",
+    "renderOperatorWizard",
+    "ROZETA FIELD OPERATOR WIZARD",
+    "field_operator_wizard",
+    "--script continue,continue,continue,continue",
+]
+
+REQUIRED_BUCHLOVICE_M28_TEST_PHRASES = [
+    "test_operator_wizard_requires_ordered_field_confirmations",
+    "test_operator_wizard_quit_aborts_and_render_sanitizes_controls",
+]
+
+REQUIRED_BUCHLOVICE_M28_CLI_TEST_PHRASES = [
+    "field_operator_wizard_cli_contract",
+    "test_field_operator_wizard_cli.py",
+]
 
 
 def read(rel: str) -> str:
@@ -686,6 +706,38 @@ def main() -> int:
     examples_cmake = read("examples/CMakeLists.txt")
     if "buchlovice_telemetry_converter" not in examples_cmake:
         fail("M27 buchlovice_telemetry_converter example is not registered in CMake", failures)
+
+    buchlovice_m28_docs = (
+        read("docs/module_overview.md")
+        + "\n"
+        + read("docs/api-reference.md")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M28_PHRASES:
+        if phrase not in buchlovice_m28_docs:
+            fail(f"Buchlovice M28 field operator wizard documentation coverage missing: {phrase}", failures)
+
+    operator_io_tests = read("tests/test_operator_io.cpp")
+    for phrase in REQUIRED_BUCHLOVICE_M28_TEST_PHRASES:
+        if phrase not in operator_io_tests:
+            fail(f"Buchlovice M28 operator wizard test coverage missing: {phrase}", failures)
+
+    test_cmake = read("tests/CMakeLists.txt")
+    wizard_cli_contract = read("tests/test_field_operator_wizard_cli.py")
+    wizard_cli_test_contract = test_cmake + "\n" + wizard_cli_contract
+    for phrase in REQUIRED_BUCHLOVICE_M28_CLI_TEST_PHRASES:
+        if phrase not in wizard_cli_test_contract:
+            fail(f"Buchlovice M28 operator wizard CLI test coverage missing: {phrase}", failures)
+
+    operator_io_source = read("src/operator_io.cpp")
+    if "FieldOperatorWizard::handleKey" not in operator_io_source:
+        fail("M28 FieldOperatorWizard source implementation is missing", failures)
+    wizard_example = read("examples/field_operator_wizard.cpp")
+    if "renderOperatorWizard" not in wizard_example:
+        fail("M28 field_operator_wizard example does not render the wizard", failures)
+    if "field_operator_wizard" not in examples_cmake:
+        fail("M28 field_operator_wizard example is not registered in CMake", failures)
 
     maps_source = read("src/maps.cpp")
     if "JunctionCueResult junctionCue" not in maps_source:

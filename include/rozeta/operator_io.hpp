@@ -56,4 +56,34 @@ public:
         double lon) const;
 };
 
+enum class OperatorWizardStep {
+    VerifyEstop,
+    ConfirmLiftedWheels,
+    LoadFieldPreset,
+    StartMission,
+    Complete,
+    Aborted,
+};
+
+struct OperatorWizardState {
+    OperatorWizardStep step{OperatorWizardStep::VerifyEstop};
+    std::string prompt;
+    bool ready_to_start{false};
+    bool aborted{false};
+    std::string beep_pattern;
+};
+
+class FieldOperatorWizard {
+public:
+    FieldOperatorWizard();
+
+    OperatorWizardState state() const;
+    OperatorWizardState handleKey(OperatorKey key);
+
+private:
+    OperatorWizardState state_;
+};
+
+std::string renderOperatorWizard(const OperatorWizardState& state);
+
 } // namespace rozeta::operator_io

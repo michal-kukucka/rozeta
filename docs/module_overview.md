@@ -107,7 +107,9 @@ See `docs/kinect_module.md` for M9 profile and depth-object-summary usage.
 
 ## Operator I/O
 
-M12 — Operator I/O, HUD, and beeper abstractions for operator io. `operator_io::OperatorInput` defines a key-event interface...
+M12 — Operator I/O, HUD, and beeper abstractions for operator io. `operator_io::OperatorInput` defines a key-event interface, `operator_io::Beeper` defines a backend-neutral beep sink, and `HeadlessDashboard` renders compact mission phase text. M28 adds `OperatorWizardStep`, `OperatorWizardState`, `FieldOperatorWizard`, and `renderOperatorWizard()` for a deterministic field operator preflight wizard: E-STOP release, lifted-wheel confirmation, field preset review, final mission arm confirmation, fail-closed abort, fixed `ROZETA FIELD OPERATOR WIZARD` output and sanitized prompt text.
+
+The `field_operator_wizard` example can run interactively or with `--script continue,continue,continue,continue` for no-hardware smoke checks.
 
 ## Robotour config
 
