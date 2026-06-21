@@ -254,7 +254,7 @@ Goal: make field runs replayable and comparable in CI.
 
 Delivered coverage:
 - Added `MissionEventLogger` recording phase_change, qr_scanned, arrival, operator_ack, obstacle_wait_start/end, and bypass_start/end events with timestamps.
-- Added `MissionTickSample` struct and `formatMissionTickCsv()` + `missionTickCsvHeader()` for per-tick CSV logging of phase, leg, GPS, target, camera/depth obstacle coverage, route cue, motor commands, and bypass direction.
+- Added `MissionTickSample` struct and `formatMissionTickCsv()` + `missionTickCsvHeader()` for per-tick CSV logging of phase, leg, timestamp, GPS, target, camera/depth obstacle coverage, route cue, motor commands, and bypass direction.
 - Added tests for event logging, bypass events, tick CSV formatting, and CSV header contract.
 
 ### M14 — Python bindings / migration bridge
@@ -416,6 +416,21 @@ Delivered coverage:
 - `renderHardwareSmokeMatrix()` emits `ROZETA HARDWARE SMOKE MATRIX` text with explicit `SENSOR_ONLY` versus motion rows.
 - `hardware_smoke_matrix` executable renders the default sensor-only runbook, can add `--with-motors`, and intentionally blocks with `--no-estop`.
 - CTest covers full lifted-wheel plus sensor matrix, fail-closed gates and deterministic operator-plan rendering.
+
+### M27 — Buchlovice telemetry converter
+
+Status: implemented in `rozeta::telemetry` as a dependency-free converter for legacy field logs.
+
+Goal: normalize Buchlovice/Robotour text telemetry into existing Rozeta mission telemetry records so field runs can be replayed and compared in CI.
+
+Delivered coverage:
+- Added `BuchloviceTelemetryConvertResult` carrying converted `MissionTickSample` tick rows and `MissionEventRecord` event rows plus a fail-closed `Status`.
+- Added `convertBuchloviceTelemetry()` for whitespace `key=value` records such as `tick ts=100 ... route_cue=Turn_left_in_7_m` and `event ts=120 type=qr_scanned detail=...`.
+- Tick conversion populates timestamp, phase, leg, GPS, target, dark/diff coverage, obstacle flag/source, route cue, motor command and bypass direction for `formatMissionTickCsv()`.
+- Event conversion preserves `MissionEventRecord` timestamp, type and detail for QR scans, arrivals, operator acknowledgements and obstacle/bypass events.
+- The parser rejects unknown record kinds, malformed or duplicate keys, missing required fields, non-finite values, invalid GPS/target/motor pairs, out-of-range coordinates, commas/control characters in text fields, spreadsheet formula prefixes and empty logs.
+- Added `buchlovice_telemetry_converter` executable documentation that reads a legacy log from stdin or a file and writes normalized mission-tick CSV.
+- CTest covers successful tick/event conversion, malformed and unsafe input rejection, and CSV-compatible output.
 
 
 ## Recommended implementation order

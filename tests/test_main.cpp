@@ -181,6 +181,9 @@ void test_field_runner_hardware_plan_composes_real_backends_when_safe();
 void test_telemetry_parser_loads_robotour_fixture();
 void test_telemetry_parser_rejects_bad_schema_and_rows();
 void test_telemetry_replay_produces_deterministic_navigation_decisions();
+void test_telemetry_converts_buchlovice_tick_and_event_lines();
+void test_telemetry_converter_rejects_malformed_and_unsafe_lines();
+void test_telemetry_converter_outputs_replay_csv_compatible_ticks();
 void test_telemetry_replay_builds_deterministic_ui_snapshot_sequence();
 void test_ui_map_view_projects_markers_into_viewport();
 void test_ui_map_view_preserves_metric_aspect_ratio_in_wide_viewport();
@@ -409,6 +412,9 @@ int main(){
         {"telemetry_parser_fixture", test_telemetry_parser_loads_robotour_fixture},
         {"telemetry_parser_errors", test_telemetry_parser_rejects_bad_schema_and_rows},
         {"telemetry_replay_deterministic", test_telemetry_replay_produces_deterministic_navigation_decisions},
+        {"telemetry_buchlovice_convert", test_telemetry_converts_buchlovice_tick_and_event_lines},
+        {"telemetry_buchlovice_invalid", test_telemetry_converter_rejects_malformed_and_unsafe_lines},
+        {"telemetry_buchlovice_csv", test_telemetry_converter_outputs_replay_csv_compatible_ticks},
         {"telemetry_ui_snapshots", test_telemetry_replay_builds_deterministic_ui_snapshot_sequence},
         {"ui_map_projection", test_ui_map_view_projects_markers_into_viewport},
         {"ui_metric_aspect", test_ui_map_view_preserves_metric_aspect_ratio_in_wide_viewport},

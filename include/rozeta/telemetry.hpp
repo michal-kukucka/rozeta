@@ -83,6 +83,7 @@ private:
 struct MissionTickSample {
     std::string phase{};
     int leg{0};
+    std::int64_t timestamp_ms{0};
     double gps_lat{0};
     double gps_lon{0};
     double target_lat{0};
@@ -96,6 +97,16 @@ struct MissionTickSample {
     double motor_right{0};
     double bypass_dir{0};
 };
+
+struct BuchloviceTelemetryConvertResult {
+    Status status{};
+    std::vector<MissionTickSample> ticks{};
+    std::vector<MissionEventRecord> events{};
+
+    bool ok() const { return status.ok(); }
+};
+
+BuchloviceTelemetryConvertResult convertBuchloviceTelemetry(const std::string& text);
 
 const std::vector<std::string>& missionTickCsvHeader();
 std::string formatMissionTickCsv(const MissionTickSample& sample);

@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <fstream>
 #include <limits>
+#include <map>
 #include <sstream>
 #include <stdexcept>
 #include <utility>
@@ -153,6 +154,178 @@ GeoCoordinate geoFromSample(const ReplaySample& sample) {
         sample.gps.longitude,
         sample.gps.altitude_m,
     };
+}
+
+std::string trimCopy(const std::string& text) {
+    const auto first = text.find_first_not_of(" \t\r\n");
+    if (first == std::string::npos) {
+        return {};
+    }
+    const auto last = text.find_last_not_of(" \t\r\n");
+    return text.substr(first, last - first + 1);
+}
+
+bool isCsvFormulaPrefix(char ch) {
+    return ch == '=' || ch == '+' || ch == '-' || ch == '@';
+}
+
+void rejectUnsafeTextValue(const std::string& text, const char* field_name) {
+    const auto first = text.find_first_not_of(' ');
+    if (first != std::string::npos && isCsvFormulaPrefix(text[first])) {
+        throw std::invalid_argument(std::string("CSV formula prefix in ") + field_name);
+    }
+}
+
+std::string normalizeTokenText(const std::string& text, const char* field_name) {
+    std::string out;
+    out.reserve(text.size());
+    for (const unsigned char ch : text) {
+        if (ch == ',') {
+            throw std::invalid_argument(std::string("comma not allowed in ") + field_name);
+        }
+        if (ch < 0x20 || ch == 0x7f) {
+            throw std::invalid_argument(std::string("control character in ") + field_name);
+        }
+        out.push_back(ch == '_' ? ' ' : static_cast<char>(ch));
+    }
+    rejectUnsafeTextValue(out, field_name);
+    return out;
+}
+
+std::string strictTokenText(const std::string& text, const char* field_name) {
+    std::string out;
+    out.reserve(text.size());
+    for (const unsigned char ch : text) {
+        if (ch == ',') {
+            throw std::invalid_argument(std::string("comma not allowed in ") + field_name);
+        }
+        if (ch < 0x20 || ch == 0x7f) {
+            throw std::invalid_argument(std::string("control character in ") + field_name);
+        }
+        out.push_back(static_cast<char>(ch));
+    }
+    rejectUnsafeTextValue(out, field_name);
+    return out;
+}
+
+std::map<std::string, std::string> parseKeyValueTokens(
+    std::istringstream& tokens,
+    std::size_t line_number) {
+    std::map<std::string, std::string> fields;
+    std::string token;
+    while (tokens >> token) {
+        const auto equals = token.find('=');
+        if (equals == std::string::npos || equals == 0 || equals + 1 >= token.size()) {
+            throw std::invalid_argument(
+                "line " + std::to_string(line_number) + " has malformed token " + token);
+        }
+        const auto key = token.substr(0, equals);
+        if (!fields.emplace(key, token.substr(equals + 1)).second) {
+            throw std::invalid_argument(
+                "line " + std::to_string(line_number) + " repeats key " + key);
+        }
+    }
+    return fields;
+}
+
+bool containsKey(const std::vector<std::string>& allowed, const std::string& key) {
+    return std::find(allowed.begin(), allowed.end(), key) != allowed.end();
+}
+
+void rejectUnknownKeys(
+    const std::map<std::string, std::string>& fields,
+    const std::vector<std::string>& allowed,
+    std::size_t line_number) {
+    for (const auto& [key, value] : fields) {
+        (void)value;
+        if (!containsKey(allowed, key)) {
+            throw std::invalid_argument(
+                "line " + std::to_string(line_number) + " has unknown key " + key);
+        }
+    }
+}
+
+const std::string& requiredField(
+    const std::map<std::string, std::string>& fields,
+    const std::string& key,
+    std::size_t line_number) {
+    const auto it = fields.find(key);
+    if (it == fields.end()) {
+        throw std::invalid_argument(
+            "line " + std::to_string(line_number) + " missing required key " + key);
+    }
+    return it->second;
+}
+
+std::pair<double, double> parsePairStrict(const std::string& text, const char* field_name) {
+    const auto comma = text.find(',');
+    if (comma == std::string::npos || text.find(',', comma + 1) != std::string::npos) {
+        throw std::invalid_argument(std::string("invalid pair field: ") + field_name);
+    }
+    return {
+        parseFiniteDoubleStrict(text.substr(0, comma), field_name),
+        parseFiniteDoubleStrict(text.substr(comma + 1), field_name),
+    };
+}
+
+void validateLatitudeLongitude(double latitude, double longitude, const char* field_name) {
+    if (latitude < -90.0 || latitude > 90.0 || longitude < -180.0 || longitude > 180.0) {
+        throw std::invalid_argument(std::string("coordinate out of range: ") + field_name);
+    }
+}
+
+MissionTickSample parseBuchloviceTickLine(
+    const std::map<std::string, std::string>& fields,
+    std::size_t line_number) {
+    static const std::vector<std::string> allowed = {
+        "ts", "phase", "leg", "gps", "target", "dark", "diff", "obstacle",
+        "obstacle_source", "route_cue", "motor", "bypass",
+    };
+    rejectUnknownKeys(fields, allowed, line_number);
+
+    const auto timestamp_ms = parseInt64Strict(requiredField(fields, "ts", line_number), "ts");
+    const auto gps = parsePairStrict(requiredField(fields, "gps", line_number), "gps");
+    const auto target = parsePairStrict(requiredField(fields, "target", line_number), "target");
+    const auto motor = parsePairStrict(requiredField(fields, "motor", line_number), "motor");
+    validateLatitudeLongitude(gps.first, gps.second, "gps");
+    validateLatitudeLongitude(target.first, target.second, "target");
+
+    MissionTickSample sample;
+    sample.phase = normalizeTokenText(requiredField(fields, "phase", line_number), "phase");
+    const auto leg = parseInt64Strict(requiredField(fields, "leg", line_number), "leg");
+    if (leg < 0 || leg > 1000) {
+        throw std::invalid_argument("line " + std::to_string(line_number) + " has invalid leg");
+    }
+    sample.leg = static_cast<int>(leg);
+    sample.timestamp_ms = timestamp_ms;
+    sample.gps_lat = gps.first;
+    sample.gps_lon = gps.second;
+    sample.target_lat = target.first;
+    sample.target_lon = target.second;
+    sample.dark_coverage = parseFiniteDoubleStrict(requiredField(fields, "dark", line_number), "dark");
+    sample.diff_coverage = parseFiniteDoubleStrict(requiredField(fields, "diff", line_number), "diff");
+    sample.obstacle_ahead = parseBoolFlag(requiredField(fields, "obstacle", line_number));
+    sample.obstacle_source = normalizeTokenText(
+        requiredField(fields, "obstacle_source", line_number), "obstacle_source");
+    sample.route_cue = normalizeTokenText(
+        requiredField(fields, "route_cue", line_number), "route_cue");
+    sample.motor_left = motor.first;
+    sample.motor_right = motor.second;
+    sample.bypass_dir = parseFiniteDoubleStrict(requiredField(fields, "bypass", line_number), "bypass");
+    return sample;
+}
+
+MissionEventRecord parseBuchloviceEventLine(
+    const std::map<std::string, std::string>& fields,
+    std::size_t line_number) {
+    static const std::vector<std::string> allowed = {"ts", "type", "detail"};
+    rejectUnknownKeys(fields, allowed, line_number);
+
+    MissionEventRecord event;
+    event.timestamp_ms = parseInt64Strict(requiredField(fields, "ts", line_number), "ts");
+    event.type = strictTokenText(requiredField(fields, "type", line_number), "type");
+    event.detail = normalizeTokenText(requiredField(fields, "detail", line_number), "detail");
+    return event;
 }
 
 RobotState robotStateFromSample(const ReplaySample& sample) {
@@ -370,9 +543,59 @@ void MissionEventLogger::reset() {
     events_.clear();
 }
 
+BuchloviceTelemetryConvertResult convertBuchloviceTelemetry(const std::string& text) {
+    BuchloviceTelemetryConvertResult result;
+    std::istringstream input(text);
+    std::string line;
+    std::size_t line_number = 0;
+
+    while (std::getline(input, line)) {
+        ++line_number;
+        line = trimCopy(line);
+        if (line.empty() || line.front() == '#') {
+            continue;
+        }
+
+        std::istringstream tokens(line);
+        std::string kind;
+        tokens >> kind;
+
+        try {
+            const auto fields = parseKeyValueTokens(tokens, line_number);
+            if (kind == "tick") {
+                result.ticks.push_back(parseBuchloviceTickLine(fields, line_number));
+            } else if (kind == "event") {
+                result.events.push_back(parseBuchloviceEventLine(fields, line_number));
+            } else {
+                result.status = Status::error(
+                    ErrorCode::ParseError,
+                    "line " + std::to_string(line_number) + " has unknown record kind " + kind);
+                result.ticks.clear();
+                result.events.clear();
+                return result;
+            }
+        } catch (const std::exception& ex) {
+            result.status = Status::error(ErrorCode::ParseError, ex.what());
+            result.ticks.clear();
+            result.events.clear();
+            return result;
+        }
+    }
+
+    if (result.ticks.empty() && result.events.empty()) {
+        result.status = Status::error(
+            ErrorCode::ParseError,
+            "Buchlovice telemetry contains no tick or event records");
+        return result;
+    }
+
+    result.status = Status::okStatus();
+    return result;
+}
+
 const std::vector<std::string>& missionTickCsvHeader() {
     static const std::vector<std::string> header = {
-        "phase", "leg", "gps_lat", "gps_lon",
+        "phase", "leg", "timestamp_ms", "gps_lat", "gps_lon",
         "target_lat", "target_lon",
         "dark_coverage", "diff_coverage",
         "obstacle_ahead", "obstacle_source",
@@ -386,6 +609,7 @@ std::string formatMissionTickCsv(const MissionTickSample& sample) {
     std::ostringstream os;
     os << sample.phase << ","
        << sample.leg << ","
+       << sample.timestamp_ms << ","
        << sample.gps_lat << ","
        << sample.gps_lon << ","
        << sample.target_lat << ","

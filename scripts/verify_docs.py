@@ -39,7 +39,7 @@ PUBLIC_HEADER_DOCS = {
     "safety": "docs/safety_module.md",
     "odometry": "docs/module_overview.md",
     "perception": "docs/perception_module.md",
-    "telemetry": "docs/module_overview.md",
+    "telemetry": "docs/telemetry_module.md",
     "ui": "docs/ui_module.md",
 }
 
@@ -288,6 +288,38 @@ REQUIRED_BUCHLOVICE_M26_PHRASES = [
     "physical-estop",
     "lifted-wheel-motors",
     "SENSOR_ONLY",
+]
+
+REQUIRED_BUCHLOVICE_M27_PHRASES = [
+    "M27 — Buchlovice telemetry converter",
+    "BuchloviceTelemetryConvertResult",
+    "convertBuchloviceTelemetry",
+    "MissionTickSample",
+    "MissionEventRecord",
+    "tick ts=100",
+    "route_cue=Turn_left_in_7_m",
+    "formatMissionTickCsv",
+]
+
+REQUIRED_BUCHLOVICE_M27_TELEMETRY_PHRASES = [
+    "whitespace-separated `key=value` records",
+    "timestamp_ms=100",
+    "malformed tokens and duplicate keys",
+    "missing required keys",
+    "non-finite numbers",
+    "GPS, target and motor pairs must contain exactly one comma",
+    "latitude/longitude bounds",
+    "commas, control characters and spreadsheet formula prefixes",
+    "empty/comment-only input fails",
+    "stdin",
+    "writes normalized mission-tick CSV to stdout",
+    "Events are counted on stderr",
+]
+
+REQUIRED_BUCHLOVICE_M27_TEST_PHRASES = [
+    "test_telemetry_converts_buchlovice_tick_and_event_lines",
+    "test_telemetry_converter_rejects_malformed_and_unsafe_lines",
+    "test_telemetry_converter_outputs_replay_csv_compatible_ticks",
 ]
 
 
@@ -621,6 +653,39 @@ def main() -> int:
     hardware_smoke_source = read("src/hardware_smoke.cpp")
     if "HardwareSmokeMatrix buildHardwareSmokeMatrix" not in hardware_smoke_source:
         fail("M26 buildHardwareSmokeMatrix source implementation is missing", failures)
+
+    buchlovice_m27_docs = (
+        read("docs/telemetry_module.md")
+        + "\n"
+        + read("docs/module_overview.md")
+        + "\n"
+        + read("docs/api-reference.md")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M27_PHRASES:
+        if phrase not in buchlovice_m27_docs:
+            fail(f"Buchlovice M27 telemetry converter documentation coverage missing: {phrase}", failures)
+
+    telemetry_doc = read("docs/telemetry_module.md")
+    for phrase in REQUIRED_BUCHLOVICE_M27_TELEMETRY_PHRASES:
+        if phrase not in telemetry_doc:
+            fail(f"Buchlovice M27 telemetry module contract missing: {phrase}", failures)
+
+    telemetry_tests = read("tests/test_telemetry.cpp")
+    for phrase in REQUIRED_BUCHLOVICE_M27_TEST_PHRASES:
+        if phrase not in telemetry_tests:
+            fail(f"Buchlovice M27 telemetry test coverage missing: {phrase}", failures)
+
+    telemetry_source = read("src/telemetry.cpp")
+    if "BuchloviceTelemetryConvertResult convertBuchloviceTelemetry" not in telemetry_source:
+        fail("M27 convertBuchloviceTelemetry source implementation is missing", failures)
+    converter_example = read("examples/buchlovice_telemetry_converter.cpp")
+    if "convertBuchloviceTelemetry" not in converter_example:
+        fail("M27 buchlovice_telemetry_converter example does not call the converter", failures)
+    examples_cmake = read("examples/CMakeLists.txt")
+    if "buchlovice_telemetry_converter" not in examples_cmake:
+        fail("M27 buchlovice_telemetry_converter example is not registered in CMake", failures)
 
     maps_source = read("src/maps.cpp")
     if "JunctionCueResult junctionCue" not in maps_source:

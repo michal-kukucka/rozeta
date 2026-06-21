@@ -98,6 +98,107 @@ void test_telemetry_replay_produces_deterministic_navigation_decisions() {
     }
 }
 
+void test_telemetry_converts_buchlovice_tick_and_event_lines() {
+    const std::string text =
+        "# exported from kvalifikacia_demo.py\n"
+        "tick ts=100 phase=to_loading leg=1 gps=48.800100,17.390200 "
+        "target=48.800500,17.390900 dark=0.25 diff=0.50 obstacle=1 "
+        "obstacle_source=rgb_dark route_cue=Turn_left_in_7_m motor=0.40,0.35 bypass=-1\n"
+        "event ts=120 type=qr_scanned detail=geo:48.8005;17.3909\n";
+
+    const auto result = rozeta::telemetry::convertBuchloviceTelemetry(text);
+
+    REQUIRE_TRUE(result.status.ok());
+    REQUIRE_EQ(result.ticks.size(), static_cast<std::size_t>(1));
+    REQUIRE_EQ(result.events.size(), static_cast<std::size_t>(1));
+
+    const auto& tick = result.ticks.front();
+    REQUIRE_EQ(tick.phase, std::string("to loading"));
+    REQUIRE_EQ(tick.leg, 1);
+    REQUIRE_EQ(tick.timestamp_ms, 100LL);
+    REQUIRE_NEAR(tick.gps_lat, 48.800100, 1e-9);
+    REQUIRE_NEAR(tick.gps_lon, 17.390200, 1e-9);
+    REQUIRE_NEAR(tick.target_lat, 48.800500, 1e-9);
+    REQUIRE_NEAR(tick.target_lon, 17.390900, 1e-9);
+    REQUIRE_NEAR(tick.dark_coverage, 0.25, 1e-9);
+    REQUIRE_NEAR(tick.diff_coverage, 0.50, 1e-9);
+    REQUIRE_TRUE(tick.obstacle_ahead);
+    REQUIRE_EQ(tick.obstacle_source, std::string("rgb dark"));
+    REQUIRE_EQ(tick.route_cue, std::string("Turn left in 7 m"));
+    REQUIRE_NEAR(tick.motor_left, 0.40, 1e-9);
+    REQUIRE_NEAR(tick.motor_right, 0.35, 1e-9);
+    REQUIRE_NEAR(tick.bypass_dir, -1.0, 1e-9);
+
+    const auto& event = result.events.front();
+    REQUIRE_EQ(event.timestamp_ms, 120LL);
+    REQUIRE_EQ(event.type, std::string("qr_scanned"));
+    REQUIRE_EQ(event.detail, std::string("geo:48.8005;17.3909"));
+}
+
+void test_telemetry_converter_rejects_malformed_and_unsafe_lines() {
+    const auto bad_kind = rozeta::telemetry::convertBuchloviceTelemetry(
+        "noise ts=1 phase=driving\n");
+    REQUIRE_TRUE(!bad_kind.status.ok());
+
+    const auto bad_tick = rozeta::telemetry::convertBuchloviceTelemetry(
+        "tick ts=100 phase=drive leg=1 gps=nan,17.3 target=48.8,17.4 "
+        "dark=0 diff=0 obstacle=0 obstacle_source=clear route_cue=Continue motor=0,0 bypass=0\n");
+    REQUIRE_TRUE(!bad_tick.status.ok());
+
+    const auto missing_event_detail = rozeta::telemetry::convertBuchloviceTelemetry(
+        "event ts=120 type=arrival\n");
+    REQUIRE_TRUE(!missing_event_detail.status.ok());
+
+    const auto unknown_key = rozeta::telemetry::convertBuchloviceTelemetry(
+        "tick ts=100 phase=drive leg=1 gps=48.8,17.3 target=48.8,17.4 "
+        "dark=0 diff=0 obstacle=0 obstacle_source=clear route_cue=Continue "
+        "motor=0,0 bypass=0 extra=ignored\n");
+    REQUIRE_TRUE(!unknown_key.status.ok());
+
+    const auto out_of_range = rozeta::telemetry::convertBuchloviceTelemetry(
+        "tick ts=100 phase=drive leg=1 gps=98.8,17.3 target=48.8,17.4 "
+        "dark=0 diff=0 obstacle=0 obstacle_source=clear route_cue=Continue motor=0,0 bypass=0\n");
+    REQUIRE_TRUE(!out_of_range.status.ok());
+
+    const auto formula_prefix = rozeta::telemetry::convertBuchloviceTelemetry(
+        "tick ts=100 phase==cmd leg=1 gps=48.8,17.3 target=48.8,17.4 "
+        "dark=0 diff=0 obstacle=0 obstacle_source=clear route_cue=Continue motor=0,0 bypass=0\n");
+    REQUIRE_TRUE(!formula_prefix.status.ok());
+
+    const auto normalized_formula_prefix = rozeta::telemetry::convertBuchloviceTelemetry(
+        "tick ts=100 phase=drive leg=1 gps=48.8,17.3 target=48.8,17.4 "
+        "dark=0 diff=0 obstacle=0 obstacle_source=clear route_cue=_=cmd "
+        "motor=0,0 bypass=0\n");
+    REQUIRE_TRUE(!normalized_formula_prefix.status.ok());
+
+    const auto duplicate_key = rozeta::telemetry::convertBuchloviceTelemetry(
+        "event ts=120 type=arrival detail=ok detail=again\n");
+    REQUIRE_TRUE(!duplicate_key.status.ok());
+
+    const auto comma_in_text = rozeta::telemetry::convertBuchloviceTelemetry(
+        "event ts=120 type=operator_ack detail=hello,operator\n");
+    REQUIRE_TRUE(!comma_in_text.status.ok());
+
+    const auto empty = rozeta::telemetry::convertBuchloviceTelemetry("# comments only\n\n");
+    REQUIRE_TRUE(!empty.status.ok());
+}
+
+void test_telemetry_converter_outputs_replay_csv_compatible_ticks() {
+    const auto result = rozeta::telemetry::convertBuchloviceTelemetry(
+        "tick ts=100 phase=returning leg=3 gps=48.8,17.3 target=48.7,17.2 "
+        "dark=0 diff=0 obstacle=0 obstacle_source=clear "
+        "route_cue=Continue_straight motor=0.10,0.10 bypass=0\n");
+
+    REQUIRE_TRUE(result.status.ok());
+    REQUIRE_EQ(result.ticks.size(), static_cast<std::size_t>(1));
+    REQUIRE_EQ(result.ticks.front().timestamp_ms, 100LL);
+    const auto csv = rozeta::telemetry::formatMissionTickCsv(result.ticks.front());
+    REQUIRE_TRUE(csv.find("returning,3,100,48.8,17.3,48.7,17.2") != std::string::npos);
+    REQUIRE_TRUE(csv.find("Continue straight") != std::string::npos);
+    REQUIRE_TRUE(csv.find('\n') == std::string::npos);
+    REQUIRE_TRUE(csv.find('\r') == std::string::npos);
+}
+
 void test_telemetry_replay_builds_deterministic_ui_snapshot_sequence() {
     const auto log = rozeta::telemetry::loadReplayLog(fixturePath());
     REQUIRE_TRUE(log.status.ok());

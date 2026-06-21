@@ -29,7 +29,7 @@ Current public surface:
 - `include/rozeta/core.hpp` — status/error model including `Timeout`, timestamps, geometry, robot state, config loading, coordinate conversion and lifecycle hooks.
 - `include/rozeta/depth.hpp` — normalized depth-frame and point-cloud data contracts shared by Kinect helpers and obstacle detection.
 - `include/rozeta/logging.hpp` — logger interface plus console/CSV logger implementations.
-- `include/rozeta/telemetry.hpp` — stable `rozeta.telemetry.v1` Robotour replay CSV schema, parser and deterministic navigation replay helpers. The fixture format is intentionally strict comma-delimited text: quoted fields, embedded commas, partial numeric parses and non-finite numbers are rejected so replay logs fail closed in CI.
+- `include/rozeta/telemetry.hpp` — stable `rozeta.telemetry.v1` Robotour replay CSV schema, parser and deterministic navigation replay helpers. The fixture format is intentionally strict comma-delimited text: quoted fields, embedded commas, partial numeric parses and non-finite numbers are rejected so replay logs fail closed in CI. M27 adds `BuchloviceTelemetryConvertResult` and `convertBuchloviceTelemetry()` for converting legacy Buchlovice text records into timestamped `MissionTickSample` and `MissionEventRecord` values; `formatMissionTickCsv()` then writes normalized mission-tick CSV rows.
 - `include/rozeta/runtime.hpp` — deterministic, tick-based `MissionRuntime` supervisor with module health checks, mission phases, stop/emergency-stop/bypass hooks and motor keepalive scheduling for Buchlovice/Robotour loops.
 - `include/rozeta/motors.hpp` — differential-drive motor control, mock controller, optional serial motor controller, encoder feedback, calibration persistence and emergency stop semantics.
 - `include/rozeta/gps.hpp` — NMEA checksum validation, stream buffering, serial/file GPS receiver, M4 TCP/UDP `NetworkGpsReceiver`, `parseGpsPayload` for JSON/plain coordinate feeds, parsed GPS fix model and local conversion helpers.
@@ -122,6 +122,7 @@ These examples are deliberately small and should stay buildable in CI:
 - `c_api_smoke` — compile and run a C translation unit against `rozeta/c_api.h`.
 - `serial_motor_calibrate` — dry-run calibration helper for the optional serial motor backend.
 - `hardware_smoke_matrix` — M26 unified hardware smoke matrix runbook for physical E-STOP, optional lifted-wheel motors, GPS/camera/Kinect/LiDAR `SENSOR_ONLY` checks and calibration validation.
+- `buchlovice_telemetry_converter` — M27 no-hardware converter that reads Buchlovice `tick ts=100 ... route_cue=Turn_left_in_7_m` text logs and writes normalized `MissionTickSample` CSV via `formatMissionTickCsv()`.
 
 ## Website integration plan
 
