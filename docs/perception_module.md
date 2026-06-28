@@ -100,3 +100,65 @@ backends. The result carries:
 Keep this module pure: device ownership, DNN inference, threads and GUI rendering
 belong in optional adapters. The checked-in fallback uses classic CV-style masks
 so tests can validate the payload contract without camera hardware.
+
+
+## M29 — Native C++ PyTorch / LibTorch local AI models
+
+M29 adds a native C++ PyTorch backend seam for local camera AI models while keeping
+the default Rozeta build hardware-free and dependency-free:
+
+1. `TorchModelConfig` describes a TorchScript `.pt` model path, labels, RGB input
+   tensor shape, confidence threshold, normalization mean/std and `cpu`/`cuda`
+   device selection. The contract is explicit about `libtorch` so operators know
+   this is native C++ PyTorch, not Python.
+2. `validateTorchModelConfig()` rejects empty model paths, non-positive tensor
+   dimensions, non-RGB channel counts, non-finite thresholds, bad normalization
+   vectors and unsupported devices before any model is loaded.
+3. `TorchImageModel` is a move-only inference adapter. In default builds it fails
+   closed with `HardwareUnavailable` and `backend_available=false`; with
+   `ROZETA_WITH_LIBTORCH=ON` it loads a TorchScript model through LibTorch.
+4. `TorchModelResult` carries `TorchDetection` rows plus the `backend=libtorch`
+   source name so camera pipelines, telemetry and operator diagnostics can show
+   whether local AI inference or the deterministic classic-CV fallback produced
+   the facts.
+5. The checked-in tests cover config validation and the no-LibTorch unavailable
+   fallback. Real model execution remains opt-in because CI should not download
+   large AI weights or require GPU drivers.
+
+### Build and run with LibTorch
+
+Install or download the official LibTorch distribution, then point CMake at it.
+TorchScript model files are trusted deployment artifacts: do not load arbitrary
+unreviewed `.pt` files on a field laptop, and keep trained weights/labels outside
+this repository unless licensing and size policies explicitly allow them.
+
+```bash
+cmake -S . -B build-libtorch \
+  -DROZETA_WITH_LIBTORCH=ON \
+  -DCMAKE_PREFIX_PATH=/path/to/libtorch/share/cmake
+cmake --build build-libtorch --parallel
+```
+
+When LibTorch is not installed, configuring with `ROZETA_WITH_LIBTORCH=ON` stops
+with a clear error telling the operator to install/download LibTorch or switch the
+option off. Default `ROZETA_WITH_LIBTORCH=OFF` builds continue to use the
+dependency-free `analyzeCameraScene` classic-CV path, so field laptops can still
+run path/obstacle/person checks without local AI model files.
+
+### Model output contract
+
+The first LibTorch integration supports TorchScript models returning a float
+detection tensor shaped `[N,6+]` or `[1,N,6+]`. The incoming `camera::Frame`
+must already match `TorchModelConfig::input_width` and `input_height`; resizing
+belongs in the camera/application adapter so tests and telemetry know the exact
+model input shape. Each output row is:
+
+- `center_x`
+- `center_y`
+- `width`
+- `height`
+- `confidence`
+- `class_id`
+
+Rows below `confidence_threshold` are filtered. `class_id` maps into
+`TorchModelConfig::labels` when provided.

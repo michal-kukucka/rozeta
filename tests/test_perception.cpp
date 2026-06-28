@@ -504,3 +504,80 @@ void test_perception_camera_configs_expose_roi_color_corners_and_obstacle_counts
     require(obstacles.largest_obstacle_width == 7 && obstacles.largest_obstacle_height == 6,
         "largest obstacle bounding box should be exposed");
 }
+
+
+void test_perception_libtorch_backend_contract_and_unavailable_fallback() {
+    rozeta::perception::TorchModelConfig config;
+    config.model_path = "models/track-scene.pt";
+    config.labels = {"track", "person", "obstacle"};
+    config.input_width = 320;
+    config.input_height = 240;
+    config.confidence_threshold = 0.55;
+
+    rozeta::perception::TorchImageModel model(config);
+    const auto load_status = model.load();
+    require(!load_status.ok(),
+        "default build without LibTorch should fail closed instead of pretending inference works");
+    require(load_status.code == rozeta::ErrorCode::HardwareUnavailable,
+        "missing LibTorch backend should report HardwareUnavailable");
+    require(model.backendName() == "libtorch",
+        "native C++ PyTorch backend should identify itself as libtorch");
+    require(!model.available(),
+        "unloaded unavailable backend should not be available");
+
+    const auto result = model.analyze(trackSceneFrame());
+    require(!result.ok(),
+        "analyze before a native LibTorch model is loaded should fail closed");
+    require(result.backend == "libtorch",
+        "result should preserve the libtorch source name for operator diagnostics");
+    require(!result.backend_available,
+        "result should expose backend availability for degraded camera pipelines");
+}
+
+void test_perception_libtorch_config_validation_rejects_unsafe_model_inputs() {
+    rozeta::perception::TorchModelConfig config;
+    config.model_path = "";
+    config.input_width = 224;
+    config.input_height = 224;
+
+    rozeta::perception::TorchImageModel missing_model(config);
+    const auto missing_status = missing_model.load();
+    require(!missing_status.ok(), "empty model path should be rejected before backend loading");
+    require(missing_status.code == rozeta::ErrorCode::InvalidArgument,
+        "empty model path should report InvalidArgument");
+
+    config.model_path = "models/track-scene.pt";
+    config.input_width = 0;
+    rozeta::perception::TorchImageModel bad_shape(config);
+    const auto shape_status = bad_shape.load();
+    require(!shape_status.ok(), "invalid tensor input width should be rejected");
+    require(shape_status.code == rozeta::ErrorCode::InvalidArgument,
+        "invalid tensor dimensions should report InvalidArgument");
+
+    config.input_width = 224;
+    config.normalize_mean = {0.485, 0.456};
+    rozeta::perception::TorchImageModel bad_normalization(config);
+    const auto norm_status = bad_normalization.load();
+    require(!norm_status.ok(), "normalization vectors must match RGB channel count");
+    require(norm_status.code == rozeta::ErrorCode::InvalidArgument,
+        "bad normalization vectors should report InvalidArgument");
+
+    config.normalize_mean = {0.485, 0.456, 0.406};
+    config.normalize_std = {0.229, 0.0, 0.225};
+    const auto std_status = rozeta::perception::validateTorchModelConfig(config);
+    require(!std_status.ok(), "zero normalization std should be rejected");
+    require(std_status.code == rozeta::ErrorCode::InvalidArgument,
+        "zero normalization std should report InvalidArgument");
+
+    config.normalize_std = {0.229, 0.224, 0.225};
+    config.confidence_threshold = 1.5;
+    const auto threshold_status = rozeta::perception::validateTorchModelConfig(config);
+    require(!threshold_status.ok(), "confidence thresholds outside [0,1] should be rejected");
+
+    config.confidence_threshold = 0.50;
+    config.device = "tpu";
+    const auto device_status = rozeta::perception::validateTorchModelConfig(config);
+    require(!device_status.ok(), "unsupported devices should be rejected explicitly");
+    require(device_status.code == rozeta::ErrorCode::InvalidArgument,
+        "unsupported device should report InvalidArgument");
+}

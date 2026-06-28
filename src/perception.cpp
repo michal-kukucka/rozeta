@@ -7,6 +7,11 @@
 #include <utility>
 #include <vector>
 
+#ifdef ROZETA_WITH_LIBTORCH
+#include <torch/script.h>
+#include <torch/torch.h>
+#endif
+
 namespace rozeta::perception {
 namespace {
 
@@ -889,6 +894,224 @@ CameraSceneResult analyzeCameraScene(
         });
     result.track_blocked = obstacle_blocks || person_blocks;
     return result;
+}
+
+// ── Optional native C++ PyTorch / LibTorch image model backend ──────
+
+namespace {
+
+bool finiteVector(const std::vector<double>& values) {
+    return std::all_of(values.begin(), values.end(), [](double value) {
+        return std::isfinite(value);
+    });
+}
+
+Status unavailableTorchStatus() {
+    return Status::error(
+        ErrorCode::HardwareUnavailable,
+        "ROZETA_WITH_LIBTORCH=ON is required for native C++ PyTorch inference");
+}
+
+} // namespace
+
+Status validateTorchModelConfig(const TorchModelConfig& config) {
+    if (config.model_path.empty()) {
+        return Status::error(
+            ErrorCode::InvalidArgument,
+            "LibTorch model_path must point to a TorchScript .pt model");
+    }
+    if (config.input_width <= 0 || config.input_height <= 0 ||
+        config.input_channels != 3) {
+        return Status::error(
+            ErrorCode::InvalidArgument,
+            "LibTorch input tensor shape must be positive RGB CHW");
+    }
+    if (!std::isfinite(config.confidence_threshold) ||
+        config.confidence_threshold < 0.0 || config.confidence_threshold > 1.0) {
+        return Status::error(
+            ErrorCode::InvalidArgument,
+            "LibTorch confidence threshold must be finite in [0,1]");
+    }
+    if (config.normalize_mean.size() != 3U ||
+        config.normalize_std.size() != 3U ||
+        !finiteVector(config.normalize_mean) || !finiteVector(config.normalize_std)) {
+        return Status::error(
+            ErrorCode::InvalidArgument,
+            "LibTorch normalization mean/std vectors must contain three finite RGB values");
+    }
+    if (std::any_of(
+            config.normalize_std.begin(),
+            config.normalize_std.end(),
+            [](double value) { return value <= 0.0; })) {
+        return Status::error(
+            ErrorCode::InvalidArgument,
+            "LibTorch normalization std values must be positive");
+    }
+    if (config.device != "cpu" && config.device != "cuda") {
+        return Status::error(
+            ErrorCode::InvalidArgument,
+            "LibTorch device must be 'cpu' or 'cuda'");
+    }
+    return Status::okStatus();
+}
+
+struct TorchImageModel::Impl {
+    explicit Impl(TorchModelConfig cfg) : config(std::move(cfg)) {}
+
+    TorchModelConfig config;
+    std::string backend{"libtorch"};
+    bool loaded{false};
+
+#ifdef ROZETA_WITH_LIBTORCH
+    torch::jit::script::Module module;
+#endif
+};
+
+TorchImageModel::TorchImageModel(TorchModelConfig config)
+    : impl_(std::make_unique<Impl>(std::move(config))) {}
+
+TorchImageModel::~TorchImageModel() = default;
+TorchImageModel::TorchImageModel(TorchImageModel&&) noexcept = default;
+TorchImageModel& TorchImageModel::operator=(TorchImageModel&&) noexcept = default;
+
+Status TorchImageModel::load() {
+    const Status config_status = validateTorchModelConfig(impl_->config);
+    if (!config_status.ok()) {
+        impl_->loaded = false;
+        return config_status;
+    }
+
+#ifndef ROZETA_WITH_LIBTORCH
+    impl_->loaded = false;
+    return unavailableTorchStatus();
+#else
+    try {
+        impl_->module = torch::jit::load(impl_->config.model_path);
+        if (impl_->config.device == "cuda") {
+            if (!torch::cuda::is_available()) {
+                impl_->loaded = false;
+                return Status::error(
+                    ErrorCode::HardwareUnavailable,
+                    "LibTorch CUDA requested but torch::cuda::is_available() is false");
+            }
+            impl_->module.to(torch::kCUDA);
+        } else {
+            impl_->module.to(torch::kCPU);
+        }
+        impl_->module.eval();
+        impl_->loaded = true;
+        return Status::okStatus();
+    } catch (const c10::Error& err) {
+        impl_->loaded = false;
+        return Status::error(ErrorCode::IoError, err.what());
+    } catch (const std::exception& err) {
+        impl_->loaded = false;
+        return Status::error(ErrorCode::IoError, err.what());
+    }
+#endif
+}
+
+TorchModelResult TorchImageModel::analyze(const camera::Frame& frame) const {
+    TorchModelResult result;
+    result.backend = impl_->backend;
+    result.backend_available = impl_->loaded;
+
+    const Status frame_status = camera::validateFrame(frame, 3, 1);
+    if (!frame_status.ok()) {
+        result.status = frame_status;
+        return result;
+    }
+    if (!impl_->loaded) {
+        result.status = unavailableTorchStatus();
+        return result;
+    }
+    if (frame.metadata.width != impl_->config.input_width ||
+        frame.metadata.height != impl_->config.input_height) {
+        result.status = Status::error(
+            ErrorCode::InvalidArgument,
+            "LibTorch camera frame dimensions must match TorchModelConfig input shape");
+        return result;
+    }
+
+#ifndef ROZETA_WITH_LIBTORCH
+    result.status = unavailableTorchStatus();
+    return result;
+#else
+    try {
+        std::vector<float> chw;
+        chw.reserve(static_cast<std::size_t>(3 * frame.metadata.width * frame.metadata.height));
+        for (int channel = 0; channel < 3; ++channel) {
+            for (int y = 0; y < frame.metadata.height; ++y) {
+                for (int x = 0; x < frame.metadata.width; ++x) {
+                    const std::size_t base =
+                        (static_cast<std::size_t>(y) *
+                         static_cast<std::size_t>(frame.metadata.width) +
+                         static_cast<std::size_t>(x)) * 3U;
+                    const double scaled =
+                        static_cast<double>(frame.bytes[base + channel]) / 255.0;
+                    const double normalized =
+                        (scaled - impl_->config.normalize_mean[static_cast<std::size_t>(channel)]) /
+                        impl_->config.normalize_std[static_cast<std::size_t>(channel)];
+                    chw.push_back(static_cast<float>(normalized));
+                }
+            }
+        }
+
+        auto tensor = torch::from_blob(
+            chw.data(),
+            {1, 3, frame.metadata.height, frame.metadata.width},
+            torch::TensorOptions().dtype(torch::kFloat32)).clone();
+        if (impl_->config.device == "cuda") {
+            tensor = tensor.to(torch::kCUDA);
+        }
+
+        const auto output = impl_->module.forward({tensor}).toTensor().to(torch::kCPU);
+        const auto view = output.dim() == 3 ? output.squeeze(0) : output;
+        if (view.dim() != 2 || view.size(1) < 6) {
+            result.status = Status::error(
+                ErrorCode::InvalidArgument,
+                "LibTorch model output must be [N,6+] or [1,N,6+] detections");
+            return result;
+        }
+
+        auto accessor = view.accessor<float, 2>();
+        for (int64_t row = 0; row < view.size(0); ++row) {
+            const double confidence = static_cast<double>(accessor[row][4]);
+            if (confidence < impl_->config.confidence_threshold) {
+                continue;
+            }
+            const int class_id = static_cast<int>(accessor[row][5]);
+            TorchDetection detection;
+            detection.class_id = class_id;
+            detection.confidence = confidence;
+            detection.center_x = static_cast<double>(accessor[row][0]);
+            detection.center_y = static_cast<double>(accessor[row][1]);
+            detection.width = static_cast<double>(accessor[row][2]);
+            detection.height = static_cast<double>(accessor[row][3]);
+            if (class_id >= 0 &&
+                static_cast<std::size_t>(class_id) < impl_->config.labels.size()) {
+                detection.label = impl_->config.labels[static_cast<std::size_t>(class_id)];
+            }
+            result.detections.push_back(detection);
+        }
+        result.status = Status::okStatus();
+        return result;
+    } catch (const c10::Error& err) {
+        result.status = Status::error(ErrorCode::IoError, err.what());
+        return result;
+    } catch (const std::exception& err) {
+        result.status = Status::error(ErrorCode::IoError, err.what());
+        return result;
+    }
+#endif
+}
+
+bool TorchImageModel::available() const {
+    return impl_->loaded;
+}
+
+const std::string& TorchImageModel::backendName() const {
+    return impl_->backend;
 }
 
 } // namespace rozeta::perception

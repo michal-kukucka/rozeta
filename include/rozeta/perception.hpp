@@ -3,6 +3,7 @@
 #include <rozeta/camera.hpp>
 #include <rozeta/core.hpp>
 
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -198,5 +199,60 @@ PersonDetectionResult detectPeopleOnTrack(
 CameraSceneResult analyzeCameraScene(
     const camera::Frame& frame,
     const CameraSceneConfig& config = {});
+
+// ── Optional native C++ PyTorch / LibTorch image model backend ──────
+
+struct TorchModelConfig {
+    std::string model_path{};
+    std::vector<std::string> labels{};
+    int input_width{224};
+    int input_height{224};
+    int input_channels{3};
+    double confidence_threshold{0.50};
+    std::vector<double> normalize_mean{0.485, 0.456, 0.406};
+    std::vector<double> normalize_std{0.229, 0.224, 0.225};
+    std::string device{"cpu"};
+};
+
+struct TorchDetection {
+    std::string label{};
+    int class_id{0};
+    double confidence{0.0};
+    double center_x{0.0};
+    double center_y{0.0};
+    double width{0.0};
+    double height{0.0};
+};
+
+struct TorchModelResult {
+    std::vector<TorchDetection> detections{};
+    std::string backend{"libtorch"};
+    bool backend_available{false};
+    Status status{};
+
+    bool ok() const { return status.ok(); }
+};
+
+class TorchImageModel {
+public:
+    explicit TorchImageModel(TorchModelConfig config);
+    ~TorchImageModel();
+
+    TorchImageModel(const TorchImageModel&) = delete;
+    TorchImageModel& operator=(const TorchImageModel&) = delete;
+    TorchImageModel(TorchImageModel&&) noexcept;
+    TorchImageModel& operator=(TorchImageModel&&) noexcept;
+
+    Status load();
+    TorchModelResult analyze(const camera::Frame& frame) const;
+    bool available() const;
+    const std::string& backendName() const;
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+};
+
+Status validateTorchModelConfig(const TorchModelConfig& config);
 
 } // namespace rozeta::perception

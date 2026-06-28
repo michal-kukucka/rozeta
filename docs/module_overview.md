@@ -93,7 +93,7 @@ See `docs/hardware_smoke_module.md` for the `hardware_smoke_matrix` example and 
 
 ## Perception
 
-`perception::detectRgbPath` and `perception::measureSideCoverage` analyze packed RGB8 camera frames with dependency-free HSV-style masks. M7 — RGB path and grass perception reports path left/center/right direction, normalized center offset, confidence, green coverage and dark-side coverage without owning cameras or motor decisions.
+`perception::detectRgbPath` and `perception::measureSideCoverage` analyze packed RGB8 camera frames with dependency-free HSV-style masks. M7 — RGB path and grass perception reports path left/center/right direction, normalized center offset, confidence, green coverage and dark-side coverage without owning cameras or motor decisions. M29 adds optional native C++ PyTorch / libtorch local AI model support through `TorchImageModel`, guarded by `ROZETA_WITH_LIBTORCH=ON`, while default builds fail closed with `HardwareUnavailable`.
 
 See `docs/perception_module.md` for M7 RGB perception usage.
 

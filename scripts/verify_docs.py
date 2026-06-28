@@ -343,6 +343,25 @@ REQUIRED_BUCHLOVICE_M28_CLI_TEST_PHRASES = [
 ]
 
 
+REQUIRED_BUCHLOVICE_M29_PHRASES = [
+    "M29 — Native C++ PyTorch / LibTorch local AI models",
+    "TorchModelConfig",
+    "TorchImageModel",
+    "TorchModelResult",
+    "TorchDetection",
+    "validateTorchModelConfig",
+    "ROZETA_WITH_LIBTORCH=ON",
+    "backend=libtorch",
+    "Local AI camera workflow",
+    "trusted .pt load",
+]
+
+REQUIRED_BUCHLOVICE_M29_TEST_PHRASES = [
+    "test_perception_libtorch_backend_contract_and_unavailable_fallback",
+    "test_perception_libtorch_config_validation_rejects_unsafe_model_inputs",
+]
+
+
 def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
 
@@ -738,6 +757,33 @@ def main() -> int:
         fail("M28 field_operator_wizard example does not render the wizard", failures)
     if "field_operator_wizard" not in examples_cmake:
         fail("M28 field_operator_wizard example is not registered in CMake", failures)
+
+    buchlovice_m29_docs = (
+        read("docs/perception_module.md")
+        + "\n"
+        + read("docs/module_overview.md")
+        + "\n"
+        + read("docs/api-reference.md")
+        + "\n"
+        + read("docs/diagrams/module-map.html")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M29_PHRASES:
+        if phrase not in buchlovice_m29_docs:
+            fail(f"Buchlovice M29 LibTorch documentation coverage missing: {phrase}", failures)
+
+    perception_tests = read("tests/test_perception.cpp")
+    for phrase in REQUIRED_BUCHLOVICE_M29_TEST_PHRASES:
+        if phrase not in perception_tests:
+            fail(f"Buchlovice M29 LibTorch test coverage missing: {phrase}", failures)
+
+    perception_source = read("src/perception.cpp")
+    if "TorchImageModel::load" not in perception_source:
+        fail("M29 TorchImageModel source implementation is missing", failures)
+    root_cmake = read("CMakeLists.txt")
+    if "find_package(Torch QUIET)" not in root_cmake:
+        fail("M29 CMake does not probe LibTorch with find_package(Torch)", failures)
 
     maps_source = read("src/maps.cpp")
     if "JunctionCueResult junctionCue" not in maps_source:

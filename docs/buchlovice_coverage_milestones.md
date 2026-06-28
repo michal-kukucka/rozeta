@@ -10,7 +10,7 @@ Source audited:
 
 Rozeta can already cover a meaningful foundation of the Buchlovice Robotour stack: differential-drive motor commands, emergency stop, NMEA GPS parsing, serial/network GPS reads, camera capture lifecycle, M7 RGB path and grass perception, M8 RGB obstacle ROI/hysteresis, camera-scene people-on-track detection, depth/Kinect frame contracts, obstacle sectors from depth/LiDAR, offline CSV route loading, Buchlovice footway graph routing, route resampling/reuse, bearing/turn-ahead/wrong-direction route cues, simple route following, logging, telemetry replay, mission UI snapshots, legacy telemetry conversion, and a dependency-free field operator wizard.
 
-Rozeta cannot yet replace the Buchlovice application end-to-end because `kvalifikacia_demo.py` still contains deployment-specific behaviors that are outside Rozeta's reusable core: field-tuned camera/DNN backends, physical hardware validation, and production glue around the Python-friendly integration surface.
+Rozeta cannot yet replace the Buchlovice application end-to-end because `kvalifikacia_demo.py` still contains deployment-specific behaviors that are outside Rozeta's reusable core: field-tuned trained model files, physical hardware validation, and production glue around the Python-friendly integration surface.
 
 ## Coverage map
 
@@ -23,7 +23,7 @@ Rozeta cannot yet replace the Buchlovice application end-to-end because `kvalifi
 | iPhone GPS via TCP/UDP JSON, `lat,lon`, NMEA | Partial: NMEA serial/file parser only | No TCP/UDP GPS receiver and no JSON/plain coordinate parser receiver |
 | Buchlovice OSM footway CSV graph, Dijkstra, route resampling | Implemented: `BuchloviceFootwayGraphLoader`, `FootwayGraph`, `shortestPath`, `sampleRoute`, and `shouldReuseRoute` | Optional full OSM/PBF import remains future scope |
 | Haversine/bearing/turn-ahead/wrong-direction checks | Implemented: `haversineDistance`, `initialBearing`, `bearingToAheadPoint`, `turnAhead`, and `detectWrongDirection` | Field HUD/telemetry rendering of cues remains future UI scope |
-| Camera OpenCV capture and RGB path/grass feature extraction | Implemented: optional `OpenCvCamera`, `RgbPathConfig`, `detectRgbPath`, `measureSideCoverage`, `detectPeopleOnTrack`, and `analyzeCameraScene` | Field-tuned camera/DNN backends remain deployment scope |
+| Camera OpenCV capture and RGB path/grass feature extraction | Implemented: optional `OpenCvCamera`, `RgbPathConfig`, `detectRgbPath`, `measureSideCoverage`, `detectPeopleOnTrack`, `analyzeCameraScene`, and M29 native C++ PyTorch / LibTorch local AI model seam | Field-trained TorchScript model files remain deployment scope |
 | RGB obstacle ROI / hysteresis | Implemented: `RgbObstacleConfig`, `detectRgbObstacleDark`, `detectRgbObstacleDiff`, and `RgbObstacleTracker` | Field threshold tuning remains deployment scope |
 | Kinect Linux/Windows adapter probing and profile XML/runtime JSON bridge | Partial: `KinectSensor`, `FreenectKinectSensor`, depth obstacle extraction | No profile schema, backend selection/fallback policy, Buchlovice-compatible object summaries |
 | Wait 10s after obstacle, resume if clear, otherwise bypass | Partial: emergency stop/navigation decision exists | No obstacle behavior state machine or bypass maneuver primitive |
@@ -443,6 +443,24 @@ Delivered coverage:
 - `renderOperatorWizard()` emits a fixed `ROZETA FIELD OPERATOR WIZARD` frame and sanitizes control characters so operator-visible prompts cannot inject terminal escape sequences or split the frame.
 - Added `field_operator_wizard` executable documentation with interactive stdin operation and `--script continue,continue,continue,continue` for CI/no-hardware smoke runs.
 - CTest covers ordered confirmations, invalid-key handling, abort behavior, ready-to-start gating and render sanitization.
+
+### M29 — Native C++ PyTorch / LibTorch local AI models
+
+Status: implemented in `rozeta::perception` as an optional native LibTorch backend seam.
+
+Goal: allow Buchlovice/Robotour camera pipelines to use local AI models for image/camera processing without forcing PyTorch, model downloads or GPU drivers into default CI.
+
+Delivered coverage:
+- Added `TorchModelConfig` for TorchScript `.pt` model path, labels, RGB input tensor shape, confidence threshold, normalization mean/std and `cpu`/`cuda` device selection.
+- Added `validateTorchModelConfig()` to fail closed for empty model paths, invalid tensor dimensions, non-RGB channels, non-finite thresholds, malformed normalization vectors and unsupported devices.
+- Added move-only `TorchImageModel` with `load()`, `analyze()`, `available()` and `backendName()` for native C++ PyTorch inference through `libtorch`.
+- Added `TorchModelResult` and `TorchDetection` so local AI detections can be surfaced to camera pipelines, operator diagnostics and telemetry with `backend=libtorch` and `backend_available` status.
+- Added CMake option `ROZETA_WITH_LIBTORCH=ON`; missing LibTorch configure attempts stop with a clear install/CMAKE_PREFIX_PATH message, while default builds return `HardwareUnavailable` instead of pretending inference worked.
+- Added CTest coverage for the no-LibTorch fallback and config validation so large model weights and GPU drivers are not required in CI.
+
+Remaining action points:
+- Field-trained TorchScript weights, label taxonomies and confidence tuning are deployment artifacts and are intentionally not committed to Rozeta.
+- Real GPU/CUDA execution requires a LibTorch install on the target field laptop and should be smoke-tested with the actual model file before a mission.
 
 
 ## Recommended implementation order
