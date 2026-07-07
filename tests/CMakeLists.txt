@@ -74,6 +74,10 @@ if(Python3_Interpreter_FOUND)
       NAME rozeta_serial_transport_split_contract
       COMMAND ${Python3_EXECUTABLE}
           ${CMAKE_SOURCE_DIR}/tests/test_serial_transport_split_contract.py)
+  add_test(
+      NAME rozeta_socket_transport_split_contract
+      COMMAND ${Python3_EXECUTABLE}
+          ${CMAKE_SOURCE_DIR}/tests/test_socket_transport_split_contract.py)
   add_test(NAME rozeta_osm_import_tool COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_osm_import_tool.py)
 endif()
 

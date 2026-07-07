@@ -39,7 +39,9 @@ Sensors -> normalized data structures -> RobotState/Pose -> Navigation -> MotorC
 
 Rozeta keeps platform policy centralized in CMake so Windows support can grow in the same repository without ad-hoc compiler checks in every target. `cmake/RozetaPlatform.cmake` normalizes `ROZETA_PLATFORM_WINDOWS`, `ROZETA_PLATFORM_POSIX`, `ROZETA_PLATFORM_LINUX` and `ROZETA_PLATFORM_MACOS`. `cmake/RozetaCompilerOptions.cmake` exposes `rozeta_apply_warnings(target)`, mapping MSVC builds to `/W4 /permissive-` and GNU/Clang builds to `-Wall -Wextra -Wpedantic`.
 
-The platform foundation is intentionally small: it does not port serial or socket implementations by itself. It prepares the build graph so later Windows 10/11 milestones can select Win32/Winsock sources while Linux keeps the existing POSIX behavior.
+The platform foundation stays small and centralized: serial and socket implementations are selected by the
+normalized platform flags, while Linux keeps POSIX behavior and Windows 10/11 receives native Win32/Winsock
+backends in the same source tree.
 
 ## Internal backend foundation
 
@@ -62,6 +64,22 @@ This split lets serial GPS, serial motors and serial LiDAR code keep using the s
 repository remains single-source for Linux and Windows. POSIX pseudo-terminal tests continue to exercise real
 byte round trips on Linux; Windows builds get a separate no-hardware serial validation path for invalid COM
 devices, unsupported baud rates and closed-port error handling.
+
+`rozeta::gps::NetworkGpsReceiver` uses a second internal transport,
+`rozeta::internal::SocketTransport`, so TCP/UDP GPS feeds do not depend directly on POSIX or Winsock APIs.
+CMake selects exactly one socket backend beside the serial backend:
+
+- `src/internal/socket_transport_posix.cpp` for POSIX platforms. It uses BSD sockets, `SO_RCVTIMEO`,
+  nonblocking `connect()`, `poll()` and `getsockopt(SO_ERROR)` so TCP connection setup and receives obey the
+  configured finite timeout.
+- `src/internal/socket_transport_win32.cpp` for Windows 10/11. It owns Winsock startup/cleanup internally,
+  uses `SOCKET`, `closesocket`, `ioctlsocket(FIONBIO)`, `select()` for bounded TCP connect, `SO_RCVTIMEO` and
+  `WSAGetLastError()` mappings. CMake links `Ws2_32` only when `ROZETA_PLATFORM_WINDOWS` is active.
+
+`NetworkGpsReceiver` keeps stream framing, parsing, reconnect backoff and receiver statistics in GPS code.
+The socket transport only owns endpoint validation, socket lifecycle, bounded connect, receive timeout and
+native error conversion. Linux tests keep loopback UDP/TCP coverage; the test fixture now uses guarded socket
+helpers so the same source can compile with POSIX sockets or Winsock.
 
 Lifecycle rules for internal backends:
 

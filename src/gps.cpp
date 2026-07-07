@@ -1,6 +1,7 @@
 #include <rozeta/gps.hpp>
 
 #include "internal/serial_port.hpp"
+#include "internal/socket_transport.hpp"
 
 #include <algorithm>
 #include <array>
@@ -14,12 +15,6 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <fcntl.h>
-#include <poll.h>
-#include <sys/socket.h>
-#include <sys/time.h>
-#include <arpa/inet.h>
-#include <unistd.h>
 #include <utility>
 #include <vector>
 
@@ -543,111 +538,30 @@ Status SerialGpsReceiver::lastStatus() const { return impl_->last_status; }
 
 const GpsReceiverStats& SerialGpsReceiver::stats() const { return impl_->stats; }
 
-namespace {
-
-Status configureSocketTimeout(int fd, std::chrono::milliseconds timeout) {
-    timeval tv{};
-    tv.tv_sec = static_cast<time_t>(timeout.count() / 1000);
-    tv.tv_usec = static_cast<suseconds_t>((timeout.count() % 1000) * 1000);
-    if (::setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv)) != 0) {
-        return Status::error(ErrorCode::IoError, "failed to configure GPS network read timeout");
-    }
-    return Status::okStatus();
-}
-
-Status fillIpv4Address(const std::string& host, int port, sockaddr_in& addr) {
-    if (host.empty() || port <= 0 || port > 65535) {
-        return Status::error(ErrorCode::InvalidArgument, "GPS network host and port must be set");
-    }
-    addr = {};
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(static_cast<std::uint16_t>(port));
-    if (::inet_pton(AF_INET, host.c_str(), &addr.sin_addr) != 1) {
-        return Status::error(ErrorCode::InvalidArgument, "GPS network host must be an IPv4 address");
-    }
-    return Status::okStatus();
-}
-
-Status connectTcpSocketWithTimeout(int fd, const sockaddr_in& addr, std::chrono::milliseconds timeout) {
-    const int original_flags = ::fcntl(fd, F_GETFL, 0);
-    if (original_flags < 0) {
-        return Status::error(ErrorCode::IoError, "failed to read GPS TCP socket flags");
-    }
-    if (::fcntl(fd, F_SETFL, original_flags | O_NONBLOCK) != 0) {
-        return Status::error(ErrorCode::IoError, "failed to configure GPS TCP nonblocking connect");
-    }
-
-    const int connect_result = ::connect(fd, reinterpret_cast<const sockaddr*>(&addr), sizeof(addr));
-    if (connect_result == 0) {
-        ::fcntl(fd, F_SETFL, original_flags);
-        return Status::okStatus();
-    }
-    if (errno != EINPROGRESS) {
-        const std::string message = std::string("failed to connect GPS TCP socket: ") + std::strerror(errno);
-        ::fcntl(fd, F_SETFL, original_flags);
-        return Status::error(ErrorCode::HardwareUnavailable, message);
-    }
-
-    pollfd pfd{};
-    pfd.fd = fd;
-    pfd.events = POLLOUT;
-    const auto bounded_timeout = std::max<std::chrono::milliseconds>(timeout, std::chrono::milliseconds(1));
-    const auto deadline = std::chrono::steady_clock::now() + bounded_timeout;
-    int poll_result = 0;
-    do {
-        const auto remaining = std::chrono::duration_cast<std::chrono::milliseconds>(deadline - std::chrono::steady_clock::now());
-        if (remaining <= std::chrono::milliseconds(0)) {
-            ::fcntl(fd, F_SETFL, original_flags);
-            return Status::error(ErrorCode::Timeout, "GPS TCP connect timed out");
-        }
-        const auto wait_ms = std::max<std::chrono::milliseconds>(remaining, std::chrono::milliseconds(1));
-        poll_result = ::poll(&pfd, 1, static_cast<int>(wait_ms.count()));
-    } while (poll_result < 0 && errno == EINTR);
-
-    if (poll_result == 0) {
-        ::fcntl(fd, F_SETFL, original_flags);
-        return Status::error(ErrorCode::Timeout, "GPS TCP connect timed out");
-    }
-    if (poll_result < 0) {
-        const std::string message = std::string("GPS TCP connect poll failed: ") + std::strerror(errno);
-        ::fcntl(fd, F_SETFL, original_flags);
-        return Status::error(ErrorCode::IoError, message);
-    }
-
-    int socket_error = 0;
-    socklen_t socket_error_size = sizeof(socket_error);
-    if (::getsockopt(fd, SOL_SOCKET, SO_ERROR, &socket_error, &socket_error_size) != 0) {
-        const std::string message = std::string("failed to inspect GPS TCP connect status: ") + std::strerror(errno);
-        ::fcntl(fd, F_SETFL, original_flags);
-        return Status::error(ErrorCode::IoError, message);
-    }
-    if (::fcntl(fd, F_SETFL, original_flags) != 0) {
-        return Status::error(ErrorCode::IoError, "failed to restore GPS TCP socket flags");
-    }
-    if (socket_error != 0) {
-        return Status::error(
-            ErrorCode::HardwareUnavailable,
-            std::string("failed to connect GPS TCP socket: ") + std::strerror(socket_error));
-    }
-    return Status::okStatus();
-}
-
-} // namespace
-
 struct NetworkGpsReceiver::Impl {
     explicit Impl(NetworkGpsReceiverConfig cfg) : config(std::move(cfg)) {}
 
     NetworkGpsReceiverConfig config;
-    int fd{-1};
+    internal::SocketTransport socket;
     std::string pending{};
     Status last_status{Status::okStatus()};
     GpsReceiverStats stats{};
     Timestamp last_disconnect{};
 
+    internal::SocketEndpoint endpoint() const {
+        internal::SocketEndpoint out;
+        out.protocol = config.protocol == NetworkGpsProtocol::Udp
+            ? internal::SocketProtocol::Udp
+            : internal::SocketProtocol::Tcp;
+        out.host = config.host;
+        out.port = config.port;
+        out.timeout = config.read_timeout;
+        return out;
+    }
+
     void closeSocket() noexcept {
-        if (fd >= 0) {
-            ::close(fd);
-            fd = -1;
+        if (socket.isOpen()) {
+            socket.close();
             last_disconnect = now();
         }
     }
@@ -660,45 +574,11 @@ NetworkGpsReceiver::~NetworkGpsReceiver() { close(); }
 
 Status NetworkGpsReceiver::open() {
     close();
-    if (impl_->config.read_timeout <= std::chrono::milliseconds(0)) {
-        impl_->last_status = Status::error(ErrorCode::InvalidArgument, "GPS network read timeout must be positive");
+    impl_->last_status = impl_->socket.open(impl_->endpoint());
+    if (!impl_->last_status.ok()) {
         return impl_->last_status;
-    }
-    sockaddr_in addr{};
-    auto address_status = fillIpv4Address(impl_->config.host, impl_->config.port, addr);
-    if (!address_status.ok()) {
-        impl_->last_status = address_status;
-        return impl_->last_status;
-    }
-    impl_->fd = ::socket(AF_INET, impl_->config.protocol == NetworkGpsProtocol::Udp ? SOCK_DGRAM : SOCK_STREAM, 0);
-    if (impl_->fd < 0) {
-        impl_->last_status = Status::error(ErrorCode::HardwareUnavailable, "failed to create GPS network socket");
-        return impl_->last_status;
-    }
-    auto timeout_status = configureSocketTimeout(impl_->fd, impl_->config.read_timeout);
-    if (!timeout_status.ok()) {
-        impl_->closeSocket();
-        impl_->last_status = timeout_status;
-        return impl_->last_status;
-    }
-    if (impl_->config.protocol == NetworkGpsProtocol::Udp) {
-        int one = 1;
-        ::setsockopt(impl_->fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
-        if (::bind(impl_->fd, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) != 0) {
-            impl_->closeSocket();
-            impl_->last_status = Status::error(ErrorCode::HardwareUnavailable, "failed to bind GPS UDP socket");
-            return impl_->last_status;
-        }
-    } else {
-        auto connect_status = connectTcpSocketWithTimeout(impl_->fd, addr, impl_->config.read_timeout);
-        if (!connect_status.ok()) {
-            impl_->closeSocket();
-            impl_->last_status = connect_status;
-            return impl_->last_status;
-        }
     }
     impl_->pending.clear();
-    impl_->last_status = Status::okStatus();
     return impl_->last_status;
 }
 
@@ -719,7 +599,7 @@ Status NetworkGpsReceiver::open(const std::string& endpoint) {
 }
 
 std::optional<GpsFix> NetworkGpsReceiver::readFix() {
-    if (impl_->fd < 0) {
+    if (!impl_->socket.isOpen()) {
         if (impl_->config.protocol != NetworkGpsProtocol::Tcp) {
             impl_->last_status = Status::error(ErrorCode::HardwareUnavailable, "GPS network socket is not open");
             return std::nullopt;
@@ -744,36 +624,24 @@ std::optional<GpsFix> NetworkGpsReceiver::readFix() {
             impl_->last_status = Status::error(ErrorCode::Timeout, "no complete GPS TCP payload available before timeout");
             return std::nullopt;
         }
+        auto receive_timeout = impl_->config.read_timeout;
         if (impl_->config.protocol == NetworkGpsProtocol::Tcp) {
             const auto remaining = read_deadline - std::chrono::steady_clock::now();
-            const auto remaining_ms = std::chrono::duration_cast<std::chrono::milliseconds>(remaining) +
+            receive_timeout = std::chrono::duration_cast<std::chrono::milliseconds>(remaining) +
                 std::chrono::milliseconds(1);
-            auto timeout_status = configureSocketTimeout(impl_->fd, remaining_ms);
-            if (!timeout_status.ok()) {
-                impl_->last_status = timeout_status;
-                return std::nullopt;
-            }
         }
-        ssize_t count = ::recv(impl_->fd, buffer.data(), buffer.size(), 0);
-        if (count < 0) {
-            if (errno == EAGAIN || errno == EWOULDBLOCK) {
-                impl_->last_status = Status::error(ErrorCode::Timeout, "no GPS network payload available before timeout");
-            } else {
-                impl_->last_status = Status::error(ErrorCode::IoError, std::string("GPS network read failed: ") + std::strerror(errno));
-                if (impl_->config.protocol == NetworkGpsProtocol::Tcp) {
-                    impl_->closeSocket();
-                }
+
+        std::size_t count = 0;
+        impl_->last_status = impl_->socket.receive(buffer.data(), buffer.size(), receive_timeout, count);
+        if (!impl_->last_status.ok()) {
+            if (impl_->config.protocol == NetworkGpsProtocol::Tcp && !impl_->socket.isOpen()) {
+                impl_->last_disconnect = now();
             }
-            return std::nullopt;
-        }
-        if (count == 0) {
-            impl_->closeSocket();
-            impl_->last_status = Status::error(ErrorCode::IoError, "GPS TCP peer closed connection");
             return std::nullopt;
         }
 
         impl_->stats.bytes_read += static_cast<std::uint64_t>(count);
-        std::string chunk(reinterpret_cast<const char*>(buffer.data()), static_cast<std::size_t>(count));
+        std::string chunk(reinterpret_cast<const char*>(buffer.data()), count);
         if (impl_->config.protocol == NetworkGpsProtocol::Udp) {
             ++impl_->stats.sentences_seen;
             auto parsed = parseGpsPayload(chunk);
@@ -817,7 +685,7 @@ std::optional<GpsFix> NetworkGpsReceiver::readFix() {
 
 void NetworkGpsReceiver::close() noexcept { impl_->closeSocket(); }
 
-bool NetworkGpsReceiver::isOpen() const { return impl_->fd >= 0; }
+bool NetworkGpsReceiver::isOpen() const { return impl_->socket.isOpen(); }
 
 Status NetworkGpsReceiver::lastStatus() const { return impl_->last_status; }
 

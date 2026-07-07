@@ -216,6 +216,11 @@ split, hidden native handle layout, Win32 API coverage and platform-aware serial
 
 **Objective:** Make `NetworkGpsReceiver` work on Windows via Winsock and on Linux via current POSIX sockets.
 
+**Status:** Implemented in commit scope for M3. `NetworkGpsReceiver` now delegates native socket lifecycle to
+`rozeta::internal::SocketTransport`; POSIX and Win32 backends live in separate source files selected by CMake.
+The public GPS API is unchanged, Linux loopback TCP/UDP behavior remains covered, and `Ws2_32` is linked only
+for Windows builds.
+
 **Files:**
 - Modify: `src/gps.cpp`
 - Create: `src/internal/socket_transport.hpp`

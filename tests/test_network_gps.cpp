@@ -2,22 +2,65 @@
 
 #include <rozeta/gps.hpp>
 
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#else
 #include <arpa/inet.h>
+#include <sys/socket.h>
+#include <unistd.h>
+#endif
+
 #include <chrono>
 #include <cstring>
 #include <stdexcept>
 #include <string>
-#include <sys/socket.h>
 #include <thread>
-#include <unistd.h>
 
 namespace {
+
+#ifdef _WIN32
+using SocketHandle = SOCKET;
+using SocketLength = int;
+constexpr SocketHandle invalid_socket = INVALID_SOCKET;
+
+struct WinsockTestRuntime {
+    WinsockTestRuntime() {
+        WSADATA data{};
+        if (::WSAStartup(MAKEWORD(2, 2), &data) != 0) {
+            throw std::runtime_error("WSAStartup failed for network GPS tests");
+        }
+    }
+    ~WinsockTestRuntime() { ::WSACleanup(); }
+};
+
+void ensureSocketRuntime() {
+    static WinsockTestRuntime runtime;
+}
+
+void closeSocket(SocketHandle socket) { ::closesocket(socket); }
+constexpr int no_signal_flag = 0;
+#else
+using SocketHandle = int;
+using SocketLength = socklen_t;
+constexpr SocketHandle invalid_socket = -1;
+
+void ensureSocketRuntime() {}
+void closeSocket(SocketHandle socket) { ::close(socket); }
+constexpr int no_signal_flag = MSG_NOSIGNAL;
+#endif
+
+bool socketValid(SocketHandle socket) { return socket != invalid_socket; }
 
 class UdpSocketFixture {
 public:
     UdpSocketFixture() {
-        int probe = ::socket(AF_INET, SOCK_DGRAM, 0);
-        if (probe < 0) {
+        ensureSocketRuntime();
+        SocketHandle probe = ::socket(AF_INET, SOCK_DGRAM, 0);
+        if (!socketValid(probe)) {
             throw std::runtime_error("udp probe socket failed");
         }
         sockaddr_in addr{};
@@ -25,26 +68,26 @@ public:
         addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
         addr.sin_port = 0;
         if (::bind(probe, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) != 0) {
-            ::close(probe);
+            closeSocket(probe);
             throw std::runtime_error("udp probe bind failed");
         }
-        socklen_t len = sizeof(addr);
+        SocketLength len = sizeof(addr);
         if (::getsockname(probe, reinterpret_cast<sockaddr*>(&addr), &len) != 0) {
-            ::close(probe);
+            closeSocket(probe);
             throw std::runtime_error("udp getsockname failed");
         }
         port_ = ntohs(addr.sin_port);
-        ::close(probe);
+        closeSocket(probe);
 
         fd_ = ::socket(AF_INET, SOCK_DGRAM, 0);
-        if (fd_ < 0) {
+        if (!socketValid(fd_)) {
             throw std::runtime_error("udp sender socket failed");
         }
     }
 
     ~UdpSocketFixture() {
-        if (fd_ >= 0) {
-            ::close(fd_);
+        if (socketValid(fd_)) {
+            closeSocket(fd_);
         }
     }
 
@@ -55,34 +98,46 @@ public:
         target.sin_family = AF_INET;
         target.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
         target.sin_port = htons(port_);
-        ::sendto(fd_, payload.data(), payload.size(), 0, reinterpret_cast<sockaddr*>(&target), sizeof(target));
+        ::sendto(
+            fd_,
+            payload.data(),
+            static_cast<int>(payload.size()),
+            0,
+            reinterpret_cast<sockaddr*>(&target),
+            sizeof(target));
     }
 
 private:
-    int fd_{-1};
+    SocketHandle fd_{invalid_socket};
     int port_{0};
 };
 
 class TcpServerFixture {
 public:
     TcpServerFixture() {
+        ensureSocketRuntime();
         fd_ = ::socket(AF_INET, SOCK_STREAM, 0);
-        if (fd_ < 0) {
+        if (!socketValid(fd_)) {
             throw std::runtime_error("tcp socket failed");
         }
+#ifdef _WIN32
+        BOOL one = TRUE;
+        ::setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, reinterpret_cast<const char*>(&one), sizeof(one));
+#else
         int one = 1;
         ::setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one));
+#endif
         sockaddr_in addr{};
         addr.sin_family = AF_INET;
         addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
         addr.sin_port = 0;
         if (::bind(fd_, reinterpret_cast<sockaddr*>(&addr), sizeof(addr)) != 0 || ::listen(fd_, 1) != 0) {
-            ::close(fd_);
+            closeSocket(fd_);
             throw std::runtime_error("tcp bind/listen failed");
         }
-        socklen_t len = sizeof(addr);
+        SocketLength len = sizeof(addr);
         if (::getsockname(fd_, reinterpret_cast<sockaddr*>(&addr), &len) != 0) {
-            ::close(fd_);
+            closeSocket(fd_);
             throw std::runtime_error("tcp getsockname failed");
         }
         port_ = ntohs(addr.sin_port);
@@ -92,8 +147,8 @@ public:
         if (worker_.joinable()) {
             worker_.join();
         }
-        if (fd_ >= 0) {
-            ::close(fd_);
+        if (socketValid(fd_)) {
+            closeSocket(fd_);
         }
     }
 
@@ -101,30 +156,30 @@ public:
 
     void sendOnce(std::string first, std::string second) {
         worker_ = std::thread([this, first = std::move(first), second = std::move(second)] {
-            int client = ::accept(fd_, nullptr, nullptr);
-            if (client < 0) {
+            SocketHandle client = ::accept(fd_, nullptr, nullptr);
+            if (!socketValid(client)) {
                 return;
             }
-            ::send(client, first.data(), first.size(), 0);
+            ::send(client, first.data(), static_cast<int>(first.size()), 0);
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
-            ::send(client, second.data(), second.size(), 0);
-            ::close(client);
+            ::send(client, second.data(), static_cast<int>(second.size()), 0);
+            closeSocket(client);
         });
     }
 
     void streamWithoutNewline(std::string chunk, int count, std::chrono::milliseconds delay) {
         worker_ = std::thread([this, chunk = std::move(chunk), count, delay] {
-            int client = ::accept(fd_, nullptr, nullptr);
-            if (client < 0) {
+            SocketHandle client = ::accept(fd_, nullptr, nullptr);
+            if (!socketValid(client)) {
                 return;
             }
             for (int i = 0; i < count; ++i) {
-                if (::send(client, chunk.data(), chunk.size(), MSG_NOSIGNAL) < 0) {
+                if (::send(client, chunk.data(), static_cast<int>(chunk.size()), no_signal_flag) < 0) {
                     break;
                 }
                 std::this_thread::sleep_for(delay);
             }
-            ::close(client);
+            closeSocket(client);
         });
     }
 
@@ -133,19 +188,19 @@ public:
         std::chrono::milliseconds first_delay,
         std::chrono::milliseconds hold) {
         worker_ = std::thread([this, chunk = std::move(chunk), first_delay, hold] {
-            int client = ::accept(fd_, nullptr, nullptr);
-            if (client < 0) {
+            SocketHandle client = ::accept(fd_, nullptr, nullptr);
+            if (!socketValid(client)) {
                 return;
             }
             std::this_thread::sleep_for(first_delay);
-            ::send(client, chunk.data(), chunk.size(), MSG_NOSIGNAL);
+            ::send(client, chunk.data(), static_cast<int>(chunk.size()), no_signal_flag);
             std::this_thread::sleep_for(hold);
-            ::close(client);
+            closeSocket(client);
         });
     }
 
 private:
-    int fd_{-1};
+    SocketHandle fd_{invalid_socket};
     int port_{0};
     std::thread worker_{};
 };
