@@ -802,7 +802,8 @@ def main() -> int:
             fail(f"Doxyfile missing expected setting: {required}", failures)
 
     workflow = read(".github/workflows/ci.yml")
-    if "python3 scripts/verify_docs.py" not in workflow:
+    docs_commands = ("python scripts/verify_docs.py", "python3 scripts/verify_docs.py")
+    if not any(command in workflow for command in docs_commands):
         fail("CI does not run scripts/verify_docs.py", failures)
 
     if failures:

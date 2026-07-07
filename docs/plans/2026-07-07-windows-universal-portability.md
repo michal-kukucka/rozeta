@@ -339,6 +339,11 @@ consumer symbols are explicitly annotated for Windows DLL/import-library consume
 
 **Objective:** Make Windows support enforced by automation, not memory.
 
+**Status:** Implemented in commit scope for M6. The main CI workflow now runs an explicit four-job matrix:
+Ubuntu Debug, Ubuntu Release, Windows/MSVC Debug and Windows/MSVC Release. Build/test commands use
+`--config`/`ctest -C` for multi-config generators, docs and example smoke checks run through portable Python
+scripts, and failed jobs upload CMake logs for Windows diagnosis.
+
 **Files:**
 - Modify: `.github/workflows/ci.yml`
 - Optional create: `.github/workflows/windows-portability.yml` if separate workflow is preferred

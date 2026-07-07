@@ -8,45 +8,63 @@ on:
 
 jobs:
   build-test:
-    name: ${{ matrix.build_type }} build on Ubuntu
-    runs-on: ubuntu-latest
+    name: ${{ matrix.build_type }} build on ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
-        build_type: [Debug, Release]
+        include:
+          - os: ubuntu-latest
+            build_type: Debug
+            cmake_build_type_arg: -DCMAKE_BUILD_TYPE=Debug
+          - os: ubuntu-latest
+            build_type: Release
+            cmake_build_type_arg: -DCMAKE_BUILD_TYPE=Release
+          - os: windows-latest
+            build_type: Debug
+            cmake_build_type_arg: ""
+          - os: windows-latest
+            build_type: Release
+            cmake_build_type_arg: ""
 
     steps:
       - name: Check out repository
         uses: actions/checkout@v5
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
       - name: Configure CMake
         run: >
           cmake -S . -B build
-          -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+          ${{ matrix.cmake_build_type_arg }}
           -DROZETA_BUILD_TESTS=ON
           -DROZETA_BUILD_EXAMPLES=ON
 
       - name: Build
-        run: cmake --build build --parallel 2
+        run: cmake --build build --config ${{ matrix.build_type }} --parallel 2
 
       - name: Run documentation contract
-        run: python3 scripts/verify_docs.py
+        run: python scripts/verify_docs.py
 
       - name: Run tests
-        run: ctest --test-dir build --output-on-failure
+        run: ctest --test-dir build -C ${{ matrix.build_type }} --output-on-failure
 
       - name: Smoke test examples
-        run: |
-          ./build/examples/robotour_demo
-          ./build/examples/simple_robot_loop
-          ./build/examples/gps_reader
-          ./build/examples/lidar_scan_console
-          ./build/examples/replay_robotour_log tests/fixtures/replay/basic_robotour.csv
+        run: python scripts/smoke_ci_examples.py --build-dir build --config ${{ matrix.build_type }}
 
       - name: Generate docs when Doxygen is available
-        run: |
-          if command -v doxygen >/dev/null 2>&1; then
-            doxygen Doxyfile
-          else
-            echo "Doxygen not installed; skipping optional docs generation."
-          fi
+        run: python scripts/generate_docs_if_available.py
+
+      - name: Upload CMake logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cmake-logs-${{ matrix.os }}-${{ matrix.build_type }}
+          path: |
+            build/CMakeFiles/CMakeConfigureLog.yaml
+            build/CMakeFiles/CMakeOutput.log
+            build/CMakeFiles/CMakeError.log
+          if-no-files-found: ignore

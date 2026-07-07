@@ -81,7 +81,8 @@ Linux keeps the POSIX coverage visible. Windows DLL/static consumers use
 shared builds define `ROZETA_BUILDING_LIBRARY` only while building Rozeta, and
 installed Windows consumers import explicitly exported C ABI and core C++ symbols.
 For Windows shared installs, put the install `bin` directory containing `rozeta.dll` on `PATH` or copy the DLL next
-to the consumer executable before running it.
+to the consumer executable before running it. CI enforces the universal build with Ubuntu Debug/Release and
+Windows/MSVC Debug/Release jobs, using portable Python wrappers for docs and example smoke checks.
 
 ## Install and consume
 

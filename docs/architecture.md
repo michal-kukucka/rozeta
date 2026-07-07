@@ -93,6 +93,10 @@ and Windows consumers import DLL symbols through installed CMake targets. Automa
 kept off so exported ABI is intentional; M5 starts with the C ABI plus core C++ helpers required by the installed
 consumer examples.
 
+CI policy mirrors the portability promise. `.github/workflows/ci.yml` runs Ubuntu Debug/Release and
+Windows/MSVC Debug/Release, passes `--config`/`ctest -C` for multi-config generators, and uses portable Python
+scripts for documentation and example smoke tests so default automation does not depend on Unix shell paths.
+
 Lifecycle rules for internal backends:
 
 1. Construct objects without opening hardware.
