@@ -2,14 +2,18 @@
 
 #include <rozeta/motors.hpp>
 
+#include <chrono>
+#include <filesystem>
 #include <fstream>
 #include <string>
-#include <unistd.h>
 
 namespace {
 
 std::string tempCalibrationPath(const std::string& suffix) {
-    return "/tmp/rozeta_motor_calibration_" + std::to_string(static_cast<long long>(::getpid())) + "_" + suffix + ".ini";
+    const auto ticks = std::chrono::steady_clock::now().time_since_epoch().count();
+    const auto filename = "rozeta_motor_calibration_" +
+        std::to_string(static_cast<long long>(ticks)) + "_" + suffix + ".ini";
+    return (std::filesystem::temp_directory_path() / filename).string();
 }
 
 } // namespace
@@ -34,7 +38,7 @@ void test_motor_calibration_save_load_round_trip() {
     REQUIRE_NEAR(output.right_scale, 1.05, 1e-9);
     REQUIRE_NEAR(output.pwm_frequency_hz, 500.0, 1e-9);
 
-    ::unlink(path.c_str());
+    std::filesystem::remove(path);
 }
 
 void test_motor_calibration_load_rejects_invalid_values() {
@@ -49,7 +53,7 @@ void test_motor_calibration_load_rejects_invalid_values() {
     REQUIRE_TRUE(!status.ok());
     REQUIRE_EQ(static_cast<int>(status.code), static_cast<int>(rozeta::ErrorCode::InvalidArgument));
 
-    ::unlink(path.c_str());
+    std::filesystem::remove(path);
 }
 
 void test_motor_calibration_load_missing_file_returns_error() {

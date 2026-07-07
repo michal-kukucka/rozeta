@@ -2,19 +2,19 @@
 
 #include <rozeta/calibration.hpp>
 
+#include <chrono>
+#include <filesystem>
 #include <fstream>
 #include <limits>
 #include <string>
-#include <unistd.h>
 
 namespace {
 
 std::string tempCalibrationPath() {
-    std::string pattern = "/tmp/rozeta_field_calibration_XXXXXX";
-    const int fd = ::mkstemp(pattern.data());
-    REQUIRE_TRUE(fd >= 0);
-    ::close(fd);
-    return pattern;
+    const auto ticks = std::chrono::steady_clock::now().time_since_epoch().count();
+    const auto filename = "rozeta_field_calibration_" +
+        std::to_string(static_cast<long long>(ticks)) + ".ini";
+    return (std::filesystem::temp_directory_path() / filename).string();
 }
 
 std::string validCalibrationText() {
@@ -78,7 +78,7 @@ void test_calibration_save_load_round_trip_for_field_tools() {
     REQUIRE_NEAR(loaded.calibration.thresholds.lidar_min_valid_range_m, 0.14, 1e-9);
     REQUIRE_NEAR(loaded.calibration.thresholds.camera_dark_obstacle_threshold, 0.22, 1e-9);
 
-    ::unlink(path.c_str());
+    std::filesystem::remove(path.c_str());
 }
 
 void test_calibration_rejects_non_finite_and_out_of_range_values() {
@@ -111,7 +111,7 @@ void test_calibration_load_fails_closed_for_bad_files() {
 
     const auto parsed = rozeta::calibration::loadFieldCalibration(path);
     const auto missing_path = tempCalibrationPath();
-    ::unlink(missing_path.c_str());
+    std::filesystem::remove(missing_path.c_str());
     const auto missing = rozeta::calibration::loadFieldCalibration(missing_path);
 
     REQUIRE_TRUE(!parsed.ok());
@@ -119,7 +119,7 @@ void test_calibration_load_fails_closed_for_bad_files() {
     REQUIRE_TRUE(!missing.ok());
     REQUIRE_EQ(static_cast<int>(missing.status.code), static_cast<int>(rozeta::ErrorCode::HardwareUnavailable));
 
-    ::unlink(path.c_str());
+    std::filesystem::remove(path.c_str());
 }
 
 void test_calibration_load_requires_complete_unique_snapshot_keys() {
@@ -144,8 +144,8 @@ void test_calibration_load_requires_complete_unique_snapshot_keys() {
     REQUIRE_TRUE(!duplicate.ok());
     REQUIRE_EQ(static_cast<int>(duplicate.status.code), static_cast<int>(rozeta::ErrorCode::InvalidArgument));
 
-    ::unlink(missing_path.c_str());
-    ::unlink(duplicate_path.c_str());
+    std::filesystem::remove(missing_path.c_str());
+    std::filesystem::remove(duplicate_path.c_str());
 }
 
 void test_calibration_rejects_revision_values_that_break_key_value_files() {

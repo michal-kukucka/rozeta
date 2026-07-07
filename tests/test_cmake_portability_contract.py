@@ -44,6 +44,19 @@ def main() -> int:
     assert_contains(root_cmake, "ROZETA_PLATFORM_LINUX", "CMakeLists.txt")
     assert_contains(root_cmake, "rozeta_apply_warnings(rozeta_static)", "CMakeLists.txt")
     assert_contains(root_cmake, "rozeta_apply_warnings(rozeta_shared)", "CMakeLists.txt")
+    assert_contains(root_cmake, "ARCHIVE_OUTPUT_NAME rozeta_shared", "CMakeLists.txt")
+
+    windows_safe_tests = {
+        "tests/test_calibration.cpp": ["<filesystem>", "temp_directory_path"],
+        "tests/test_motor_calibration.cpp": ["<filesystem>", "temp_directory_path"],
+        "tests/test_gps_receiver.cpp": ["#if !defined(_WIN32)", "PseudoTerminal"],
+    }
+    for relative, required in windows_safe_tests.items():
+        text = read(relative)
+        for needle in required:
+            assert_contains(text, needle, relative)
+        if relative != "tests/test_gps_receiver.cpp" and "unistd.h" in text:
+            raise AssertionError(f"{relative} should use portable filesystem temp files, not unistd.h")
 
     for relative in ("CMakeLists.txt", "examples/CMakeLists.txt", "tests/CMakeLists.txt"):
         text = read(relative)

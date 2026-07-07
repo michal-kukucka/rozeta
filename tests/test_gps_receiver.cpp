@@ -5,14 +5,19 @@
 #include <array>
 #include <chrono>
 #include <cstdint>
+#if !defined(_WIN32)
 #include <fcntl.h>
+#endif
 #include <stdexcept>
 #include <string>
+#if !defined(_WIN32)
 #include <unistd.h>
+#endif
 #include <vector>
 
 namespace {
 
+#if !defined(_WIN32)
 class PseudoTerminal {
 public:
     PseudoTerminal() {
@@ -60,6 +65,7 @@ private:
     int master_fd_{-1};
     std::string slave_name_{};
 };
+#endif
 
 constexpr const char* kValidGga = "$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*47";
 constexpr const char* kInvalidGga = "$GPGGA,123519,4807.038,N,01131.000,E,1,08,0.9,545.4,M,46.9,M,,*00";
@@ -120,6 +126,7 @@ void test_gps_stream_discards_garbage_before_sentence() {
     REQUIRE_EQ(lines[0], std::string(kValidGga));
 }
 
+#if !defined(_WIN32)
 void test_gps_serial_receiver_reads_fragmented_fix_from_pty() {
     PseudoTerminal pty;
     rozeta::gps::GpsReceiverConfig config;
@@ -173,6 +180,7 @@ void test_gps_serial_receiver_timeout_reports_status() {
     REQUIRE_TRUE(!fix.has_value());
     REQUIRE_EQ(static_cast<int>(receiver.lastStatus().code), static_cast<int>(rozeta::ErrorCode::Timeout));
 }
+#endif
 
 void test_gps_serial_receiver_rejects_invalid_config() {
     rozeta::gps::GpsReceiverConfig config;

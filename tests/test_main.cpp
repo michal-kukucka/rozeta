@@ -10,9 +10,11 @@ void test_gps_parser_detailed_rejects_invalid_checksum();
 void test_gps_parser_accepts_lowercase_checksum_and_crlf();
 void test_gps_stream_buffers_fragmented_and_multiple_lines();
 void test_gps_stream_discards_garbage_before_sentence();
+#if !defined(_WIN32)
 void test_gps_serial_receiver_reads_fragmented_fix_from_pty();
 void test_gps_serial_receiver_skips_bad_checksum_then_returns_good_fix();
 void test_gps_serial_receiver_timeout_reports_status();
+#endif
 void test_gps_serial_receiver_rejects_invalid_config();
 void test_network_gps_parser_accepts_plain_json_and_nmea_payloads();
 void test_network_gps_parser_rejects_malformed_json_payloads();
@@ -242,9 +244,11 @@ int main(){
         {"gps_detailed_crlf", test_gps_parser_accepts_lowercase_checksum_and_crlf},
         {"gps_stream_fragmented", test_gps_stream_buffers_fragmented_and_multiple_lines},
         {"gps_stream_garbage", test_gps_stream_discards_garbage_before_sentence},
+#if !defined(_WIN32)
         {"gps_serial_fragmented", test_gps_serial_receiver_reads_fragmented_fix_from_pty},
         {"gps_serial_skip_bad", test_gps_serial_receiver_skips_bad_checksum_then_returns_good_fix},
         {"gps_serial_timeout", test_gps_serial_receiver_timeout_reports_status},
+#endif
         {"gps_serial_invalid_config", test_gps_serial_receiver_rejects_invalid_config},
         {"network_gps_payload_parse", test_network_gps_parser_accepts_plain_json_and_nmea_payloads},
         {"network_gps_json_rejects_malformed", test_network_gps_parser_rejects_malformed_json_payloads},
