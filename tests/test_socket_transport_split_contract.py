@@ -54,6 +54,7 @@ def main() -> int:
         require(posix, needle, "src/internal/socket_transport_posix.cpp")
 
     win32 = read("src/internal/socket_transport_win32.cpp")
+    require(win32, "#define NOMINMAX", "src/internal/socket_transport_win32.cpp")
     for needle in (
         "WSAStartup",
         "WSACleanup",
