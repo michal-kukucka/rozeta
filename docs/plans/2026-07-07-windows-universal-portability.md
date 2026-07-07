@@ -129,6 +129,8 @@ By the end of this reimplementation, Rozeta should support these build profiles 
 
 **Objective:** Make CMake express supported platforms cleanly and stop passing GCC warning flags to MSVC.
 
+**Status:** Implemented in commit scope for M1. Added normalized platform booleans, a shared warning helper, Linux-only `m`/`stdc++` linkage through `ROZETA_PLATFORM_LINUX`, and a CTest-backed `tests/test_cmake_portability_contract.py` guard so the foundation cannot silently drift back to GCC-only flags.
+
 **Files:**
 - Modify: `CMakeLists.txt`
 - Modify: `examples/CMakeLists.txt`

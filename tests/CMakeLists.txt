@@ -41,25 +41,29 @@ if(ROZETA_WITH_LDROBOT_LIDAR)
 endif()
 target_link_libraries(rozeta_tests PRIVATE rozeta_static)
 target_include_directories(rozeta_tests PRIVATE ${CMAKE_SOURCE_DIR}/src)
-target_compile_options(rozeta_tests PRIVATE -Wall -Wextra -Wpedantic)
+rozeta_apply_warnings(rozeta_tests)
 add_test(NAME rozeta_tests COMMAND rozeta_tests)
 add_test(NAME rozeta_serial_tests COMMAND rozeta_tests)
 
 add_executable(rozeta_c_api_smoke c_api_smoke.c)
 target_link_libraries(rozeta_c_api_smoke PRIVATE rozeta_static)
-target_compile_options(rozeta_c_api_smoke PRIVATE -Wall -Wextra -Wpedantic)
+rozeta_apply_warnings(rozeta_c_api_smoke)
 add_test(NAME rozeta_c_api_smoke COMMAND rozeta_c_api_smoke)
 
 add_executable(rozeta_optional_backend_header_smoke optional_backend_header_smoke.cpp)
 target_link_libraries(rozeta_optional_backend_header_smoke PRIVATE rozeta_static)
 target_compile_definitions(rozeta_optional_backend_header_smoke
     PRIVATE ROZETA_WITH_OPENCV ROZETA_WITH_KINECT ROZETA_WITH_LDROBOT_LIDAR)
-target_compile_options(rozeta_optional_backend_header_smoke PRIVATE -Wall -Wextra -Wpedantic)
+rozeta_apply_warnings(rozeta_optional_backend_header_smoke)
 add_test(NAME rozeta_optional_backend_header_smoke COMMAND rozeta_optional_backend_header_smoke)
 
 find_package(Python3 COMPONENTS Interpreter)
 if(Python3_Interpreter_FOUND)
   add_test(NAME rozeta_docs_contract COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/scripts/verify_docs.py)
+  add_test(
+      NAME rozeta_cmake_portability_contract
+      COMMAND ${Python3_EXECUTABLE}
+          ${CMAKE_SOURCE_DIR}/tests/test_cmake_portability_contract.py)
   add_test(NAME rozeta_osm_import_tool COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_osm_import_tool.py)
 endif()
 

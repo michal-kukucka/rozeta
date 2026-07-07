@@ -63,6 +63,14 @@ cmake .. -DROZETA_WITH_LDROBOT_LIDAR=ON   # optional LDROBOT LD06/LD19-compatibl
 cmake .. -DROZETA_WITH_KINECT=ON   # optional libfreenect Kinect backend
 ```
 
+Cross-platform build policy lives in `cmake/RozetaPlatform.cmake` and
+`cmake/RozetaCompilerOptions.cmake`. The build now normalizes platform flags
+such as `ROZETA_PLATFORM_WINDOWS` / `ROZETA_PLATFORM_LINUX` and applies compiler
+warnings through `rozeta_apply_warnings(target)`, using `/W4 /permissive-` on
+MSVC and `-Wall -Wextra -Wpedantic` on GNU/Clang. This is the first foundation
+step for the same repository to support native Windows 10/11 builds without
+forking the project.
+
 ## Install and consume
 
 Install Rozeta from source into a prefix:

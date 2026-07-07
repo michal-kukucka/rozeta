@@ -35,6 +35,12 @@ Sensors -> normalized data structures -> RobotState/Pose -> Navigation -> MotorC
 4. Add tests for parsing/filtering logic and a mock for hardware-unavailable CI.
 5. Document setup, permissions and failure modes in `docs/`.
 
+## Cross-platform CMake foundation
+
+Rozeta keeps platform policy centralized in CMake so Windows support can grow in the same repository without ad-hoc compiler checks in every target. `cmake/RozetaPlatform.cmake` normalizes `ROZETA_PLATFORM_WINDOWS`, `ROZETA_PLATFORM_POSIX`, `ROZETA_PLATFORM_LINUX` and `ROZETA_PLATFORM_MACOS`. `cmake/RozetaCompilerOptions.cmake` exposes `rozeta_apply_warnings(target)`, mapping MSVC builds to `/W4 /permissive-` and GNU/Clang builds to `-Wall -Wextra -Wpedantic`.
+
+The platform foundation is intentionally small: it does not port serial or socket implementations by itself. It prepares the build graph so later Windows 10/11 milestones can select Win32/Winsock sources while Linux keeps the existing POSIX behavior.
+
 ## Internal backend foundation
 
 Rozeta follows the same practical pattern used by mature robotics stacks such as ROS 2 hardware components, WPILib serial device wrappers and YARP device drivers: protocol/device modules depend on a small transport abstraction, while public robot APIs stay stable and mockable. The first shared transport is `rozeta::internal::SerialPort` under `src/internal/`, a Linux/POSIX RAII utility for optional hardware backends.

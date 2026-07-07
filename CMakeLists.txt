@@ -3,6 +3,8 @@ project(rozeta VERSION 0.1.0 LANGUAGES C CXX)
 
 include(CMakePackageConfigHelpers)
 include(GNUInstallDirs)
+include(cmake/RozetaPlatform.cmake)
+include(cmake/RozetaCompilerOptions.cmake)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -114,10 +116,10 @@ target_include_directories(rozeta_static
         $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
         $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     PRIVATE src)
-target_compile_options(rozeta_static PRIVATE -Wall -Wextra -Wpedantic)
+rozeta_apply_warnings(rozeta_static)
 target_compile_features(rozeta_static PUBLIC cxx_std_17)
 target_compile_definitions(rozeta_static PRIVATE ROZETA_VERSION_STRING="${PROJECT_VERSION}")
-if(UNIX AND NOT APPLE)
+if(ROZETA_PLATFORM_LINUX)
   target_link_libraries(rozeta_static PUBLIC m stdc++)
 endif()
 if(ROZETA_WITH_SERIAL_MOTORS)
@@ -156,7 +158,7 @@ if(ROZETA_BUILD_SHARED)
           $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
           $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
       PRIVATE src)
-  target_compile_options(rozeta_shared PRIVATE -Wall -Wextra -Wpedantic)
+  rozeta_apply_warnings(rozeta_shared)
   target_compile_features(rozeta_shared PUBLIC cxx_std_17)
   target_compile_definitions(rozeta_shared PRIVATE ROZETA_VERSION_STRING="${PROJECT_VERSION}")
   if(ROZETA_WITH_SERIAL_MOTORS)
