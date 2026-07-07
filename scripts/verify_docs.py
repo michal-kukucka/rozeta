@@ -20,6 +20,7 @@ PUBLIC_HEADER_DOCS = {
     "c_api": "docs/api-reference.md",
     "core": "docs/module_overview.md",
     "depth": "docs/navigation.md",
+    "export": "docs/architecture.md",
     "field_runner": "docs/field_runner_module.md",
     "gps": "docs/gps_module.md",
     "hardware_smoke": "docs/hardware_smoke_module.md",

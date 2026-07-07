@@ -8,6 +8,12 @@ Shared definitions: `Status`, `ErrorCode`, timestamps, geometry, robot state, co
 
 `rozeta/c_api.h` exposes the stable value-type C ABI for non-C++ consumers: `rozeta_version`, angle normalization, 2D distance and LiDAR obstacle sector calculation. It avoids C++ ownership and template types so C applications can compile with `cc` and link the installed package target.
 
+## Export
+
+`rozeta/export.h` defines `ROZETA_API` and `ROZETA_C_API`, the import/export macros used by Windows DLL
+builds and static consumers. Static package targets publish `ROZETA_STATIC_DEFINE`; shared builds define
+`ROZETA_BUILDING_LIBRARY` only while compiling Rozeta so Windows consumers import DLL symbols explicitly.
+
 ## Logging
 
 `logging::Logger` interface plus console and CSV loggers. Intended for sensor readings, motor commands, GPS data, scans, pose, navigation decisions and errors.

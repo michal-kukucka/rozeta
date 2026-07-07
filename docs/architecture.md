@@ -87,6 +87,12 @@ CMake platform flags, and Windows no-hardware coverage uses the Win32 transport 
 Unix helpers. Shell-dependent smoke checks are kept out of default CTest commands where a Python runner can
 exercise the same behavior.
 
+DLL/static consumer policy is explicit. `include/rozeta/export.h` owns `ROZETA_API` and `ROZETA_C_API`:
+static targets publish `ROZETA_STATIC_DEFINE`, shared library builds define `ROZETA_BUILDING_LIBRARY` privately,
+and Windows consumers import DLL symbols through installed CMake targets. Automatic Windows symbol export is
+kept off so exported ABI is intentional; M5 starts with the C ABI plus core C++ helpers required by the installed
+consumer examples.
+
 Lifecycle rules for internal backends:
 
 1. Construct objects without opening hardware.

@@ -6,6 +6,8 @@
 #include <string>
 #include <utility>
 
+#include <rozeta/export.h>
+
 namespace rozeta {
 
 enum class ErrorCode {
@@ -29,7 +31,7 @@ struct Status {
 };
 
 using Timestamp = std::chrono::steady_clock::time_point;
-Timestamp now();
+ROZETA_API Timestamp now();
 
 struct Vector2 {
     double x{0};
@@ -81,11 +83,11 @@ struct DepthPoint {
     float z{0};
 };
 
-LocalCoordinate geoToLocal(const GeoCoordinate& origin, const GeoCoordinate& point);
-double normalizeAngle(double radians);
-double distance2D(const Vector2& a, const Vector2& b);
+ROZETA_API LocalCoordinate geoToLocal(const GeoCoordinate& origin, const GeoCoordinate& point);
+ROZETA_API double normalizeAngle(double radians);
+ROZETA_API double distance2D(const Vector2& a, const Vector2& b);
 
-class Config {
+class ROZETA_API Config {
 public:
     static Config load(const std::string& path);
     std::string getString(const std::string& key, const std::string& fallback = "") const;
@@ -98,7 +100,7 @@ private:
     std::map<std::string, std::string> values_;
 };
 
-Status initialize();
-void shutdown();
+ROZETA_API Status initialize();
+ROZETA_API void shutdown();
 
 } // namespace rozeta

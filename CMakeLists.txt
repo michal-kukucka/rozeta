@@ -127,7 +127,9 @@ target_include_directories(rozeta_static
     PRIVATE src)
 rozeta_apply_warnings(rozeta_static)
 target_compile_features(rozeta_static PUBLIC cxx_std_17)
-target_compile_definitions(rozeta_static PRIVATE ROZETA_VERSION_STRING="${PROJECT_VERSION}")
+target_compile_definitions(rozeta_static
+    PUBLIC ROZETA_STATIC_DEFINE
+    PRIVATE ROZETA_VERSION_STRING="${PROJECT_VERSION}")
 if(ROZETA_PLATFORM_LINUX)
   target_link_libraries(rozeta_static PUBLIC m stdc++)
 endif()
@@ -172,7 +174,10 @@ if(ROZETA_BUILD_SHARED)
       PRIVATE src)
   rozeta_apply_warnings(rozeta_shared)
   target_compile_features(rozeta_shared PUBLIC cxx_std_17)
-  target_compile_definitions(rozeta_shared PRIVATE ROZETA_VERSION_STRING="${PROJECT_VERSION}")
+  target_compile_definitions(rozeta_shared
+      PRIVATE
+          ROZETA_BUILDING_LIBRARY
+          ROZETA_VERSION_STRING="${PROJECT_VERSION}")
   if(ROZETA_PLATFORM_LINUX)
     target_link_libraries(rozeta_shared PUBLIC m stdc++)
   endif()
@@ -207,6 +212,7 @@ if(ROZETA_BUILD_SHARED)
   set_target_properties(rozeta_shared PROPERTIES
       OUTPUT_NAME rozeta
       EXPORT_NAME rozeta
+      WINDOWS_EXPORT_ALL_SYMBOLS OFF
       VERSION ${PROJECT_VERSION}
       SOVERSION ${PROJECT_VERSION_MAJOR})
 endif()

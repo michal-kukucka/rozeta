@@ -76,7 +76,12 @@ behind opaque internal interfaces so the same repository can host Linux and
 Windows-native backends without forking the project. CTest entries are labeled
 with `portable`, `posix`, `windows`, `unit` and `hardware-optional` scopes so a
 Windows build can run the default portable tests without manual pruning while
-Linux keeps the POSIX coverage visible.
+Linux keeps the POSIX coverage visible. Windows DLL/static consumers use
+`include/rozeta/export.h`: static package targets publish `ROZETA_STATIC_DEFINE`,
+shared builds define `ROZETA_BUILDING_LIBRARY` only while building Rozeta, and
+installed Windows consumers import explicitly exported C ABI and core C++ symbols.
+For Windows shared installs, put the install `bin` directory containing `rozeta.dll` on `PATH` or copy the DLL next
+to the consumer executable before running it.
 
 ## Install and consume
 

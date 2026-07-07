@@ -301,6 +301,11 @@ instead of a Unix shell; optional hardware examples are grouped separately from 
 
 **Objective:** Support both static library consumers and Windows DLL consumers safely.
 
+**Status:** Implemented in commit scope for M5. `include/rozeta/export.h` now defines `ROZETA_API` and
+`ROZETA_C_API`; static targets publish `ROZETA_STATIC_DEFINE`, shared targets define
+`ROZETA_BUILDING_LIBRARY` privately with `WINDOWS_EXPORT_ALL_SYMBOLS` disabled, and the C ABI plus core C++
+consumer symbols are explicitly annotated for Windows DLL/import-library consumers.
+
 **Files:**
 - Create: `include/rozeta/export.h`
 - Modify: `include/rozeta/c_api.h`
