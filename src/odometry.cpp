@@ -3,6 +3,11 @@
 #include <cmath>
 
 namespace rozeta::odometry {
+namespace {
+
+constexpr double kPi = 3.141592653589793238462643383279502884;
+
+} // namespace
 
 DifferentialOdometry::DifferentialOdometry(DifferentialDriveConfig config) : config_(config) {}
 
@@ -19,7 +24,7 @@ Pose2D DifferentialOdometry::updateTicks(std::int64_t left_ticks, std::int64_t r
     last_right_ = right_ticks;
 
     const double meters_per_tick =
-        (2 * M_PI * config_.wheel_radius_m) / config_.ticks_per_wheel_revolution;
+        (2 * kPi * config_.wheel_radius_m) / config_.ticks_per_wheel_revolution;
     const double delta_left_m = delta_left_ticks * meters_per_tick;
     const double delta_right_m = delta_right_ticks * meters_per_tick;
     const double delta_center_m = (delta_left_m + delta_right_m) / 2.0;

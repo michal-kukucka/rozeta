@@ -9,6 +9,7 @@
 namespace rozeta {
 namespace {
 
+constexpr double kPi = 3.141592653589793238462643383279502884;
 std::string trim(std::string s) {
     auto notspace = [](unsigned char c) {
         return !std::isspace(c);
@@ -78,9 +79,9 @@ void Config::set(const std::string& key, const std::string& value) {
 
 LocalCoordinate geoToLocal(const GeoCoordinate& origin, const GeoCoordinate& point) {
     constexpr double earth_radius_m = 6371000.0;
-    const double lat0 = origin.latitude * M_PI / 180.0;
-    const double dlat = (point.latitude - origin.latitude) * M_PI / 180.0;
-    const double dlon = (point.longitude - origin.longitude) * M_PI / 180.0;
+    const double lat0 = origin.latitude * kPi / 180.0;
+    const double dlat = (point.latitude - origin.latitude) * kPi / 180.0;
+    const double dlon = (point.longitude - origin.longitude) * kPi / 180.0;
 
     return {
         earth_radius_m * dlon * std::cos(lat0),
@@ -90,11 +91,11 @@ LocalCoordinate geoToLocal(const GeoCoordinate& origin, const GeoCoordinate& poi
 }
 
 double normalizeAngle(double radians) {
-    while (radians > M_PI) {
-        radians -= 2 * M_PI;
+    while (radians > kPi) {
+        radians -= 2 * kPi;
     }
-    while (radians < -M_PI) {
-        radians += 2 * M_PI;
+    while (radians < -kPi) {
+        radians += 2 * kPi;
     }
     return radians;
 }

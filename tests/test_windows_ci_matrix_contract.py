@@ -16,9 +16,16 @@ def require(text: str, needle: str, message: str) -> None:
         raise AssertionError(message)
 
 
+def forbid(text: str, needle: str, message: str) -> None:
+    if needle in text:
+        raise AssertionError(message)
+
+
 def main() -> int:
     workflow = read(".github/workflows/ci.yml")
     tests_cmake = read("tests/CMakeLists.txt")
+    core_cpp = read("src/core.cpp")
+    odometry_cpp = read("src/odometry.cpp")
 
     for entry in (
         "- os: ubuntu-latest\n            build_type: Debug\n            cmake_build_type_arg: -DCMAKE_BUILD_TYPE=Debug",
@@ -89,6 +96,10 @@ def main() -> int:
         "rozeta_windows_ci_matrix_contract",
         "M6 CI matrix contract should be registered in CTest",
     )
+    for source_name, source in (("src/core.cpp", core_cpp), ("src/odometry.cpp", odometry_cpp)):
+        forbid(source, "M_PI", f"{source_name} should not use non-standard M_PI under MSVC")
+        require(source, "constexpr double kPi", f"{source_name} should use a project-local pi constant")
+
     return 0
 
 
