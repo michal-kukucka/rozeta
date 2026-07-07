@@ -81,6 +81,12 @@ The socket transport only owns endpoint validation, socket lifecycle, bounded co
 native error conversion. Linux tests keep loopback UDP/TCP coverage; the test fixture now uses guarded socket
 helpers so the same source can compile with POSIX sockets or Winsock.
 
+Tests are platform-aware at the CTest layer. Every default test has explicit labels such as `portable`, `unit`,
+`posix`, `windows` or `hardware-optional`; POSIX-only pseudo-terminal coverage is selected from normalized
+CMake platform flags, and Windows no-hardware coverage uses the Win32 transport source instead of compiling
+Unix helpers. Shell-dependent smoke checks are kept out of default CTest commands where a Python runner can
+exercise the same behavior.
+
 Lifecycle rules for internal backends:
 
 1. Construct objects without opening hardware.

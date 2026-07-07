@@ -73,7 +73,10 @@ selected per platform without changing public APIs: POSIX serial builds use
 GPS network builds use BSD sockets, and Windows GPS network builds use Winsock
 linked through `Ws2_32`. `SerialPort` and the GPS socket transport both stay
 behind opaque internal interfaces so the same repository can host Linux and
-Windows-native backends without forking the project.
+Windows-native backends without forking the project. CTest entries are labeled
+with `portable`, `posix`, `windows`, `unit` and `hardware-optional` scopes so a
+Windows build can run the default portable tests without manual pruning while
+Linux keeps the POSIX coverage visible.
 
 ## Install and consume
 

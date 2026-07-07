@@ -266,6 +266,10 @@ for Windows builds.
 
 **Objective:** Ensure `ROZETA_BUILD_TESTS=ON` and `ROZETA_BUILD_EXAMPLES=ON` are useful on Windows without manual pruning.
 
+**Status:** Implemented in commit scope for M4. CTest entries now carry explicit labels for portable, POSIX,
+Windows and hardware-optional scopes; the OpenCV QR guarded-source smoke test uses a portable Python runner
+instead of a Unix shell; optional hardware examples are grouped separately from the default portable example set.
+
 **Files:**
 - Modify: `tests/CMakeLists.txt`
 - Modify: `examples/CMakeLists.txt`
