@@ -3,6 +3,7 @@
 #include <chrono>
 #include <cstddef>
 #include <cstdint>
+#include <memory>
 #include <string>
 
 #include <rozeta/core.hpp>
@@ -18,7 +19,7 @@ struct SerialPortConfig {
 
 class SerialPort {
 public:
-    SerialPort() = default;
+    SerialPort();
     ~SerialPort();
 
     SerialPort(const SerialPort&) = delete;
@@ -37,8 +38,8 @@ public:
     Status writeAll(const std::uint8_t* data, std::size_t size);
 
 private:
-    int fd_{-1};
-    SerialPortConfig config_{};
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
 };
 
 } // namespace rozeta::internal

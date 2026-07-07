@@ -67,9 +67,11 @@ Cross-platform build policy lives in `cmake/RozetaPlatform.cmake` and
 `cmake/RozetaCompilerOptions.cmake`. The build now normalizes platform flags
 such as `ROZETA_PLATFORM_WINDOWS` / `ROZETA_PLATFORM_LINUX` and applies compiler
 warnings through `rozeta_apply_warnings(target)`, using `/W4 /permissive-` on
-MSVC and `-Wall -Wextra -Wpedantic` on GNU/Clang. This is the first foundation
-step for the same repository to support native Windows 10/11 builds without
-forking the project.
+MSVC and `-Wall -Wextra -Wpedantic` on GNU/Clang. The internal serial
+transport is now selected per platform: POSIX builds use `termios`/`poll()`,
+while Windows 10/11 builds use Win32 COM-port APIs behind the same
+`rozeta::internal::SerialPort` interface. This lets one repository support
+native serial backends without forking the project.
 
 ## Install and consume
 

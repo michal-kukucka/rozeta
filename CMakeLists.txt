@@ -89,8 +89,15 @@ set(ROZETA_SOURCES
     src/obstacle_behavior.cpp
     src/operator_io.cpp
     src/robotour_config.cpp
-    src/internal/serial_port.cpp
 )
+
+if(ROZETA_PLATFORM_WINDOWS)
+  list(APPEND ROZETA_SOURCES src/internal/serial_port_win32.cpp)
+elseif(ROZETA_PLATFORM_POSIX)
+  list(APPEND ROZETA_SOURCES src/internal/serial_port_posix.cpp)
+else()
+  message(FATAL_ERROR "Rozeta serial transport has no implementation for this platform")
+endif()
 
 if(ROZETA_WITH_SERIAL_MOTORS)
   list(APPEND ROZETA_SOURCES src/motors_serial.cpp)

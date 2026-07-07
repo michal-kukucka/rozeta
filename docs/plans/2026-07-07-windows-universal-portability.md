@@ -165,6 +165,12 @@ By the end of this reimplementation, Rozeta should support these build profiles 
 
 **Objective:** Keep `rozeta::internal::SerialPort` API stable while moving OS-specific implementation into POSIX and Win32 files.
 
+**Status:** Implemented in commit scope for M2. `SerialPort` now owns an opaque implementation pointer instead of
+exposing a POSIX file descriptor in the class layout. CMake selects `src/internal/serial_port_posix.cpp` on POSIX
+and `src/internal/serial_port_win32.cpp` on Windows. Linux behavior is preserved through the existing PTY
+round-trip tests, and a CTest-backed `tests/test_serial_transport_split_contract.py` guard verifies the source
+split, hidden native handle layout, Win32 API coverage and platform-aware serial test selection.
+
 **Files:**
 - Modify: `src/internal/serial_port.hpp`
 - Rename/split: `src/internal/serial_port.cpp`

@@ -43,7 +43,25 @@ The platform foundation is intentionally small: it does not port serial or socke
 
 ## Internal backend foundation
 
-Rozeta follows the same practical pattern used by mature robotics stacks such as ROS 2 hardware components, WPILib serial device wrappers and YARP device drivers: protocol/device modules depend on a small transport abstraction, while public robot APIs stay stable and mockable. The first shared transport is `rozeta::internal::SerialPort` under `src/internal/`, a Linux/POSIX RAII utility for optional hardware backends.
+Rozeta follows the same practical pattern used by mature robotics stacks such as ROS 2 hardware components,
+WPILib serial device wrappers and YARP device drivers: protocol/device modules depend on a small transport
+abstraction, while public robot APIs stay stable and mockable. The first shared transport is
+`rozeta::internal::SerialPort` under `src/internal/`, a platform-selected RAII utility for optional hardware
+backends.
+
+`SerialPort` keeps a stable internal API and hides native handles behind an opaque implementation pointer.
+CMake selects exactly one backend:
+
+- `src/internal/serial_port_posix.cpp` for POSIX platforms. It preserves the existing Linux behavior with
+  `termios`, nonblocking file descriptors and `poll()`-based finite deadlines.
+- `src/internal/serial_port_win32.cpp` for Windows 10/11. It uses Win32 serial APIs (`CreateFileA`,
+  `GetCommState`, `SetCommState`, `COMMTIMEOUTS`, `ReadFile`, `WriteFile`, `CloseHandle`) and maps Windows
+  failures into Rozeta `Status` values.
+
+This split lets serial GPS, serial motors and serial LiDAR code keep using the same byte transport while the
+repository remains single-source for Linux and Windows. POSIX pseudo-terminal tests continue to exercise real
+byte round trips on Linux; Windows builds get a separate no-hardware serial validation path for invalid COM
+devices, unsupported baud rates and closed-port error handling.
 
 Lifecycle rules for internal backends:
 

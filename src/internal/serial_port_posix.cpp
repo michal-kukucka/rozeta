@@ -1,12 +1,15 @@
 #include "internal/serial_port.hpp"
 
+#include <algorithm>
 #include <cerrno>
 #include <cstring>
+#include <limits>
 #include <poll.h>
 #include <string>
 #include <termios.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <utility>
 
 namespace rozeta::internal {
 namespace {
@@ -50,9 +53,11 @@ Status waitForReady(int fd, short events, std::chrono::milliseconds timeout, con
     pollfd pfd{};
     pfd.fd = fd;
     pfd.events = events;
+    int poll_timeout = static_cast<int>(
+        std::min<long long>(timeout.count(), std::numeric_limits<int>::max()));
 
     for (;;) {
-        int result = ::poll(&pfd, 1, static_cast<int>(timeout.count()));
+        int result = ::poll(&pfd, 1, poll_timeout);
         if (result > 0) {
             if (pfd.revents & (POLLERR | POLLHUP | POLLNVAL)) {
                 return makeError(ErrorCode::HardwareUnavailable, op, "serial device is unavailable");
@@ -88,26 +93,31 @@ ErrorCode openErrorCode(int err) {
 
 } // namespace
 
+struct SerialPort::Impl {
+    int fd{-1};
+    SerialPortConfig config{};
+};
+
+SerialPort::SerialPort() : impl_(std::make_unique<Impl>()) {}
+
 SerialPort::~SerialPort() {
     close();
 }
 
-SerialPort::SerialPort(SerialPort&& other) noexcept
-    : fd_(other.fd_), config_(std::move(other.config_)) {
-    other.fd_ = -1;
-}
+SerialPort::SerialPort(SerialPort&& other) noexcept = default;
 
 SerialPort& SerialPort::operator=(SerialPort&& other) noexcept {
     if (this != &other) {
         close();
-        fd_ = other.fd_;
-        config_ = std::move(other.config_);
-        other.fd_ = -1;
+        impl_ = std::move(other.impl_);
     }
     return *this;
 }
 
 Status SerialPort::open(const SerialPortConfig& config) {
+    if (!impl_) {
+        impl_ = std::make_unique<Impl>();
+    }
     if (config.device.empty()) {
         return makeError(ErrorCode::InvalidArgument, "serial open", "device path is empty");
     }
@@ -117,7 +127,10 @@ Status SerialPort::open(const SerialPortConfig& config) {
 
     speed_t speed = baudToSpeed(config.baud_rate);
     if (speed == 0) {
-        return makeError(ErrorCode::InvalidArgument, "serial open", "unsupported baud rate " + std::to_string(config.baud_rate));
+        return makeError(
+            ErrorCode::InvalidArgument,
+            "serial open",
+            "unsupported baud rate " + std::to_string(config.baud_rate));
     }
 
     close();
@@ -160,42 +173,45 @@ Status SerialPort::open(const SerialPortConfig& config) {
     }
 
     ::tcflush(opened, TCIOFLUSH);
-    fd_ = opened;
-    config_ = config;
+    impl_->fd = opened;
+    impl_->config = config;
     return Status::okStatus();
 }
 
 void SerialPort::close() noexcept {
-    if (fd_ >= 0) {
-        ::close(fd_);
-        fd_ = -1;
+    if (impl_ && impl_->fd >= 0) {
+        ::close(impl_->fd);
+        impl_->fd = -1;
     }
 }
 
 bool SerialPort::isOpen() const noexcept {
-    return fd_ >= 0;
+    return impl_ && impl_->fd >= 0;
 }
 
 int SerialPort::nativeFd() const noexcept {
-    return fd_;
+    return impl_ ? impl_->fd : -1;
 }
 
 Status SerialPort::readSome(std::uint8_t* buffer, std::size_t capacity, std::size_t& bytes_read) {
     bytes_read = 0;
     if (!buffer || capacity == 0) {
-        return makeError(ErrorCode::InvalidArgument, "serial read", "buffer must be non-null and non-empty");
+        return makeError(
+            ErrorCode::InvalidArgument,
+            "serial read",
+            "buffer must be non-null and non-empty");
     }
     if (!isOpen()) {
         return makeError(ErrorCode::HardwareUnavailable, "serial read", "serial port is not open");
     }
 
-    Status ready = waitForReady(fd_, POLLIN, config_.read_timeout, "serial read");
+    Status ready = waitForReady(impl_->fd, POLLIN, impl_->config.read_timeout, "serial read");
     if (!ready.ok()) {
         return ready;
     }
 
     for (;;) {
-        ssize_t n = ::read(fd_, buffer, capacity);
+        ssize_t n = ::read(impl_->fd, buffer, capacity);
         if (n > 0) {
             bytes_read = static_cast<std::size_t>(n);
             return Status::okStatus();
@@ -209,7 +225,7 @@ Status SerialPort::readSome(std::uint8_t* buffer, std::size_t capacity, std::siz
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             return makeError(ErrorCode::Timeout, "serial read", "timeout");
         }
-        return errnoError(ErrorCode::IoError, "read", config_.device);
+        return errnoError(ErrorCode::IoError, "read", impl_->config.device);
     }
 }
 
@@ -218,7 +234,10 @@ Status SerialPort::writeAll(const std::uint8_t* data, std::size_t size) {
         return Status::okStatus();
     }
     if (!data) {
-        return makeError(ErrorCode::InvalidArgument, "serial write", "data must be non-null when size is non-zero");
+        return makeError(
+            ErrorCode::InvalidArgument,
+            "serial write",
+            "data must be non-null when size is non-zero");
     }
     if (!isOpen()) {
         return makeError(ErrorCode::HardwareUnavailable, "serial write", "serial port is not open");
@@ -226,11 +245,11 @@ Status SerialPort::writeAll(const std::uint8_t* data, std::size_t size) {
 
     std::size_t written = 0;
     while (written < size) {
-        Status ready = waitForReady(fd_, POLLOUT, config_.write_timeout, "serial write");
+        Status ready = waitForReady(impl_->fd, POLLOUT, impl_->config.write_timeout, "serial write");
         if (!ready.ok()) {
             return ready;
         }
-        ssize_t n = ::write(fd_, data + written, size - written);
+        ssize_t n = ::write(impl_->fd, data + written, size - written);
         if (n > 0) {
             written += static_cast<std::size_t>(n);
             continue;
@@ -244,7 +263,7 @@ Status SerialPort::writeAll(const std::uint8_t* data, std::size_t size) {
         if (errno == EAGAIN || errno == EWOULDBLOCK) {
             continue;
         }
-        return errnoError(ErrorCode::IoError, "write", config_.device);
+        return errnoError(ErrorCode::IoError, "write", impl_->config.device);
     }
     return Status::okStatus();
 }

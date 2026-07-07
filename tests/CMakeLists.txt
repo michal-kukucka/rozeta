@@ -8,7 +8,6 @@ add_executable(rozeta_tests
     test_obstacles.cpp
     test_motors.cpp
     test_config.cpp
-    test_serial_port.cpp
     test_motor_calibration.cpp
     test_calibration.cpp
     test_hardware_smoke.cpp
@@ -30,6 +29,13 @@ add_executable(rozeta_tests
     test_safety.cpp
     test_field_runner.cpp
 )
+if(ROZETA_PLATFORM_POSIX)
+  target_sources(rozeta_tests PRIVATE test_serial_port.cpp)
+  target_compile_definitions(rozeta_tests PRIVATE ROZETA_PLATFORM_POSIX=1)
+elseif(ROZETA_PLATFORM_WINDOWS)
+  target_sources(rozeta_tests PRIVATE test_serial_port_win32.cpp)
+  target_compile_definitions(rozeta_tests PRIVATE ROZETA_PLATFORM_WINDOWS=1)
+endif()
 if(ROZETA_WITH_SERIAL_MOTORS)
   target_sources(rozeta_tests PRIVATE test_serial_motors.cpp)
 endif()
@@ -64,6 +70,10 @@ if(Python3_Interpreter_FOUND)
       NAME rozeta_cmake_portability_contract
       COMMAND ${Python3_EXECUTABLE}
           ${CMAKE_SOURCE_DIR}/tests/test_cmake_portability_contract.py)
+  add_test(
+      NAME rozeta_serial_transport_split_contract
+      COMMAND ${Python3_EXECUTABLE}
+          ${CMAKE_SOURCE_DIR}/tests/test_serial_transport_split_contract.py)
   add_test(NAME rozeta_osm_import_tool COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_osm_import_tool.py)
 endif()
 
