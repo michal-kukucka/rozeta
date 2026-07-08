@@ -9,7 +9,7 @@ namespace {
 
 std::string fixturePath(const std::string& name) {
     std::string file = __FILE__;
-    auto slash = file.find_last_of('/');
+    auto slash = file.find_last_of("/\\");
     return file.substr(0, slash + 1) + "fixtures/maps/" + name;
 }
 

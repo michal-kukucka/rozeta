@@ -4,12 +4,21 @@
 
 #include <chrono>
 #include <cstring>
+#include <filesystem>
 #include <fstream>
 #include <limits>
 #include <stdexcept>
 #include <string>
 
 using namespace rozeta;
+
+namespace {
+
+std::string tempPresetPath(const std::string& name) {
+    return (std::filesystem::temp_directory_path() / name).string();
+}
+
+} // namespace
 
 void test_c_api_parse_mission_target_valid() {
     auto result = rozeta_parse_mission_target("geo:48.111,17.222");
@@ -100,7 +109,7 @@ void test_field_preset_validate_rejects_invalid() {
 }
 
 void test_field_preset_loads_key_value_file() {
-    const std::string path = "/tmp/rozeta_m18_field_preset.conf";
+    const std::string path = tempPresetPath("rozeta_m18_field_preset.conf");
     std::ofstream out(path);
     out << "# M18 file-based field preset\n"
         << "name = field_file\n"
@@ -139,7 +148,7 @@ void test_field_preset_loads_key_value_file() {
 }
 
 void test_field_preset_load_rejects_bad_file_values() {
-    const std::string path = "/tmp/rozeta_m18_bad_field_preset.conf";
+    const std::string path = tempPresetPath("rozeta_m18_bad_field_preset.conf");
     std::ofstream out(path);
     out << "mission.arrival_radius_m = -2\n";
     out.close();
@@ -154,7 +163,7 @@ void test_field_preset_load_rejects_bad_file_values() {
 }
 
 void test_field_preset_load_rejects_integer_overflow() {
-    const std::string path = "/tmp/rozeta_m18_overflow_field_preset.conf";
+    const std::string path = tempPresetPath("rozeta_m18_overflow_field_preset.conf");
     std::ofstream out(path);
     out << "camera_index = 3000000000\n";
     out.close();
@@ -169,7 +178,7 @@ void test_field_preset_load_rejects_integer_overflow() {
 }
 
 void test_field_preset_load_rejects_non_finite_numbers() {
-    const std::string path = "/tmp/rozeta_m18_nan_field_preset.conf";
+    const std::string path = tempPresetPath("rozeta_m18_nan_field_preset.conf");
     std::ofstream out(path);
     out << "mission.arrival_radius_m = nan\n";
     out.close();
@@ -184,7 +193,7 @@ void test_field_preset_load_rejects_non_finite_numbers() {
 }
 
 void test_field_preset_load_rejects_malformed_keys_and_booleans() {
-    const std::string malformed_path = "/tmp/rozeta_m18_malformed_field_preset.conf";
+    const std::string malformed_path = tempPresetPath("rozeta_m18_malformed_field_preset.conf");
     {
         std::ofstream out(malformed_path);
         out << "camera_enabled true\n";
@@ -197,7 +206,7 @@ void test_field_preset_load_rejects_malformed_keys_and_booleans() {
     }
     REQUIRE_TRUE(malformed_threw);
 
-    const std::string unknown_path = "/tmp/rozeta_m18_unknown_field_preset.conf";
+    const std::string unknown_path = tempPresetPath("rozeta_m18_unknown_field_preset.conf");
     {
         std::ofstream out(unknown_path);
         out << "unknown.setting = 1\n";
@@ -210,7 +219,7 @@ void test_field_preset_load_rejects_malformed_keys_and_booleans() {
     }
     REQUIRE_TRUE(unknown_threw);
 
-    const std::string bool_path = "/tmp/rozeta_m18_bad_bool_field_preset.conf";
+    const std::string bool_path = tempPresetPath("rozeta_m18_bad_bool_field_preset.conf");
     {
         std::ofstream out(bool_path);
         out << "camera_enabled = maybe\n";

@@ -37,22 +37,42 @@ class OsmFootwayImportToolTest(unittest.TestCase):
             tmp_path = Path(tmp)
             fake_bin = tmp_path / "bin"
             fake_bin.mkdir()
-            fake_osmium = fake_bin / "osmium"
-            fake_osmium.write_text(
-                textwrap.dedent(
-                    f"""
-                    #!/usr/bin/env python3
-                    import shutil
-                    import sys
-                    args = sys.argv[1:]
-                    output = args[args.index('-o') + 1]
-                    shutil.copyfile({str(FIXTURE)!r}, output)
-                    """
-                ).strip()
-                + "\n",
-                encoding="utf-8",
-            )
-            fake_osmium.chmod(0o755)
+            fake_osmium = fake_bin / ("osmium.cmd" if os.name == "nt" else "osmium")
+            if os.name == "nt":
+                fake_script = fake_bin / "fake_osmium.py"
+                fake_script.write_text(
+                    textwrap.dedent(
+                        f"""
+                        import shutil
+                        import sys
+                        args = sys.argv[1:]
+                        output = args[args.index('-o') + 1]
+                        shutil.copyfile({str(FIXTURE)!r}, output)
+                        """
+                    ).strip()
+                    + "\n",
+                    encoding="utf-8",
+                )
+                fake_osmium.write_text(
+                    f'@echo off\r\n"{sys.executable}" "{fake_script}" %*\r\n',
+                    encoding="utf-8",
+                )
+            else:
+                fake_osmium.write_text(
+                    textwrap.dedent(
+                        f"""
+                        #!/usr/bin/env python3
+                        import shutil
+                        import sys
+                        args = sys.argv[1:]
+                        output = args[args.index('-o') + 1]
+                        shutil.copyfile({str(FIXTURE)!r}, output)
+                        """
+                    ).strip()
+                    + "\n",
+                    encoding="utf-8",
+                )
+                fake_osmium.chmod(0o755)
             pbf = tmp_path / "park.pbf"
             pbf.write_bytes(b"fake-pbf")
             output = tmp_path / "footways.csv"

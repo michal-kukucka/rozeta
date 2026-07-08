@@ -3,6 +3,9 @@
 #include <rozeta/depth.hpp>
 #include <rozeta/kinect.hpp>
 
+#include <chrono>
+#include <cstdio>
+#include <filesystem>
 #include <fstream>
 #include <stdexcept>
 #include <string>
@@ -10,9 +13,10 @@
 namespace {
 
 std::string tempProfilePath(const std::string& content) {
-    std::string path = "/tmp/rozeta_m9_test_profile_" +
+    const auto filename = "rozeta_m9_test_profile_" +
         std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()) +
         ".cfg";
+    std::string path = (std::filesystem::temp_directory_path() / filename).string();
     std::ofstream out(path);
     out << content;
     out.close();
@@ -100,7 +104,9 @@ void test_kinect_profile_load_partial_falls_back_to_defaults() {
 void test_kinect_profile_load_rejects_missing_file() {
     bool threw = false;
     try {
-        (void)kinect::KinectProfile::load("/tmp/rozeta_nonexistent_profile_999.cfg");
+        (void)kinect::KinectProfile::load(
+            (std::filesystem::temp_directory_path() /
+             "rozeta_nonexistent_profile_999.cfg").string());
     } catch (const std::runtime_error&) {
         threw = true;
     }

@@ -49,7 +49,10 @@ def main() -> int:
     windows_safe_tests = {
         "tests/test_calibration.cpp": ["<filesystem>", "temp_directory_path"],
         "tests/test_motor_calibration.cpp": ["<filesystem>", "temp_directory_path"],
+        "tests/test_kinect_profile.cpp": ["<filesystem>", "temp_directory_path"],
+        "tests/test_m14_m15.cpp": ["<filesystem>", "temp_directory_path"],
         "tests/test_gps_receiver.cpp": ["#if !defined(_WIN32)", "PseudoTerminal"],
+        "tests/test_maps.cpp": ['find_last_of("/\\\\")', "fixtures/maps"],
     }
     for relative, required in windows_safe_tests.items():
         text = read(relative)
@@ -57,6 +60,15 @@ def main() -> int:
             assert_contains(text, needle, relative)
         if relative != "tests/test_gps_receiver.cpp" and "unistd.h" in text:
             raise AssertionError(f"{relative} should use portable filesystem temp files, not unistd.h")
+        if "/tmp" in text:
+            raise AssertionError(f"{relative} should use std::filesystem temp paths, not /tmp")
+
+    osm_import_tool = read("tests/test_osm_import_tool.py")
+    assert_contains(osm_import_tool, '"osmium.cmd" if os.name == "nt" else "osmium"',
+                    "tests/test_osm_import_tool.py")
+    opencv_qr_smoke = read("scripts/smoke_opencv_qr_stub.py")
+    assert_contains(opencv_qr_smoke, "MSVC environment is not initialized",
+                    "scripts/smoke_opencv_qr_stub.py")
 
     for relative in ("CMakeLists.txt", "examples/CMakeLists.txt", "tests/CMakeLists.txt"):
         text = read(relative)

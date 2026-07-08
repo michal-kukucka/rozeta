@@ -155,6 +155,12 @@ def main() -> int:
         print(f"C++ compiler not found: {compiler}", file=sys.stderr)
         return 1
 
+    compiler_name = Path(compiler).name.lower()
+    is_msvc = compiler_name in {"cl", "cl.exe"} or compiler_name.endswith("clang-cl.exe")
+    if os.name == "nt" and is_msvc and not os.environ.get("INCLUDE"):
+        print("Skipping OpenCV QR stub smoke: MSVC environment is not initialized")
+        return 0
+
     suffix = ".exe" if os.name == "nt" else ""
     with tempfile.TemporaryDirectory(prefix="rozeta-opencv-qr-stub-") as tmp_name:
         tmp = Path(tmp_name)
