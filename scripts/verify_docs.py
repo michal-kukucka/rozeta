@@ -101,6 +101,19 @@ REQUIRED_HARDWARE_UI_PHRASES = [
     "default CI stays hardware-free",
 ]
 
+REQUIRED_UNIVERSAL_DOC_PHRASES = [
+    "cross-platform core",
+    "Windows-supported core/transport stack",
+    "cmake --build build --config Release",
+    "ctest --test-dir build -C Release --output-on-failure",
+    "COM3",
+    "\\\\.\\COM10",
+    "Linux-proven hardware stack",
+    "Kinect/libfreenect: Linux verified, Windows experimental",
+    "Windows/MSVC Debug/Release",
+    "same repository",
+]
+
 REQUIRED_BUCHLOVICE_M1_PHRASES = [
     "BuchloviceBinary",
     "[255, pwm_right, pwm_left, reg, lrc, 13, 10]",
@@ -440,6 +453,31 @@ def main() -> int:
     for phrase in REQUIRED_HARDWARE_UI_PHRASES:
         if phrase not in hardware_ui:
             fail(f"hardware UI backend runbook/smoke hook missing: {phrase}", failures)
+
+    universal_docs = (
+        read("README.md")
+        + "\n"
+        + read("docs/index.html")
+        + "\n"
+        + read("docs/architecture.md")
+        + "\n"
+        + read("docs/module_overview.md")
+        + "\n"
+        + read("docs/gps_module.md")
+        + "\n"
+        + read("docs/motor_module.md")
+        + "\n"
+        + read("docs/lidar_module.md")
+        + "\n"
+        + read("docs/api-reference.md")
+        + "\n"
+        + read("docs/release.md")
+        + "\n"
+        + read("docs/plans/2026-07-07-windows-universal-portability.md")
+    )
+    for phrase in REQUIRED_UNIVERSAL_DOC_PHRASES:
+        if phrase not in universal_docs:
+            fail(f"universal documentation coverage missing: {phrase}", failures)
 
     buchlovice_m1_docs = (
         read("docs/motor_module.md")

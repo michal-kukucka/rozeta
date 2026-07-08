@@ -373,6 +373,11 @@ scripts, and failed jobs upload CMake logs for Windows diagnosis.
 
 **Objective:** Document Rozeta as universal/multiplatform while being honest about hardware backend maturity.
 
+**Status:** Implemented in commit scope for M7. User documentation now frames Rozeta as a same-repository
+universal library with a cross-platform core, Windows-supported core/transport stack and Linux-proven hardware
+stack. README/API/release docs include MSVC multi-config commands, serial docs cover `COM3` and `\\.\COM10`,
+and the docs verifier enforces the universal-use phrases so the project does not drift back to Linux-only wording.
+
 **Files:**
 - Modify: `README.md`
 - Modify: `docs/architecture.md`

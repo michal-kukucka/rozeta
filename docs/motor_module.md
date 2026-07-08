@@ -50,7 +50,10 @@ cmake -S . -B build-serial   -DROZETA_BUILD_TESTS=ON   -DROZETA_BUILD_EXAMPLES=O
 cmake --build build-serial --parallel 2
 ```
 
-`SerialMotorController` wraps the M1 POSIX serial transport and converts normalized speed commands to either the default text protocol or the Buchlovice binary packet protocol.
+`SerialMotorController` wraps the M1 platform-selected serial transport and converts normalized speed commands
+to either the default text protocol or the Buchlovice binary packet protocol. Linux deployments typically use
+`/dev/ttyUSB0` or `/dev/serial/by-id/...`; Windows deployments use `COM3` or `\\.\COM10` style device names
+with the same public config object.
 
 ### TextLine protocol
 

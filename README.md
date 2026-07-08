@@ -52,6 +52,21 @@ make
 ctest --output-on-failure
 ```
 
+Windows/MSVC 10/11 builds use the same repository and the same public package targets. With Visual Studio
+or Build Tools installed, configure from a Developer PowerShell/cmd and keep the multi-config `--config`/`-C`
+flags on build and test commands:
+
+```powershell
+cmake -S . -B build -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_EXAMPLES=ON
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
+```
+
+Universal support is split deliberately: the cross-platform core, package exports, C ABI, math/route/perception
+algorithms, mockable modules, GPS network transport and Windows-supported core/transport stack are CI-gated on
+Ubuntu and Windows/MSVC Debug/Release; hardware adapters that depend on Linux-only vendor stacks stay clearly
+labeled as the Linux-proven hardware stack until their native Windows backend is verified.
+
 Useful options:
 
 ```bash

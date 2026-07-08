@@ -13,6 +13,8 @@ The LiDAR module normalizes 2D range scanners into `ScanPoint { angle_deg, dista
 - console visualization helper
 - optional YDLIDAR-style serial backend behind `ROZETA_WITH_YDLIDAR`
 - optional LDROBOT LD06/LD19-compatible serial backend behind `ROZETA_WITH_LDROBOT_LIDAR` for cheap `0x54 0x2C` UART scanners, including probable AliExpress delta2/delta2g-style modules
+- platform-selected serial transport: Linux hardware smoke tests use `/dev/ttyUSB0` / `/dev/serial/by-id/...`,
+  while Windows builds accept `COM3` / `\\.\COM10` device names through the same backend API
 - configurable LDROBOT stream detection settings: required valid frames, max probe bytes, min/max distance and minimum intensity
 - no-hardware binary fixture replay for tests and examples
 

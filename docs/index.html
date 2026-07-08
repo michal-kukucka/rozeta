@@ -12,7 +12,7 @@
   <main class="wrap">
     <section class="hero">
       <div>
-        <div class="eyebrow"><span class="pulse"></span> Linux-first robotics LEGO</div>
+        <div class="eyebrow"><span class="pulse"></span> Cross-platform robotics LEGO</div>
         <h1>Rozeta Documentation Portal</h1>
         <p class="lead">A modern, site-ready documentation home for the Rozeta C/C++ robotics library: quick start, module map, API reference, examples, and a maintainability contract so code-based documentation stays aligned with public headers.</p>
         <div class="actions">
@@ -44,6 +44,7 @@ doxygen Doxyfile</code></pre></div>
     <section class="grid" aria-label="Documentation entry points">
       <article class="card"><h2>New users</h2><p>Learn the mental model first: core types, sensors, navigation decisions, motor commands, and safety behavior.</p><p><a href="module_overview.md">Module overview</a> · <a href="robotour_use_case.md">Robotour use case</a></p><span class="badge">quick-start</span><span class="badge">examples</span></article>
       <article class="card"><h2>API users</h2><p>Public headers under <code>include/rozeta</code> are the source of truth. Doxygen generates browsable HTML/XML API docs for website publishing and IDE integrations. Installed packages expose <code>find_package(rozeta CONFIG REQUIRED)</code> and <code>rozeta::rozeta</code>.</p><p><a href="api-reference.md">API reference workflow</a></p><span class="badge">Doxygen</span><span class="badge">C++17</span><span class="badge">stable C ABI</span></article>
+      <article class="card"><h2>Universal use</h2><p>The same repository now documents a cross-platform core, Windows-supported core/transport stack, and Linux-proven hardware stack so Windows 10/11 users can build with MSVC without a fork.</p><p><a href="architecture.md#cross-platform-cmake-foundation">Open portability notes</a></p><span class="badge">Windows/MSVC Debug/Release</span><span class="badge">same repository</span></article>
       <article class="card"><h2>Maintainers</h2><p>Every public header and example is checked by <code>scripts/verify_docs.py</code>. If code changes, update the mapped docs in the same commit.</p><p><a href="maintenance.md">Maintenance contract</a></p><span class="badge">CI verified</span><span class="badge">same commit</span></article>
     </section>
 

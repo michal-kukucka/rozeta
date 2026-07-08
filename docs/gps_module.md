@@ -62,6 +62,9 @@ if (status.ok()) {
 ```
 
 Default serial settings target common GPS modules: 9600 baud, 8N1 raw POSIX mode, no flow control and finite read timeouts.
+On Windows, use normal COM names such as `COM3` for ports below 10 and the Win32 device prefix such as
+`\\.\COM10` for two-digit ports when a driver exposes that spelling. The same `SerialGpsReceiver` API is used;
+only the device string changes.
 
 `readFix()` returns `std::nullopt` on timeout, parse errors or hardware errors. Inspect `lastStatus()` and `stats()` for diagnostics.
 

@@ -84,6 +84,15 @@ cmake --build build --parallel
 cmake --install build
 ```
 
+Windows/MSVC install smoke uses the same package config and explicitly passes the active configuration:
+
+```powershell
+cmake -S . -B build -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_EXAMPLES=ON
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
+cmake --install build --config Release --prefix C:/rozeta-install
+```
+
 Consume from a downstream project:
 
 ```cmake

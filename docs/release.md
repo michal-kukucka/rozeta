@@ -14,6 +14,15 @@ ctest --test-dir build-m10 --output-on-failure
 python3 scripts/verify_docs.py
 ```
 
+Windows/MSVC release preflight uses the same source tree and the active configuration explicitly:
+
+```powershell
+cmake -S . -B build -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_EXAMPLES=ON
+cmake --build build --config Release
+ctest --test-dir build -C Release --output-on-failure
+python scripts/verify_docs.py
+```
+
 If Doxygen is installed, also run one of:
 
 ```bash

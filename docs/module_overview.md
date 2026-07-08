@@ -2,7 +2,9 @@
 
 ## Core
 
-Shared definitions: `Status`, `ErrorCode`, timestamps, geometry, robot state, config loader, coordinate conversion and math helpers.
+Shared definitions: `Status`, `ErrorCode`, timestamps, geometry, robot state, config loader, coordinate conversion
+and math helpers. This is part of the cross-platform core and is built in the same repository on Linux and
+Windows/MSVC Debug/Release.
 
 ## C ABI
 

@@ -1,6 +1,7 @@
 # Architecture
 
-Rozeta is designed as a modular C/C++ robotics library for Linux robots. The architecture separates **public interfaces** from **backend implementations**:
+Rozeta is a cross-platform C/C++ robotics library with a portable core, a Windows-supported core/transport stack,
+and a Linux-proven hardware stack. The architecture separates **public interfaces** from **backend implementations**:
 
 - `include/rozeta/*.hpp` contains stable public APIs.
 - `src/*.cpp` contains default implementations and mock/skeleton backends.
@@ -10,7 +11,8 @@ Rozeta is designed as a modular C/C++ robotics library for Linux robots. The arc
 
 1. **Hardware abstraction** — applications depend on interfaces such as `MotorController`, `GpsReceiver`, `LidarScanner`, `Camera`, `KinectSensor` or `ImuSensor`.
 2. **Dependency injection** — Robotour loops receive concrete modules, allowing mocks in tests and real devices in deployment.
-3. **Linux-first** — CMake, POSIX-friendly examples and serial-device naming are assumed first.
+3. **Universal core, field-proven Linux hardware** — portable algorithms and transports build on Linux and
+   Windows 10/11, while hardware runbooks clearly mark Linux-proven and Windows-experimental backends.
 4. **Minimal dependencies** — milestone 1 only needs a C++17 compiler and CMake.
 5. **Testable modules** — algorithms such as NMEA parsing, odometry, coordinate conversion and obstacle sectors are covered by unit tests.
 6. **C and C++ interop** — primary API is modern C++; `include/rozeta/c_api.h` starts a small C-compatible ABI surface.
@@ -80,6 +82,16 @@ CMake selects exactly one socket backend beside the serial backend:
 The socket transport only owns endpoint validation, socket lifecycle, bounded connect, receive timeout and
 native error conversion. Linux tests keep loopback UDP/TCP coverage; the test fixture now uses guarded socket
 helpers so the same source can compile with POSIX sockets or Winsock.
+
+Universal-use support is intentionally tiered so the same repository can serve Linux robots and Windows 10/11
+developers without pretending every vendor SDK is equally portable:
+
+- **cross-platform core**: headers, C ABI, package exports, math/geo helpers, route planning, perception helpers,
+  mock modules, replay tools and no-hardware examples are built on Ubuntu and Windows/MSVC Debug/Release.
+- **Windows-supported core/transport stack**: Win32 serial and Winsock GPS paths compile in CI and share the same
+  public receiver/controller APIs as Linux.
+- **Linux-proven hardware stack**: POSIX serial deployments, udev/dialout setup, LDROBOT/YDLIDAR captures and
+  Kinect/libfreenect: Linux verified, Windows experimental until native device smoke tests exist.
 
 Tests are platform-aware at the CTest layer. Every default test has explicit labels such as `portable`, `unit`,
 `posix`, `windows` or `hardware-optional`; POSIX-only pseudo-terminal coverage is selected from normalized
