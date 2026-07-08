@@ -53,6 +53,9 @@ def main() -> int:
         "tests/test_m14_m15.cpp": ["<filesystem>", "temp_directory_path"],
         "tests/test_gps_receiver.cpp": ["#if !defined(_WIN32)", "PseudoTerminal"],
         "tests/test_maps.cpp": ['find_last_of("/\\\\")', "fixtures/maps"],
+        "tests/test_obstacles.cpp": ['find_last_of("/\\\\")', "fixtures/depth"],
+        "tests/test_imu.cpp": ['find_last_of("/\\\\")', "fixtures/imu"],
+        "tests/test_kinect_profile.cpp": ["std::chrono::seconds(1)", "markStale"],
     }
     for relative, required in windows_safe_tests.items():
         text = read(relative)

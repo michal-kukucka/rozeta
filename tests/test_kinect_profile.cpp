@@ -151,7 +151,7 @@ void test_kinect_backend_selector_mark_stale() {
         selector.status() == kinect::KinectBackendStatus::Running);
 
     // Mark stale with zero-age threshold -> goes stale
-    selector.markStale(rozeta::now());
+    selector.markStale(rozeta::now() + std::chrono::seconds(1));
     REQUIRE_TRUE(
         selector.status() == kinect::KinectBackendStatus::Stale);
 }

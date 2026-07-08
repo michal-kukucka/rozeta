@@ -11,7 +11,7 @@ namespace {
 
 std::string imuFixturePath(const std::string& name) {
     std::string file = __FILE__;
-    auto slash = file.find_last_of('/');
+    auto slash = file.find_last_of("/\\");
     return file.substr(0, slash + 1) + "fixtures/imu/" + name;
 }
 
