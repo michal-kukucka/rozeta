@@ -52,6 +52,7 @@ REQUIRED_FILES = [
     "docs/maintenance.md",
     "docs/hardware_ui_backends.md",
     "docs/windows_optional_backends.md",
+    "scripts/verify_release_readiness.py",
     "docs/kinect_module.md",
     "docs/buchlovice_motor_hardware_smoke.md",
     "docs/ui_module.md",
@@ -127,6 +128,23 @@ REQUIRED_OPTIONAL_BACKEND_PHRASES = [
     "Kinect/libfreenect stays experimental on Windows",
     "default CI must not enable optional dependencies",
     "clear CMake configure failure",
+]
+
+REQUIRED_RELEASE_PHRASES = [
+    "M9 — Release Universal Portability Version",
+    "Release candidate preflight",
+    "scripts/verify_release_readiness.py",
+    "build-release-linux",
+    "build-release-install",
+    "build-release-consumer",
+    "cmake --install build-release-install --prefix",
+    "find_package(rozeta CONFIG REQUIRED)",
+    "consumer_c",
+    "consumer_cpp",
+    "Ubuntu Debug/Release CI must be green",
+    "Windows/MSVC Debug/Release CI must be green",
+    "Do not create or push a git tag until maintainer approval",
+    "v0.1.0-universal",
 ]
 
 REQUIRED_BUCHLOVICE_M1_PHRASES = [
@@ -508,6 +526,21 @@ def main() -> int:
     for phrase in REQUIRED_OPTIONAL_BACKEND_PHRASES:
         if phrase not in optional_backend_docs:
             fail(f"optional backend validation documentation missing: {phrase}", failures)
+
+    release_docs = (
+        read("README.md")
+        + "\n"
+        + read("docs/release.md")
+        + "\n"
+        + read("docs/plans/2026-07-07-windows-universal-portability.md")
+        + "\n"
+        + read("scripts/verify_release_readiness.py")
+        + "\n"
+        + read("examples/consumer/CMakeLists.txt")
+    )
+    for phrase in REQUIRED_RELEASE_PHRASES:
+        if phrase not in release_docs:
+            fail(f"release readiness documentation missing: {phrase}", failures)
 
     buchlovice_m1_docs = (
         read("docs/motor_module.md")

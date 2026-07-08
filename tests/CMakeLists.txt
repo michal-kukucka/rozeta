@@ -110,6 +110,11 @@ if(Python3_Interpreter_FOUND)
           ${CMAKE_SOURCE_DIR}/tests/test_windows_ci_matrix_contract.py)
   rozeta_label_test(rozeta_windows_ci_matrix_contract portable windows)
   add_test(
+      NAME rozeta_release_readiness_contract
+      COMMAND ${Python3_EXECUTABLE}
+          ${CMAKE_SOURCE_DIR}/tests/test_release_readiness_contract.py)
+  rozeta_label_test(rozeta_release_readiness_contract portable posix windows)
+  add_test(
       NAME rozeta_osm_import_tool
       COMMAND ${Python3_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tests/test_osm_import_tool.py)
   rozeta_label_test(rozeta_osm_import_tool portable)

@@ -447,10 +447,17 @@ surface, while default CI remains dependency-free and hardware-free.
 
 **Objective:** Package and release a version that consumers can confidently use from Linux or Windows.
 
+**Status:** Implemented in commit scope for M9. Added `scripts/verify_release_readiness.py`, expanded
+`docs/release.md`, and wired a release-readiness contract so the release candidate proves Linux build/test/docs,
+installable CMake package exports, downstream `examples/consumer` consumption, and remote Ubuntu + Windows CI
+expectations before any maintainer-approved tag such as `v0.1.0-universal` is created.
+
 **Files:**
 - Modify: `docs/release.md`
 - Modify: `README.md`
 - Modify: version metadata if release process requires it
+- Create: `scripts/verify_release_readiness.py`
+- Create: `tests/test_release_readiness_contract.py`
 
 **Tasks:**
 

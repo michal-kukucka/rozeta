@@ -128,6 +128,17 @@ cmake -S examples/consumer -B /tmp/rozeta-consumer \
 cmake --build /tmp/rozeta-consumer --parallel
 ```
 
+Release candidate users can run the M9 install/consumer preflight directly:
+
+```bash
+python3 scripts/verify_release_readiness.py --dry-run
+python3 scripts/verify_release_readiness.py --run
+```
+
+The release profile is one repository and one CI matrix: Ubuntu Debug/Release CI must be green,
+Windows/MSVC Debug/Release CI must be green, and optional dependencies stay off by default until
+validated with their opt-in smoke profiles.
+
 ## Quick usage
 
 ```cpp
