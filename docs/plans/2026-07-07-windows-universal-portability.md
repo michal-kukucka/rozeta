@@ -415,10 +415,16 @@ and the docs verifier enforces the universal-use phrases so the project does not
 
 **Objective:** Verify optional dependencies individually instead of blocking the whole library on them.
 
+**Status:** Implemented in commit scope for M8. Added `docs/windows_optional_backends.md` and
+`scripts/smoke_optional_backends.py` so OpenCV, LibTorch, LDROBOT, YDLIDAR and Kinect/libfreenect have explicit
+Windows/operator validation profiles. The docs verifier and portability contract now enforce the optional-backend
+surface, while default CI remains dependency-free and hardware-free.
+
 **Files:**
 - Modify: `CMakeLists.txt`
 - Modify: backend docs
-- Optional create: `docs/windows_optional_backends.md`
+- Create: `docs/windows_optional_backends.md`
+- Create: `scripts/smoke_optional_backends.py`
 
 **Tasks:**
 

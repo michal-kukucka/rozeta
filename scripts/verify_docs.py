@@ -51,6 +51,7 @@ REQUIRED_FILES = [
     "docs/architecture.md",
     "docs/maintenance.md",
     "docs/hardware_ui_backends.md",
+    "docs/windows_optional_backends.md",
     "docs/kinect_module.md",
     "docs/buchlovice_motor_hardware_smoke.md",
     "docs/ui_module.md",
@@ -112,6 +113,20 @@ REQUIRED_UNIVERSAL_DOC_PHRASES = [
     "Kinect/libfreenect: Linux verified, Windows experimental",
     "Windows/MSVC Debug/Release",
     "same repository",
+]
+
+REQUIRED_OPTIONAL_BACKEND_PHRASES = [
+    "M8 — Optional backend validation on Windows",
+    "scripts/smoke_optional_backends.py",
+    "OpenCV vcpkg Windows smoke",
+    "ROZETA_WITH_OPENCV=ON",
+    "ROZETA_WITH_LIBTORCH=ON",
+    "ROZETA_WITH_LDROBOT_LIDAR=ON",
+    "ROZETA_WITH_YDLIDAR=ON",
+    "CMAKE_PREFIX_PATH",
+    "Kinect/libfreenect stays experimental on Windows",
+    "default CI must not enable optional dependencies",
+    "clear CMake configure failure",
 ]
 
 REQUIRED_BUCHLOVICE_M1_PHRASES = [
@@ -478,6 +493,21 @@ def main() -> int:
     for phrase in REQUIRED_UNIVERSAL_DOC_PHRASES:
         if phrase not in universal_docs:
             fail(f"universal documentation coverage missing: {phrase}", failures)
+
+    optional_backend_docs = (
+        read("docs/windows_optional_backends.md")
+        + "\n"
+        + read("docs/hardware_ui_backends.md")
+        + "\n"
+        + read("docs/architecture.md")
+        + "\n"
+        + read("docs/plans/2026-07-07-windows-universal-portability.md")
+        + "\n"
+        + read("scripts/smoke_optional_backends.py")
+    )
+    for phrase in REQUIRED_OPTIONAL_BACKEND_PHRASES:
+        if phrase not in optional_backend_docs:
+            fail(f"optional backend validation documentation missing: {phrase}", failures)
 
     buchlovice_m1_docs = (
         read("docs/motor_module.md")

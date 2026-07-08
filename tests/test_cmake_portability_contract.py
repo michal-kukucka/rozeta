@@ -73,6 +73,25 @@ def main() -> int:
     assert_contains(opencv_qr_smoke, "MSVC environment is not initialized",
                     "scripts/smoke_opencv_qr_stub.py")
 
+    optional_smoke = read("scripts/smoke_optional_backends.py")
+    for needle in (
+        "opencv-windows",
+        "libtorch-windows",
+        "ldrobot-replay",
+        "ydlidar-replay",
+        "kinect-windows-experimental",
+        "--dry-run",
+        "default CI must not enable optional dependencies",
+    ):
+        assert_contains(optional_smoke, needle, "scripts/smoke_optional_backends.py")
+    for needle in (
+        "vcpkg install opencv4",
+        "CMAKE_PREFIX_PATH",
+        "clear CMake configure failure",
+        "Kinect/libfreenect stays experimental on Windows",
+    ):
+        assert_contains(root_cmake + optional_smoke, needle, "optional backend validation surface")
+
     for relative in ("CMakeLists.txt", "examples/CMakeLists.txt", "tests/CMakeLists.txt"):
         text = read(relative)
         if re.search(r"target_compile_options\([^\)]*-Wall", text, flags=re.DOTALL):

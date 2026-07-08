@@ -4,6 +4,9 @@ M5 keeps the default Rozeta CI path hardware-free while giving Linux operators e
 
 ## Safety and dependency model
 
+For Windows-specific optional backend validation, including OpenCV vcpkg, LibTorch `CMAKE_PREFIX_PATH`, LiDAR
+replay profiles and Kinect experimental status, see `docs/windows_optional_backends.md`.
+
 - The default CI stays hardware-free: `ROZETA_WITH_OPENCV=OFF` and `ROZETA_WITH_KINECT=OFF` are valid production-development defaults.
 - Real hardware backends are opt-in with CMake flags.
 - Missing OpenCV/libfreenect development packages must fail during CMake configuration with clear dependency messages, not silently disable a requested backend.

@@ -26,8 +26,10 @@ if(ROZETA_WITH_OPENCV)
   if(NOT OpenCV_FOUND)
     message(FATAL_ERROR
         "ROZETA_WITH_OPENCV=ON requires OpenCV with core, imgproc, videoio "
-        "and objdetect components. Install OpenCV development packages or configure "
-        "with -DROZETA_WITH_OPENCV=OFF.")
+        "and objdetect components. Install OpenCV development packages; on Windows "
+        "prefer vcpkg install opencv4 plus CMAKE_TOOLCHAIN_FILE, or point OpenCV_DIR "
+        "at an official OpenCV CMake package. Configure with "
+        "-DROZETA_WITH_OPENCV=OFF to keep the default hardware-free build.")
   endif()
 endif()
 
@@ -37,7 +39,8 @@ if(ROZETA_WITH_LIBTORCH)
     message(FATAL_ERROR
         "ROZETA_WITH_LIBTORCH=ON requires native C++ PyTorch LibTorch. "
         "Install/download LibTorch and set CMAKE_PREFIX_PATH to its share/cmake "
-        "directory, or configure with -DROZETA_WITH_LIBTORCH=OFF.")
+        "directory, for example C:/deps/libtorch/share/cmake/Torch on Windows, "
+        "or configure with -DROZETA_WITH_LIBTORCH=OFF.")
   endif()
   if(TORCH_CXX_FLAGS)
     separate_arguments(ROZETA_TORCH_CXX_FLAGS NATIVE_COMMAND "${TORCH_CXX_FLAGS}")
@@ -50,7 +53,8 @@ if(ROZETA_WITH_KINECT)
   if(NOT FREENECT_INCLUDE_DIR OR NOT FREENECT_LIBRARY)
     message(FATAL_ERROR
         "ROZETA_WITH_KINECT=ON requires libfreenect development headers and "
-        "library. Install libfreenect-dev or configure with "
+        "library. Kinect/libfreenect stays experimental on Windows until physical "
+        "device smoke evidence exists. Install libfreenect-dev or configure with "
         "-DROZETA_WITH_KINECT=OFF.")
   endif()
 endif()
