@@ -20,7 +20,7 @@ Speeds are normalized by default to `[-calibration.max_speed, calibration.max_sp
 
 ## Mock backend
 
-`MockMotorController` stores the last command and refuses commands while emergency stop is active. This allows navigation and safety tests without hardware.
+`MockMotorController` stores the last command and refuses commands while emergency stop is active. This allows navigation and safety tests without hardware. Like the serial backend, it rejects non-finite (NaN/Inf) speeds with `InvalidArgument`. Its E-STOP flag is atomic so `emergencyStop()`/`isEmergencyStopped()` may be called from a different thread than `setSpeed()`; the remaining members expect single-threaded use.
 
 ## Calibration persistence
 

@@ -6,9 +6,18 @@ namespace rozeta::odometry {
 
 struct DifferentialDriveConfig { double wheel_base_m{0.5}; double ticks_per_wheel_revolution{1024}; double wheel_radius_m{0.25}; };
 
+/// Integrates cumulative encoder ticks into a Pose2D with x/y in meters and
+/// heading in radians, counterclockwise-positive (matches navigation's
+/// atan2(dy, dx) convention).
 class DifferentialOdometry {
 public:
     explicit DifferentialOdometry(DifferentialDriveConfig config);
+    /// Records the current hardware counter values as the baseline without
+    /// moving the pose. Call before the first updateTicks() when encoder
+    /// counters do not start at zero (e.g. reconnecting to running hardware).
+    void seedTicks(std::int64_t left_ticks, std::int64_t right_ticks);
+    /// Ticks are cumulative counts. Without a prior seedTicks(), the first
+    /// call treats the counters as zero-based.
     Pose2D updateTicks(std::int64_t left_ticks, std::int64_t right_ticks);
     void reset(Pose2D pose = {});
     Pose2D pose() const;

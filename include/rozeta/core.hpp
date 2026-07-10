@@ -89,7 +89,11 @@ ROZETA_API double distance2D(const Vector2& a, const Vector2& b);
 
 class ROZETA_API Config {
 public:
+    /// Loads key=value config; unreadable files yield an empty config.
+    /// Prefer loadFile() when missing-file detection matters.
     static Config load(const std::string& path);
+    /// Loads key=value config and reports unreadable files via Status.
+    static Status loadFile(const std::string& path, Config& out);
     std::string getString(const std::string& key, const std::string& fallback = "") const;
     double getDouble(const std::string& key, double fallback = 0.0) const;
     int getInt(const std::string& key, int fallback = 0) const;

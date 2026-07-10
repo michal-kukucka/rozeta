@@ -3,6 +3,7 @@
 #include <rozeta/core.hpp>
 #include <rozeta/motors.hpp>
 
+#include <atomic>
 #include <cstddef>
 #include <cstdint>
 #include <string>
@@ -34,7 +35,8 @@ private:
 
     motors::SerialMotorConfig config_;
     MotorSerialTransport& transport_;
-    bool emergency_{false};
+    // E-STOP flag may be read/written from another thread than setSpeed().
+    std::atomic<bool> emergency_{false};
 };
 
 } // namespace rozeta::internal

@@ -3,7 +3,7 @@
 [![CI](https://github.com/michal-kukucka/rozeta/actions/workflows/ci.yml/badge.svg)](https://github.com/michal-kukucka/rozeta/actions/workflows/ci.yml)
 
 
-Rozeta is a Linux-first modular robotics framework for autonomous vehicles and outdoor competition robots such as Robotour. It is intentionally built as **software LEGO**: every hardware or logic area has a small public API, mockable interfaces, and tests that can run without real devices.
+Rozeta is a modular C/C++ robotics framework for autonomous vehicles and outdoor competition robots such as Robotour, built and tested on Linux, Windows and macOS from one repository. It is intentionally built as **software LEGO**: every hardware or logic area has a small public API, mockable interfaces, and tests that can run without real devices.
 
 The initial milestone focuses on the foundation, not final hardware drivers:
 
@@ -62,10 +62,24 @@ cmake --build build --config Release
 ctest --test-dir build -C Release --output-on-failure
 ```
 
+macOS builds use the same commands as Linux (Apple clang plus CMake, for example from Homebrew):
+
+```bash
+cmake -S . -B build -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_EXAMPLES=ON
+cmake --build build --parallel
+ctest --test-dir build --output-on-failure
+```
+
+macOS shares the POSIX serial and socket transports. Serial devices typically appear as
+`/dev/tty.usbserial-*` or `/dev/tty.usbmodem-*` instead of `/dev/ttyUSB0`, so set the `device` field of the
+serial configs accordingly. Baud rates that macOS termios has no constant for (such as 128000 for YDLIDAR)
+are requested through the Apple `IOSSIOSPEED` ioctl automatically.
+
 Universal support is split deliberately: the cross-platform core, package exports, C ABI, math/route/perception
-algorithms, mockable modules, GPS network transport and Windows-supported core/transport stack are CI-gated on
-Ubuntu and Windows/MSVC Debug/Release; hardware adapters that depend on Linux-only vendor stacks stay clearly
-labeled as the Linux-proven hardware stack until their native Windows backend is verified.
+algorithms, mockable modules, GPS network transport and the Windows/macOS-supported core/transport stacks are
+CI-gated on Ubuntu, Windows/MSVC and macOS Debug/Release; hardware adapters that depend on Linux-only vendor
+stacks stay clearly labeled as the Linux-proven hardware stack until their native Windows/macOS backends are
+verified.
 
 Useful options:
 
@@ -136,8 +150,8 @@ python3 scripts/verify_release_readiness.py --run
 ```
 
 The release profile is one repository and one CI matrix: Ubuntu Debug/Release CI must be green,
-Windows/MSVC Debug/Release CI must be green, and optional dependencies stay off by default until
-validated with their opt-in smoke profiles.
+Windows/MSVC Debug/Release CI must be green, macOS Debug/Release CI must be green, and optional
+dependencies stay off by default until validated with their opt-in smoke profiles.
 
 ## Quick usage
 

@@ -2,6 +2,7 @@
 
 #include <rozeta/core.hpp>
 
+#include <atomic>
 #include <chrono>
 #include <memory>
 #include <string>
@@ -69,7 +70,9 @@ private:
     MotorCalibration calibration_;
     MotorCommand last_{};
     EncoderFeedback feedback_{};
-    bool emergency_{false};
+    // emergencyStop()/isEmergencyStopped() may be called from another thread
+    // (E-STOP handlers); the remaining members expect single-threaded use.
+    std::atomic<bool> emergency_{false};
 };
 
 #ifdef ROZETA_WITH_SERIAL_MOTORS

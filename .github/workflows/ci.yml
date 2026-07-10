@@ -26,6 +26,12 @@ jobs:
           - os: windows-latest
             build_type: Release
             cmake_build_type_arg: ""
+          - os: macos-latest
+            build_type: Debug
+            cmake_build_type_arg: -DCMAKE_BUILD_TYPE=Debug
+          - os: macos-latest
+            build_type: Release
+            cmake_build_type_arg: -DCMAKE_BUILD_TYPE=Release
 
     steps:
       - name: Check out repository

@@ -172,9 +172,12 @@ NmeaParseResult parseGpsPayload(const std::string& payload) {
     }
 
     std::smatch match;
-    const std::string number = R"(([-+]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)))";
-    const std::regex plain_regex(
-        R"(^[[:space:]]*)" + number + R"([[:space:]]*,[[:space:]]*)" + number + R"([[:space:]]*$)");
+    // Compiled once: std::regex construction is expensive on a hot parse path.
+    static const std::regex plain_regex = [] {
+        const std::string number = R"(([-+]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)))";
+        return std::regex(
+            R"(^[[:space:]]*)" + number + R"([[:space:]]*,[[:space:]]*)" + number + R"([[:space:]]*$)");
+    }();
 
     double lat = 0.0;
     double lon = 0.0;

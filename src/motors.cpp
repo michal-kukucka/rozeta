@@ -66,6 +66,9 @@ Status MockMotorController::setSpeed(double left, double right) {
         return Status::error(ErrorCode::EmergencyStopped, "emergency stop active");
     }
 
+    if (!finite(left) || !finite(right)) {
+        return Status::error(ErrorCode::InvalidArgument, "motor speeds must be finite");
+    }
     if (std::fabs(left) > calibration_.max_speed || std::fabs(right) > calibration_.max_speed) {
         return Status::error(ErrorCode::InvalidArgument, "speed outside calibrated range");
     }

@@ -11,8 +11,16 @@ constexpr double kPi = 3.141592653589793238462643383279502884;
 
 DifferentialOdometry::DifferentialOdometry(DifferentialDriveConfig config) : config_(config) {}
 
+void DifferentialOdometry::seedTicks(std::int64_t left_ticks, std::int64_t right_ticks) {
+    last_left_ = left_ticks;
+    last_right_ = right_ticks;
+    have_last_ = true;
+}
+
 Pose2D DifferentialOdometry::updateTicks(std::int64_t left_ticks, std::int64_t right_ticks) {
     if (!have_last_) {
+        // Unseeded counters are treated as zero-based cumulative ticks; call
+        // seedTicks() first when hardware counters do not start at zero.
         last_left_ = 0;
         last_right_ = 0;
         have_last_ = true;
@@ -28,7 +36,9 @@ Pose2D DifferentialOdometry::updateTicks(std::int64_t left_ticks, std::int64_t r
     const double delta_left_m = delta_left_ticks * meters_per_tick;
     const double delta_right_m = delta_right_ticks * meters_per_tick;
     const double delta_center_m = (delta_left_m + delta_right_m) / 2.0;
-    const double delta_heading = (delta_left_m - delta_right_m) / config_.wheel_base_m;
+    // Counterclockwise-positive heading: right wheel faster turns the robot
+    // left, increasing heading. Matches SimpleNavigator's atan2(dy, dx).
+    const double delta_heading = (delta_right_m - delta_left_m) / config_.wheel_base_m;
 
     pose_.x += delta_center_m * std::cos(pose_.heading + delta_heading / 2.0);
     pose_.y += delta_center_m * std::sin(pose_.heading + delta_heading / 2.0);

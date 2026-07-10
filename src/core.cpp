@@ -28,9 +28,22 @@ Timestamp now() {
 
 Config Config::load(const std::string& path) {
     Config config;
-    std::ifstream in(path);
-    std::string line;
+    (void)Config::loadFile(path, config);
+    return config;
+}
 
+Status Config::loadFile(const std::string& path, Config& out) {
+    if (path.empty()) {
+        return Status::error(ErrorCode::InvalidArgument, "config path is empty");
+    }
+
+    std::ifstream in(path);
+    if (!in) {
+        return Status::error(ErrorCode::IoError, "config file unavailable: " + path);
+    }
+
+    Config config;
+    std::string line;
     while (std::getline(in, line)) {
         line = trim(line);
         if (line.empty() || line[0] == '#' || line[0] == ';') {
@@ -45,7 +58,8 @@ Config Config::load(const std::string& path) {
         config.set(trim(line.substr(0, pos)), trim(line.substr(pos + 1)));
     }
 
-    return config;
+    out = std::move(config);
+    return Status::okStatus();
 }
 
 std::string Config::getString(const std::string& key, const std::string& fallback) const {
@@ -91,13 +105,17 @@ LocalCoordinate geoToLocal(const GeoCoordinate& origin, const GeoCoordinate& poi
 }
 
 double normalizeAngle(double radians) {
-    while (radians > kPi) {
-        radians -= 2 * kPi;
+    if (!std::isfinite(radians)) {
+        return radians;
     }
-    while (radians < -kPi) {
-        radians += 2 * kPi;
+    if (radians >= -kPi && radians <= kPi) {
+        return radians;
     }
-    return radians;
+    double wrapped = std::fmod(radians + kPi, 2 * kPi);
+    if (wrapped < 0.0) {
+        wrapped += 2 * kPi;
+    }
+    return wrapped - kPi;
 }
 
 double distance2D(const Vector2& a, const Vector2& b) {

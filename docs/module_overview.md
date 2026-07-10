@@ -3,8 +3,12 @@
 ## Core
 
 Shared definitions: `Status`, `ErrorCode`, timestamps, geometry, robot state, config loader, coordinate conversion
-and math helpers. This is part of the cross-platform core and is built in the same repository on Linux and
-Windows/MSVC Debug/Release.
+and math helpers. This is part of the cross-platform core and is built in the same repository on Linux,
+Windows/MSVC Debug/Release and macOS.
+
+`Config::load(path)` keeps the historical lenient behavior (unreadable files yield an empty config);
+`Config::loadFile(path, out)` returns a `Status` so callers can distinguish a missing config file from an
+empty one. `normalizeAngle` wraps any finite input into `[-pi, pi]` in constant time.
 
 ## C ABI
 
@@ -19,6 +23,11 @@ builds and static consumers. Static package targets publish `ROZETA_STATIC_DEFIN
 ## Logging
 
 `logging::Logger` interface plus console and CSV loggers. Intended for sensor readings, motor commands, GPS data, scans, pose, navigation decisions and errors.
+
+The global `setLogger`/`getLogger`/`log` accessors are thread-safe. `CsvFileLogger` quotes channel and
+message fields per RFC 4180 (embedded quotes doubled) so messages containing `"`, `,` or newlines cannot
+corrupt row structure, and exposes `isOpen()` to detect an unopenable log path; log calls on a failed file
+are dropped silently.
 
 ## Telemetry
 
@@ -53,7 +62,12 @@ The field runner module (`include/rozeta/field_runner.hpp`) describes the Buchlo
 
 ## Odometry
 
-`odometry::DifferentialOdometry` estimates `Pose2D` from left/right wheel encoder ticks.
+`odometry::DifferentialOdometry` estimates `Pose2D` from cumulative left/right wheel encoder ticks. Heading
+is counterclockwise-positive radians (a faster right wheel increases heading), matching the
+`atan2(dy, dx)` convention used by `navigation::SimpleNavigator` and `imu::PoseFusion`. Counters are treated
+as zero-based on the first `updateTicks()` call; call `seedTicks(left, right)` first when reconnecting to
+hardware whose counters do not start at zero, otherwise the first update would integrate the whole absolute
+count as movement.
 
 ## LiDAR
 

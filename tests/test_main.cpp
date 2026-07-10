@@ -25,13 +25,21 @@ void test_network_gps_tcp_open_uses_configured_finite_timeout();
 void test_network_gps_tcp_read_has_overall_deadline_without_newline();
 void test_network_gps_tcp_read_uses_remaining_deadline_after_partial_payload();
 void test_odometry_differential_drive_forward_and_turn();
+void test_odometry_heading_counterclockwise_positive();
+void test_odometry_seed_ticks_prevents_startup_jump();
 void test_coordinate_local_conversion();
 void test_obstacle_sector_calculation();
 void test_depth_frame_extracts_nearest_obstacle_sectors();
 void test_depth_frame_to_point_cloud_projects_valid_pixels();
 void test_depth_frame_ignores_invalid_pixels_and_bad_fixtures();
 void test_motor_command_validation_and_estop();
+void test_motor_rejects_non_finite_speeds();
 void test_config_loader_reads_key_values();
+void test_config_load_file_reports_missing_and_loads_existing();
+void test_normalize_angle_wraps_small_and_huge_magnitudes();
+void test_logging_global_logger_swap_and_null_safe();
+void test_logging_csv_file_logger_escapes_quotes_commas_newlines();
+void test_logging_csv_file_logger_reports_unopenable_path();
 void test_serial_port_open_timeout_write_read_and_close();
 void test_serial_port_rejects_invalid_configuration();
 void test_motor_calibration_save_load_round_trip();
@@ -259,13 +267,21 @@ int main(){
         {"network_gps_tcp_read_deadline", test_network_gps_tcp_read_has_overall_deadline_without_newline},
         {"network_gps_tcp_partial_deadline", test_network_gps_tcp_read_uses_remaining_deadline_after_partial_payload},
         {"odometry", test_odometry_differential_drive_forward_and_turn},
+        {"odometry_ccw_heading", test_odometry_heading_counterclockwise_positive},
+        {"odometry_seed_ticks", test_odometry_seed_ticks_prevents_startup_jump},
         {"coordinates", test_coordinate_local_conversion},
         {"obstacles", test_obstacle_sector_calculation},
         {"depth_obstacles", test_depth_frame_extracts_nearest_obstacle_sectors},
         {"depth_point_cloud", test_depth_frame_to_point_cloud_projects_valid_pixels},
         {"depth_edge_cases", test_depth_frame_ignores_invalid_pixels_and_bad_fixtures},
         {"motors", test_motor_command_validation_and_estop},
+        {"motors_non_finite", test_motor_rejects_non_finite_speeds},
         {"config", test_config_loader_reads_key_values},
+        {"config_load_file_status", test_config_load_file_reports_missing_and_loads_existing},
+        {"normalize_angle", test_normalize_angle_wraps_small_and_huge_magnitudes},
+        {"logging_global_swap", test_logging_global_logger_swap_and_null_safe},
+        {"logging_csv_escaping", test_logging_csv_file_logger_escapes_quotes_commas_newlines},
+        {"logging_csv_unopenable", test_logging_csv_file_logger_reports_unopenable_path},
         {"serial_port", test_serial_port_open_timeout_write_read_and_close},
         {"serial_invalid_config", test_serial_port_rejects_invalid_configuration},
         {"motor_calibration_round_trip", test_motor_calibration_save_load_round_trip},

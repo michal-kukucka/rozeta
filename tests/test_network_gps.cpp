@@ -50,10 +50,26 @@ constexpr SocketHandle invalid_socket = -1;
 
 void ensureSocketRuntime() {}
 void closeSocket(SocketHandle socket) { ::close(socket); }
+// macOS has no MSG_NOSIGNAL; SIGPIPE suppression there uses SO_NOSIGPIPE instead.
+#ifdef MSG_NOSIGNAL
 constexpr int no_signal_flag = MSG_NOSIGNAL;
+#else
+constexpr int no_signal_flag = 0;
+#endif
 #endif
 
 bool socketValid(SocketHandle socket) { return socket != invalid_socket; }
+
+// On platforms without MSG_NOSIGNAL (macOS/BSD), stop a send() to a closed
+// peer from raising SIGPIPE and killing the test binary.
+void suppressSigpipe(SocketHandle socket) {
+#if !defined(_WIN32) && defined(SO_NOSIGPIPE)
+    int one = 1;
+    ::setsockopt(socket, SOL_SOCKET, SO_NOSIGPIPE, &one, sizeof(one));
+#else
+    (void)socket;
+#endif
+}
 
 class UdpSocketFixture {
 public:
@@ -173,6 +189,7 @@ public:
             if (!socketValid(client)) {
                 return;
             }
+            suppressSigpipe(client);
             for (int i = 0; i < count; ++i) {
                 if (::send(client, chunk.data(), static_cast<int>(chunk.size()), no_signal_flag) < 0) {
                     break;
@@ -192,6 +209,7 @@ public:
             if (!socketValid(client)) {
                 return;
             }
+            suppressSigpipe(client);
             std::this_thread::sleep_for(first_delay);
             ::send(client, chunk.data(), static_cast<int>(chunk.size()), no_signal_flag);
             std::this_thread::sleep_for(hold);

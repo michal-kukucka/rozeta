@@ -113,18 +113,20 @@ Status parseMissionTarget(const std::string& payload, MissionTarget& target) {
         return Status::error(ErrorCode::ParseError, "empty mission target payload");
     }
 
-    const std::string number = R"(([+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)))";
-    const std::string unsigned_number = R"(([0-9]+(?:\.[0-9]*)?|\.[0-9]+))";
-    const std::regex geo_or_gps(
+    // Compiled once: std::regex construction is expensive and QR payload
+    // parsing can run per camera frame.
+    static const std::string number = R"(([+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)))";
+    static const std::string unsigned_number = R"(([0-9]+(?:\.[0-9]*)?|\.[0-9]+))";
+    static const std::regex geo_or_gps(
         R"(^(geo:|gps[[:space:]]+)[[:space:]]*)" + number
             + R"([[:space:]]*[,;][[:space:]]*)" + number + R"([[:space:]]*$)",
         std::regex::icase);
-    const std::regex labeled(
+    static const std::regex labeled(
         R"(^lat[[:space:]]*[:=][[:space:]]*)" + number
             + R"([[:space:]]*[,;][[:space:]]*lon[[:space:]]*[:=][[:space:]]*)" + number
             + R"([[:space:]]*$)",
         std::regex::icase);
-    const std::regex hemisphere(
+    static const std::regex hemisphere(
         R"(^([NS])[[:space:]]*)" + unsigned_number
             + R"([[:space:]]+([EW])[[:space:]]*)" + unsigned_number + R"([[:space:]]*$)",
         std::regex::icase);

@@ -11,6 +11,11 @@
 #include <fcntl.h>
 #include <utility>
 
+#if defined(__APPLE__)
+#include <IOKit/serial/ioss.h>
+#include <sys/ioctl.h>
+#endif
+
 namespace rozeta::internal {
 namespace {
 
@@ -126,11 +131,25 @@ Status SerialPort::open(const SerialPortConfig& config) {
     }
 
     speed_t speed = baudToSpeed(config.baud_rate);
+    bool use_custom_speed = false;
     if (speed == 0) {
+#if defined(__APPLE__)
+        // macOS termios lacks constants such as B128000/B460800/B921600;
+        // request the exact rate through IOSSIOSPEED after tcsetattr instead.
+        if (config.baud_rate <= 0) {
+            return makeError(
+                ErrorCode::InvalidArgument,
+                "serial open",
+                "unsupported baud rate " + std::to_string(config.baud_rate));
+        }
+        use_custom_speed = true;
+        speed = B9600;
+#else
         return makeError(
             ErrorCode::InvalidArgument,
             "serial open",
             "unsupported baud rate " + std::to_string(config.baud_rate));
+#endif
     }
 
     close();
@@ -171,6 +190,19 @@ Status SerialPort::open(const SerialPortConfig& config) {
         ::close(opened);
         return err;
     }
+
+#if defined(__APPLE__)
+    if (use_custom_speed) {
+        const speed_t custom = static_cast<speed_t>(config.baud_rate);
+        if (::ioctl(opened, IOSSIOSPEED, &custom) != 0) {
+            Status err = errnoError(ErrorCode::InvalidArgument, "IOSSIOSPEED", config.device);
+            ::close(opened);
+            return err;
+        }
+    }
+#else
+    (void)use_custom_speed;
+#endif
 
     ::tcflush(opened, TCIOFLUSH);
     impl_->fd = opened;

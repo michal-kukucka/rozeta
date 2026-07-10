@@ -5,6 +5,7 @@ add_executable(rozeta_tests
     test_network_gps.cpp
     test_odometry.cpp
     test_coordinates.cpp
+    test_logging.cpp
     test_obstacles.cpp
     test_motors.cpp
     test_config.cpp
@@ -55,7 +56,9 @@ rozeta_apply_warnings(rozeta_tests)
 add_test(NAME rozeta_tests COMMAND rozeta_tests)
 add_test(NAME rozeta_serial_tests COMMAND rozeta_tests)
 rozeta_label_test(rozeta_tests unit portable)
-if(ROZETA_PLATFORM_POSIX)
+if(ROZETA_PLATFORM_MACOS)
+  rozeta_label_test(rozeta_serial_tests unit portable posix macos)
+elseif(ROZETA_PLATFORM_POSIX)
   rozeta_label_test(rozeta_serial_tests unit portable posix)
 elseif(ROZETA_PLATFORM_WINDOWS)
   rozeta_label_test(rozeta_serial_tests unit portable windows)
