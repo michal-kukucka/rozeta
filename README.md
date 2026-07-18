@@ -11,7 +11,7 @@ The initial milestone focuses on the foundation, not final hardware drivers:
 - C++17 public headers plus a stable value-type C ABI for core math and obstacle sectors
 - core types, status/error handling, configuration loading, math helpers and geo-local conversion
 - logging interface with console and CSV file logger
-- differential-drive motor interface with mock implementation, calibration persistence, optional serial backend and emergency stop
+- differential-drive motor interface with mock implementation, calibration persistence, linear speed ramps (acceleration/deceleration), optional serial backend (TextLine, Buchlovice binary, Cytron MDDS30 bridge) and emergency stop
 - NMEA GPS parser/validator for GGA/RMC plus serial and M4 TCP/UDP network receivers with stream buffering
 - differential-drive odometry
 - LiDAR interface, filtering, console visualization, optional YDLIDAR-style packet parser/backend, and optional LDROBOT LD06/LD19-compatible parser/backend for AliExpress delta2/delta2g-style modules

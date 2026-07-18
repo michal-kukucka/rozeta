@@ -54,6 +54,39 @@ public:
     virtual EncoderFeedback encoderFeedback() const = 0;
 };
 
+struct RampSpeeds {
+    double left{0};
+    double right{0};
+};
+
+// Deterministic linear acceleration/deceleration profile for any MotorController.
+// The library stays thread-free: the caller owns time and ticks applyAt() with
+// the elapsed time since the ramp started (mirrors the cytrontester GUI ramp).
+class SpeedRamp {
+public:
+    SpeedRamp() = default;
+    SpeedRamp(RampSpeeds start, RampSpeeds target, std::chrono::milliseconds duration);
+
+    static SpeedRamp accelerate(RampSpeeds target, std::chrono::milliseconds duration);
+    static SpeedRamp decelerate(RampSpeeds current, std::chrono::milliseconds duration);
+
+    Status validate() const;
+    RampSpeeds sampleAt(std::chrono::milliseconds elapsed) const;
+    bool finishedAt(std::chrono::milliseconds elapsed) const;
+    // Sends the interpolated speed to the controller; once the ramp finishes
+    // and the target is all-stop it also issues stop().
+    Status applyAt(MotorController& controller, std::chrono::milliseconds elapsed) const;
+
+    RampSpeeds startSpeeds() const { return start_; }
+    RampSpeeds targetSpeeds() const { return target_; }
+    std::chrono::milliseconds duration() const { return duration_; }
+
+private:
+    RampSpeeds start_{};
+    RampSpeeds target_{};
+    std::chrono::milliseconds duration_{0};
+};
+
 class MockMotorController final : public MotorController {
 public:
     explicit MockMotorController(MotorCalibration calibration = {});
@@ -80,6 +113,7 @@ private:
 enum class SerialMotorProtocol {
     TextLine,
     BuchloviceBinary,
+    CytronMdds30,
 };
 
 struct SerialMotorConfig {
@@ -93,6 +127,9 @@ struct SerialMotorConfig {
     std::string stop_command{"M 0 0\n"};
     SerialMotorProtocol protocol{SerialMotorProtocol::TextLine};
     std::chrono::milliseconds buchlovice_repeat_interval{200};
+    // Cytron MDDS30 Arduino bridge watchdog defaults to 300 ms; the runtime
+    // must resend the active command at this interval to keep motors running.
+    std::chrono::milliseconds cytron_repeat_interval{100};
 };
 
 class SerialMotorController final : public MotorController {

@@ -233,3 +233,62 @@ void test_serial_motor_buchlovice_emergency_stop_bypasses_invalid_motion_config(
     REQUIRE_EQ(transport.writes.size(), static_cast<std::size_t>(1));
     REQUIRE_EQ(transport.writes[0], stop_packet);
 }
+
+void test_serial_motor_formats_cytron_percent_commands() {
+    FakeMotorTransport transport;
+    auto config = testConfig();
+    config.protocol = rozeta::motors::SerialMotorProtocol::CytronMdds30;
+    rozeta::internal::SerialMotorBackend backend(config, transport);
+
+    rozeta::Status status = backend.setSpeed(1.0, -0.5);
+
+    REQUIRE_TRUE(status.ok());
+    REQUIRE_EQ(transport.writes.size(), static_cast<std::size_t>(1));
+    REQUIRE_EQ(transport.writes[0], std::string("M L=100 R=-50\n"));
+
+    config.calibration.left_scale = 0.5;
+    FakeMotorTransport scaled_transport;
+    rozeta::internal::SerialMotorBackend scaled_backend(config, scaled_transport);
+    status = scaled_backend.setSpeed(1.0, 0.3);
+
+    REQUIRE_TRUE(status.ok());
+    REQUIRE_EQ(scaled_transport.writes[0], std::string("M L=50 R=30\n"));
+}
+
+void test_serial_motor_cytron_stop_and_estop_write_stop_line() {
+    FakeMotorTransport transport;
+    auto config = testConfig();
+    config.protocol = rozeta::motors::SerialMotorProtocol::CytronMdds30;
+    // Cytron path ignores the text-line stop_command; STOP is fixed by the bridge protocol.
+    config.stop_command = "IGNORED\n";
+    config.max_command = 0;
+    rozeta::internal::SerialMotorBackend backend(config, transport);
+
+    rozeta::Status status = backend.stop();
+    REQUIRE_TRUE(status.ok());
+    REQUIRE_EQ(transport.writes.size(), static_cast<std::size_t>(1));
+    REQUIRE_EQ(transport.writes[0], std::string("STOP\n"));
+
+    backend.emergencyStop();
+    REQUIRE_TRUE(backend.isEmergencyStopped());
+    REQUIRE_EQ(transport.writes.size(), static_cast<std::size_t>(2));
+    REQUIRE_EQ(transport.writes[1], std::string("STOP\n"));
+
+    status = backend.setSpeed(0.1, 0.1);
+    REQUIRE_TRUE(!status.ok());
+    REQUIRE_EQ(static_cast<int>(status.code), static_cast<int>(rozeta::ErrorCode::EmergencyStopped));
+}
+
+void test_serial_motor_cytron_rejects_nonpositive_repeat_interval() {
+    FakeMotorTransport transport;
+    auto config = testConfig();
+    config.protocol = rozeta::motors::SerialMotorProtocol::CytronMdds30;
+    config.cytron_repeat_interval = std::chrono::milliseconds(0);
+    rozeta::internal::SerialMotorBackend backend(config, transport);
+
+    rozeta::Status status = backend.setSpeed(0.1, 0.1);
+
+    REQUIRE_TRUE(!status.ok());
+    REQUIRE_EQ(static_cast<int>(status.code), static_cast<int>(rozeta::ErrorCode::InvalidArgument));
+    REQUIRE_TRUE(transport.writes.empty());
+}

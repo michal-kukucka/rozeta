@@ -34,6 +34,9 @@ void test_depth_frame_to_point_cloud_projects_valid_pixels();
 void test_depth_frame_ignores_invalid_pixels_and_bad_fixtures();
 void test_motor_command_validation_and_estop();
 void test_motor_rejects_non_finite_speeds();
+void test_speed_ramp_accelerates_linearly_to_target();
+void test_speed_ramp_decelerates_to_zero_and_stops();
+void test_speed_ramp_rejects_invalid_configuration();
 void test_config_loader_reads_key_values();
 void test_config_load_file_reports_missing_and_loads_existing();
 void test_normalize_angle_wraps_small_and_huge_magnitudes();
@@ -224,6 +227,9 @@ void test_serial_motor_propagates_transport_write_errors();
 void test_serial_motor_formats_buchlovice_binary_packets();
 void test_serial_motor_buchlovice_stop_and_spin_packets();
 void test_serial_motor_buchlovice_emergency_stop_bypasses_invalid_motion_config();
+void test_serial_motor_formats_cytron_percent_commands();
+void test_serial_motor_cytron_stop_and_estop_write_stop_line();
+void test_serial_motor_cytron_rejects_nonpositive_repeat_interval();
 #endif
 #ifdef ROZETA_WITH_LDROBOT_LIDAR
 void test_ldrobot_lidar_parser_parses_ld06_fixture();
@@ -276,6 +282,9 @@ int main(){
         {"depth_edge_cases", test_depth_frame_ignores_invalid_pixels_and_bad_fixtures},
         {"motors", test_motor_command_validation_and_estop},
         {"motors_non_finite", test_motor_rejects_non_finite_speeds},
+        {"speed_ramp_accelerate", test_speed_ramp_accelerates_linearly_to_target},
+        {"speed_ramp_decelerate", test_speed_ramp_decelerates_to_zero_and_stops},
+        {"speed_ramp_invalid", test_speed_ramp_rejects_invalid_configuration},
         {"config", test_config_loader_reads_key_values},
         {"config_load_file_status", test_config_load_file_reports_missing_and_loads_existing},
         {"normalize_angle", test_normalize_angle_wraps_small_and_huge_magnitudes},
@@ -478,6 +487,9 @@ int main(){
         {"serial_motor_buchlovice_packet", test_serial_motor_formats_buchlovice_binary_packets},
         {"serial_motor_buchlovice_stop_spin", test_serial_motor_buchlovice_stop_and_spin_packets},
         {"serial_motor_buchlovice_estop", test_serial_motor_buchlovice_emergency_stop_bypasses_invalid_motion_config},
+        {"serial_motor_cytron_format", test_serial_motor_formats_cytron_percent_commands},
+        {"serial_motor_cytron_stop_estop", test_serial_motor_cytron_stop_and_estop_write_stop_line},
+        {"serial_motor_cytron_repeat_interval", test_serial_motor_cytron_rejects_nonpositive_repeat_interval},
 #endif
 #ifdef ROZETA_WITH_LDROBOT_LIDAR
         {"ldrobot_lidar_fixture", test_ldrobot_lidar_parser_parses_ld06_fixture},

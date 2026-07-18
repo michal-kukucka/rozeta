@@ -1,5 +1,7 @@
 #include <rozeta/motors.hpp>
 
+#include <algorithm>
+#include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <fstream>
@@ -57,6 +59,59 @@ Status parseDouble(
 }
 
 } // namespace
+
+SpeedRamp::SpeedRamp(RampSpeeds start, RampSpeeds target, std::chrono::milliseconds duration)
+    : start_(start), target_(target), duration_(duration) {}
+
+SpeedRamp SpeedRamp::accelerate(RampSpeeds target, std::chrono::milliseconds duration) {
+    return SpeedRamp({}, target, duration);
+}
+
+SpeedRamp SpeedRamp::decelerate(RampSpeeds current, std::chrono::milliseconds duration) {
+    return SpeedRamp(current, {}, duration);
+}
+
+Status SpeedRamp::validate() const {
+    if (duration_.count() <= 0) {
+        return Status::error(ErrorCode::InvalidArgument, "speed ramp duration must be positive");
+    }
+    if (!finite(start_.left) || !finite(start_.right) || !finite(target_.left) || !finite(target_.right)) {
+        return Status::error(ErrorCode::InvalidArgument, "speed ramp speeds must be finite");
+    }
+    return Status::okStatus();
+}
+
+RampSpeeds SpeedRamp::sampleAt(std::chrono::milliseconds elapsed) const {
+    if (duration_.count() <= 0) {
+        return target_;
+    }
+    const double raw = static_cast<double>(elapsed.count()) / static_cast<double>(duration_.count());
+    const double progress = std::max(0.0, std::min(1.0, raw));
+    return {
+        start_.left + (target_.left - start_.left) * progress,
+        start_.right + (target_.right - start_.right) * progress,
+    };
+}
+
+bool SpeedRamp::finishedAt(std::chrono::milliseconds elapsed) const {
+    return elapsed >= duration_;
+}
+
+Status SpeedRamp::applyAt(MotorController& controller, std::chrono::milliseconds elapsed) const {
+    Status valid = validate();
+    if (!valid.ok()) {
+        return valid;
+    }
+    const RampSpeeds sample = sampleAt(elapsed);
+    Status status = controller.setSpeed(sample.left, sample.right);
+    if (!status.ok()) {
+        return status;
+    }
+    if (finishedAt(elapsed) && target_.left == 0.0 && target_.right == 0.0) {
+        return controller.stop();
+    }
+    return Status::okStatus();
+}
 
 MockMotorController::MockMotorController(MotorCalibration calibration)
     : calibration_(calibration) {}

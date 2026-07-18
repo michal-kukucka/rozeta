@@ -64,6 +64,16 @@ std::string buchlovicePacket(std::uint8_t pwmRight, std::uint8_t pwmLeft, std::u
     return std::string(bytes, sizeof(bytes));
 }
 
+// Cytron MDDS30 Arduino bridge speaks percent commands (-100..100); see
+// github.com/michal-kukucka/cytrontester arduino/mdds30_bridge/mdds30_bridge.ino.
+constexpr int kCytronMaxCommand = 100;
+
+std::string cytronCommand(int left, int right) {
+    std::ostringstream out;
+    out << "M L=" << left << " R=" << right << '\n';
+    return out.str();
+}
+
 } // namespace
 
 SerialMotorBackend::SerialMotorBackend(motors::SerialMotorConfig config, MotorSerialTransport& transport)
@@ -79,6 +89,12 @@ Status SerialMotorBackend::validateConfig() const {
     if (config_.protocol == motors::SerialMotorProtocol::BuchloviceBinary) {
         if (config_.buchlovice_repeat_interval.count() <= 0) {
             return invalid("Buchlovice motor repeat interval must be positive");
+        }
+        return Status::okStatus();
+    }
+    if (config_.protocol == motors::SerialMotorProtocol::CytronMdds30) {
+        if (config_.cytron_repeat_interval.count() <= 0) {
+            return invalid("Cytron motor repeat interval must be positive");
         }
         return Status::okStatus();
     }
@@ -105,6 +121,9 @@ Status SerialMotorBackend::writeStopCommand() {
     if (config_.protocol == motors::SerialMotorProtocol::BuchloviceBinary) {
         return writeCommand(buchlovicePacket(0, 0, 0));
     }
+    if (config_.protocol == motors::SerialMotorProtocol::CytronMdds30) {
+        return writeCommand("STOP\n");
+    }
     if (config_.stop_command.empty()) {
         return invalid("serial motor stop_command is empty");
     }
@@ -123,6 +142,14 @@ std::string SerialMotorBackend::formatSpeedCommand(double leftSpeed, double righ
             config_.calibration.left_scale);
         const std::uint8_t reg = buchloviceReg(leftSpeed, rightSpeed, config_.calibration);
         return buchlovicePacket(pwmRight, pwmLeft, reg);
+    }
+
+    if (config_.protocol == motors::SerialMotorProtocol::CytronMdds30) {
+        const int left = commandValue(
+            leftSpeed, config_.calibration.max_speed, config_.calibration.left_scale, kCytronMaxCommand);
+        const int right = commandValue(
+            rightSpeed, config_.calibration.max_speed, config_.calibration.right_scale, kCytronMaxCommand);
+        return cytronCommand(left, right);
     }
 
     const int left = commandValue(leftSpeed, config_.calibration.max_speed, config_.calibration.left_scale, config_.max_command);
