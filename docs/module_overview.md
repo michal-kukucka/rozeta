@@ -54,7 +54,7 @@ The field runner module (`include/rozeta/field_runner.hpp`) describes the Buchlo
 
 ## Motors
 
-`motors::MotorController` with differential-drive speed control, stop, emergency stop, encoder feedback and calibration. `MockMotorController` is available for tests and demos.
+`motors::MotorController` with differential-drive speed control, stop, emergency stop, encoder feedback and calibration. `MockMotorController` is available for tests and demos. `motors::SpeedRamp` adds deterministic linear acceleration/deceleration profiles for any controller (caller-owned time, thread-free). The optional serial backend speaks TextLine, Buchlovice binary or the Cytron MDDS30 Arduino bridge protocol (`M L=<l> R=<r>` percent commands with a 100 ms keepalive against the bridge watchdog).
 
 ## GPS
 

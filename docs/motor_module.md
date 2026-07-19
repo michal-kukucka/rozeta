@@ -179,7 +179,7 @@ Example dry run:
 ./build-serial/examples/serial_motor_calibrate --dry-run --cytron-mdds30
 ```
 
-The dry-run mode does not open a serial device and does not send motor commands. See the hardware smoke runbook in `docs/buchlovice_motor_hardware_smoke.md` before connecting the real controller.
+The dry-run mode does not open a serial device and does not send motor commands. See the hardware smoke runbooks in `docs/buchlovice_motor_hardware_smoke.md` and `docs/cytron_motor_hardware_smoke.md` before connecting the real controller.
 
 ## Future work
 

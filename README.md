@@ -284,6 +284,7 @@ Detailed docs are included in `docs/` and are ready to be reused as a future off
 - `docs/field_runner_module.md` — Buchlovice field-runner planning/preflight for no-hardware and hardware stacks
 - `docs/hardware_ui_backends.md` — optional OpenCV/libfreenect UI backend runbook and smoke hooks
 - `docs/buchlovice_motor_hardware_smoke.md` — M1 Buchlovice motor hardware smoke runbook
+- `docs/cytron_motor_hardware_smoke.md` — Cytron MDDS30 Arduino-bridge motor hardware smoke runbook
 - `docs/ui_module.md` — realtime mission UI snapshots, text dashboard and optional renderer bridge seam
 - `docs/module_overview.md#kinect` — Kinect/depth frame helpers and depth-derived obstacle sectors
 - `docs/robotour_use_case.md` — Robotour-style autonomous vehicle workflow
