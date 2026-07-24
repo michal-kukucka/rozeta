@@ -1,5 +1,6 @@
 set(ROZETA_EXAMPLES
     motor_test
+    cytron_trip_demo
     gps_reader
     gps_serial_reader
     gps_network_reader

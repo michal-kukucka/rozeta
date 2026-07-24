@@ -54,7 +54,7 @@ The field runner module (`include/rozeta/field_runner.hpp`) describes the Buchlo
 
 ## Motors
 
-`motors::MotorController` with differential-drive speed control, stop, emergency stop, encoder feedback and calibration. `MockMotorController` is available for tests and demos. `motors::SpeedRamp` adds deterministic linear acceleration/deceleration profiles for any controller (caller-owned time, thread-free). The optional serial backend speaks TextLine, Buchlovice binary or the Cytron MDDS30 Arduino bridge protocol (`M L=<l> R=<r>` percent commands with a 100 ms keepalive against the bridge watchdog).
+`motors::MotorController` with differential-drive speed control, stop, emergency stop, encoder feedback and calibration. `MockMotorController` is available for tests and demos. `motors::SpeedRamp` adds deterministic linear acceleration/deceleration profiles for any controller (caller-owned time, thread-free). `motors::SmoothDrive` with `motors::DriveProfile` is the trip-level layer: navigation sets a target, the drive slews toward it inside the acceleration/deceleration limits, brakes fluently on `brake()`, reverses through standstill and repeats the active command so a watchdog-protected bridge stays alive. The optional serial backend speaks TextLine, Buchlovice binary or the Cytron MDDS30 Arduino bridge protocol (`M L=<l> R=<r>` percent commands with a 100 ms keepalive against the bridge watchdog); the bridge firmware ships in `arduino/mdds30_bridge/` and is the default drive path.
 
 ## GPS
 

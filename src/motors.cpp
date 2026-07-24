@@ -113,6 +113,143 @@ Status SpeedRamp::applyAt(MotorController& controller, std::chrono::milliseconds
     return Status::okStatus();
 }
 
+DriveProfile cytronMdds30DriveProfile() {
+    DriveProfile profile;
+    profile.acceleration = 0.6;
+    profile.deceleration = 0.9;
+    // Bridge watchdog is 300 ms; repeat well inside it.
+    profile.command_interval = std::chrono::milliseconds(100);
+    return profile;
+}
+
+SmoothDrive::SmoothDrive(MotorController& controller, DriveProfile profile)
+    : controller_(controller), profile_(profile) {}
+
+Status SmoothDrive::validate() const {
+    if (!finite(profile_.acceleration) || profile_.acceleration <= 0.0) {
+        return Status::error(ErrorCode::InvalidArgument, "drive profile acceleration must be positive");
+    }
+    if (!finite(profile_.deceleration) || profile_.deceleration <= 0.0) {
+        return Status::error(ErrorCode::InvalidArgument, "drive profile deceleration must be positive");
+    }
+    if (profile_.command_interval.count() <= 0) {
+        return Status::error(ErrorCode::InvalidArgument, "drive profile command_interval must be positive");
+    }
+    return Status::okStatus();
+}
+
+Status SmoothDrive::setTarget(double leftSpeed, double rightSpeed) {
+    if (!finite(leftSpeed) || !finite(rightSpeed)) {
+        return Status::error(ErrorCode::InvalidArgument, "drive target speeds must be finite");
+    }
+    target_ = {leftSpeed, rightSpeed};
+    return Status::okStatus();
+}
+
+Status SmoothDrive::brake() {
+    return setTarget(0.0, 0.0);
+}
+
+double SmoothDrive::slew(double current, double target, double seconds) const {
+    // Reversing direction always passes through standstill first.
+    double goal = target;
+    if ((current > 0.0 && target < 0.0) || (current < 0.0 && target > 0.0)) {
+        goal = 0.0;
+    }
+    const double delta = goal - current;
+    if (delta == 0.0) {
+        return goal;
+    }
+    const bool slowing = std::fabs(goal) < std::fabs(current);
+    const double step = (slowing ? profile_.deceleration : profile_.acceleration) * seconds;
+    if (step <= 0.0) {
+        return current;
+    }
+    if (std::fabs(delta) <= step) {
+        return goal;
+    }
+    return current + (delta > 0.0 ? step : -step);
+}
+
+Status SmoothDrive::tick(std::chrono::milliseconds now) {
+    Status valid = validate();
+    if (!valid.ok()) {
+        return valid;
+    }
+
+    if (!started_) {
+        started_ = true;
+        last_tick_ = now;
+        // Force a command on the first tick.
+        last_command_ = now - profile_.command_interval;
+    }
+
+    // Clock going backwards must not produce a negative time step.
+    const auto delta_ms = now > last_tick_ ? (now - last_tick_).count() : 0;
+    last_tick_ = now;
+    const double seconds = static_cast<double>(delta_ms) / 1000.0;
+
+    const RampSpeeds next{
+        slew(current_.left, target_.left, seconds),
+        slew(current_.right, target_.right, seconds),
+    };
+    const bool changed = next.left != current_.left || next.right != current_.right;
+    current_ = next;
+
+    const bool due = (now - last_command_) >= profile_.command_interval;
+
+    if (stopped()) {
+        // Standstill is written once; the bridge watchdog keeps the driver safe
+        // afterwards, so an idle robot does not flood the serial link.
+        if (stop_sent_ && !changed) {
+            return Status::okStatus();
+        }
+        Status status = controller_.stop();
+        if (!status.ok()) {
+            return status;
+        }
+        stop_sent_ = true;
+        last_command_ = now;
+        return Status::okStatus();
+    }
+
+    stop_sent_ = false;
+    if (!changed && !due) {
+        return Status::okStatus();
+    }
+    Status status = controller_.setSpeed(current_.left, current_.right);
+    if (!status.ok()) {
+        return status;
+    }
+    last_command_ = now;
+    return Status::okStatus();
+}
+
+void SmoothDrive::emergencyStop() {
+    current_ = {};
+    target_ = {};
+    stop_sent_ = true;
+    controller_.emergencyStop();
+}
+
+void SmoothDrive::reset() noexcept {
+    current_ = {};
+    target_ = {};
+    last_tick_ = std::chrono::milliseconds{0};
+    last_command_ = std::chrono::milliseconds{0};
+    started_ = false;
+    stop_sent_ = false;
+}
+
+bool SmoothDrive::atTarget() const noexcept {
+    return current_.left == target_.left && current_.right == target_.right;
+}
+
+bool SmoothDrive::stopped() const noexcept {
+    return current_.left == 0.0 && current_.right == 0.0 &&
+           target_.left == 0.0 && target_.right == 0.0;
+}
+
 MockMotorController::MockMotorController(MotorCalibration calibration)
     : calibration_(calibration) {}
 

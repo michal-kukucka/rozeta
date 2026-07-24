@@ -1,7 +1,12 @@
 #include <rozeta/field_runner.hpp>
 
+#include <chrono>
+
 namespace rozeta::field_runner {
 namespace {
+
+// Watchdog enforced by arduino/mdds30_bridge/mdds30_bridge.ino.
+constexpr std::chrono::milliseconds kCytronBridgeWatchdog{300};
 
 void addIfEnabled(FieldRunnerPlan& plan, bool enabled, const std::string& component) {
     if (enabled) {
@@ -30,20 +35,36 @@ FieldRunnerConfig defaultBuchloviceFieldRunnerConfig() {
 
 FieldRunnerPlan planBuchloviceFieldRunner(const FieldRunnerConfig& config) {
     FieldRunnerPlan plan;
+    plan.motor_protocol = robotour_config::toString(config.preset.motor_protocol);
     plan.components.push_back("MissionRuntime");
     plan.components.push_back("PhysicalEstopLatch");
+    // Speed commands always pass through the trip-level ramp.
+    plan.components.push_back("SmoothDrive");
+
+    const Status drive_valid = robotour_config::validatePreset(config.preset);
+    if (!drive_valid.ok()) {
+        plan.preflight_errors.push_back(drive_valid.message);
+    }
 
     if (config.mode == HardwareMode::NoHardware) {
         plan.uses_mock_motors = true;
         plan.components.push_back("MockMotorController");
         plan.components.push_back("SyntheticGpsReceiver");
         plan.components.push_back("SyntheticObstacleSensor");
-        plan.ready = true;
+        plan.ready = plan.preflight_errors.empty();
         return plan;
     }
 
     plan.uses_serial_motors = true;
     plan.components.push_back("SerialMotorController");
+    if (config.preset.motor_protocol == robotour_config::MotorProtocol::CytronMdds30) {
+        plan.components.push_back("CytronMdds30Bridge");
+        // The Arduino bridge stops both motors after a 300 ms silence.
+        if (config.preset.drive.command_interval >= kCytronBridgeWatchdog) {
+            plan.preflight_errors.push_back(
+                "drive.command_interval_ms must stay below the 300 ms Cytron MDDS30 bridge watchdog");
+        }
+    }
     plan.components.push_back("SerialGpsReceiver");
     addIfEnabled(plan, config.preset.camera_enabled, "OpenCvCamera");
     addIfEnabled(plan, config.preset.depth_enabled, "FreenectKinectSensor");

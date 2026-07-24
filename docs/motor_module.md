@@ -4,6 +4,12 @@ Public header: `include/rozeta/motors.hpp`
 
 The motor module targets differential-drive robots with left/right command channels. It keeps the public `MotorController` interface stable while allowing hardware-specific backends to live behind optional CMake flags.
 
+**Default drive path:** Cytron MDDS30 (SmartDriveDuo-30) behind the Arduino UNO bridge firmware shipped
+in `arduino/mdds30_bridge/`, commanded through `motors::SmoothDrive` so every trip accelerates and
+brakes smoothly. The Arduino firmware must be uploaded to the board once before the robot can move —
+see [Arduino MDDS30 bridge](arduino_mdds30_bridge.md) for the upload procedure, wiring and DIP switches.
+`SerialMotorProtocol::BuchloviceBinary` remains available for the legacy Buchlovice controller.
+
 ## API
 
 ```cpp
@@ -74,6 +80,60 @@ Ramp rules:
 - Speed limits stay with the controller: if the ramp target exceeds `calibration.max_speed`, the
   controller's own `setSpeed()` validation reports the error.
 
+## Trip-level drive (SmoothDrive)
+
+`SpeedRamp` is a single fixed profile from one speed pair to another. A trip needs more: navigation
+retargets the speed continuously, and every one of those changes must stay inside the robot's
+acceleration and braking limits. `SmoothDrive` is that layer, and it is the recommended way to
+command motors during a mission.
+
+```cpp
+using namespace std::chrono_literals;
+
+rozeta::motors::DriveProfile profile;   // or rozeta::motors::cytronMdds30DriveProfile()
+profile.acceleration = 0.6;             // speed units per second while speeding up
+profile.deceleration = 0.9;             // speed units per second while slowing down
+profile.command_interval = 100ms;       // keepalive resend period
+
+rozeta::motors::SmoothDrive drive(controller, profile);
+drive.setTarget(0.8, 0.8);              // cruise request from navigation
+
+// In the control loop, with the mission clock:
+drive.tick(now_ms);
+
+// Fluent brake at the end of a leg or in front of an obstacle:
+drive.brake();                          // ramps the target down to standstill
+while (!drive.stopped()) { drive.tick(now_ms); }
+```
+
+Drive rules:
+
+- `setTarget()` only records the request. `tick(now)` moves the commanded speed toward it by at most
+  `acceleration * dt` when speeding up and `deceleration * dt` when slowing down, so the target is
+  approached but never overshot.
+- **Standard acceleration**: a target away from standstill uses the `acceleration` limit.
+  **Fluent braking**: `brake()` (or any target closer to zero) uses the `deceleration` limit, which is
+  normally the larger of the two so the robot can shed speed faster than it gains it.
+- Reversing direction always passes through standstill first: the profile decelerates to zero, then
+  accelerates in the new direction. The controller never receives a sign flip in one step.
+- `tick()` writes to the controller when the command changed **or** when `command_interval` elapsed
+  since the last write. That keepalive is what keeps a watchdog-protected serial bridge alive; set it
+  below the bridge timeout (100 ms against the Cytron bridge's 300 ms watchdog).
+- Standstill is written once as `stop()` and then not repeated, so an idle robot does not flood the
+  serial link. Motion resumes as soon as a non-zero target is set.
+- `emergencyStop()` bypasses the ramp entirely: it zeroes the profile and latches the controller.
+  Clear the controller and call `reset()` before starting a new trip.
+- `tick()` is safe against a clock that does not advance or steps backwards; a non-positive time step
+  simply does not advance the profile.
+- `validate()` rejects non-positive or non-finite acceleration/deceleration and a non-positive
+  `command_interval` with `InvalidArgument`; `tick()` refuses to move the controller in that case.
+- Speed limits stay with the controller: a target beyond `calibration.max_speed` surfaces the
+  controller's own `setSpeed()` error from `tick()`.
+
+Field presets carry these values as `drive.acceleration`, `drive.deceleration` and
+`drive.command_interval_ms` (see `docs/field_runner_module.md`), so an operator tunes ramping without
+recompiling.
+
 ## Optional serial backend
 
 Build with serial motor support when you want the real backend:
@@ -134,10 +194,10 @@ config.buchlovice_repeat_interval = std::chrono::milliseconds(200);
 
 ### CytronMdds30 protocol
 
-`SerialMotorProtocol::CytronMdds30` targets the Arduino UNO bridge from the
-[Cytron Motordriver Tester](https://github.com/michal-kukucka/cytrontester) project
-(`arduino/mdds30_bridge/mdds30_bridge.ino`), which converts USB-serial commands to PWM/DIR signals
-for a Cytron MDDS30 (SmartDriveDuo-30) driver:
+`SerialMotorProtocol::CytronMdds30` is the default drive protocol. It targets the Arduino UNO bridge
+firmware shipped in this repository at `arduino/mdds30_bridge/mdds30_bridge.ino` (byte-identical to the
+sketch used by the [Cytron Motordriver Tester](https://github.com/michal-kukucka/cytrontester) GUI),
+which converts USB-serial commands to PWM/DIR signals for a Cytron MDDS30 (SmartDriveDuo-30) driver:
 
 ```text
 M L=<left> R=<right>
@@ -159,24 +219,33 @@ Protocol rules:
 - the bridge answers `OK ...` / `ERR ...` lines and expects 115200 baud, which is already the
   `SerialMotorConfig` default.
 
-Example config:
+Example config — `cytronMdds30Config()` fills in the bridge defaults:
 
 ```cpp
-rozeta::motors::SerialMotorConfig config;
-config.device = "/dev/cu.usbmodem14201";
-config.baud_rate = 115200;
-config.protocol = rozeta::motors::SerialMotorProtocol::CytronMdds30;
-config.cytron_repeat_interval = std::chrono::milliseconds(100);
+// Equivalent to setting device, 115200 baud, CytronMdds30 and a 100 ms repeat interval by hand.
+auto config = rozeta::motors::cytronMdds30Config("/dev/cu.usbmodem14201");
+rozeta::motors::SerialMotorController motors(config);
+motors.open();
+
+rozeta::motors::SmoothDrive drive(motors, rozeta::motors::cytronMdds30DriveProfile());
 ```
 
-See the cytrontester README for MDDS30 DIP-switch positions, wiring, and power-up order before
-connecting hardware.
+**The Arduino must be flashed with `arduino/mdds30_bridge/` before it understands these commands.**
+See [Arduino MDDS30 bridge](arduino_mdds30_bridge.md) for the upload procedure (Arduino IDE or
+`arduino-cli`), wiring table, MDDS30 DIP-switch positions, power-up order and troubleshooting.
+`examples/cytron_trip_demo.cpp` runs a complete accelerate/cruise/brake trip against either a mock
+controller or the real bridge.
 
 Example dry run:
 
 ```bash
 ./build-serial/examples/serial_motor_calibrate --dry-run --buchlovice-binary --output motor_calibration.ini
 ./build-serial/examples/serial_motor_calibrate --dry-run --cytron-mdds30
+
+# Full accelerate/cruise/brake trip (mock backend, no hardware needed):
+./build-serial/examples/cytron_trip_demo
+# Same trip against a flashed Arduino bridge:
+./build-serial/examples/cytron_trip_demo --device /dev/cu.usbmodem14201
 ```
 
 The dry-run mode does not open a serial device and does not send motor commands. See the hardware smoke runbooks in `docs/buchlovice_motor_hardware_smoke.md` and `docs/cytron_motor_hardware_smoke.md` before connecting the real controller.

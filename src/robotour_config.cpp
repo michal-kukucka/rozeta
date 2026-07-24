@@ -239,6 +239,9 @@ const std::vector<KeyBinding>& bindings() {
         ROZETA_PRESET_KEY("motor.left_scale", p.motor_calibration.left_scale = parseDoubleField(k, v), p.motor_calibration.left_scale),
         ROZETA_PRESET_KEY("motor.right_scale", p.motor_calibration.right_scale = parseDoubleField(k, v), p.motor_calibration.right_scale),
         ROZETA_PRESET_KEY("motor.pwm_frequency_hz", p.motor_calibration.pwm_frequency_hz = parseDoubleField(k, v), p.motor_calibration.pwm_frequency_hz),
+        ROZETA_PRESET_KEY("drive.acceleration", p.drive.acceleration = parseDoubleField(k, v), p.drive.acceleration),
+        ROZETA_PRESET_KEY("drive.deceleration", p.drive.deceleration = parseDoubleField(k, v), p.drive.deceleration),
+        ROZETA_PRESET_KEY("drive.command_interval_ms", p.drive.command_interval = parseMillisField(k, v), p.drive.command_interval.count()),
         ROZETA_PRESET_KEY("camera_index", p.camera_index = parseIntField(k, v), p.camera_index),
         ROZETA_PRESET_KEY("camera_enabled", p.camera_enabled = parseBoolField(k, v), boolText(p.camera_enabled)),
         ROZETA_PRESET_KEY("depth_enabled", p.depth_enabled = parseBoolField(k, v), boolText(p.depth_enabled)),
@@ -461,6 +464,11 @@ FieldPreset buchloviceFieldPreset() {
     p.mission = mission::RobotourMissionConfig{};
     p.mission.arrival_radius_m = 3.0;
     p.gps_baud_rate = 115200;
+    // The Buchlovice robot keeps its legacy binary controller; new builds use
+    // the Cytron MDDS30 bridge, which is the FieldPreset default.
+    p.motor_protocol = MotorProtocol::BuchloviceBinary;
+    p.motor_baud_rate = 9600;
+    p.drive = motors::DriveProfile{};
     p.motor_device = "/dev/ttyUSB0";
     p.gps_device = "/dev/ttyACM0";
     p.camera_enabled = true;
@@ -490,6 +498,9 @@ FieldPreset noHardwareDemoPreset() {
     p.obstacle.bypass_forward_duration = std::chrono::milliseconds{200};
     p.mission = mission::RobotourMissionConfig{};
     p.mission.arrival_radius_m = 1.0;
+    p.motor_protocol = MotorProtocol::CytronMdds30;
+    p.motor_baud_rate = 115200;
+    p.drive = motors::cytronMdds30DriveProfile();
     p.camera_enabled = false;
     p.depth_enabled = false;
     p.headless = true;
@@ -676,6 +687,15 @@ Status validatePreset(const FieldPreset& preset) {
     }
     if (!std::isfinite(preset.map.sample_spacing_m) || preset.map.sample_spacing_m <= 0.0) {
         return Status::error(ErrorCode::InvalidArgument, "map.sample_spacing_m must be > 0");
+    }
+    if (!std::isfinite(preset.drive.acceleration) || preset.drive.acceleration <= 0.0) {
+        return Status::error(ErrorCode::InvalidArgument, "drive.acceleration must be finite and > 0");
+    }
+    if (!std::isfinite(preset.drive.deceleration) || preset.drive.deceleration <= 0.0) {
+        return Status::error(ErrorCode::InvalidArgument, "drive.deceleration must be finite and > 0");
+    }
+    if (preset.drive.command_interval.count() <= 0) {
+        return Status::error(ErrorCode::InvalidArgument, "drive.command_interval_ms must be > 0");
     }
     if (const Status chassis = kinematics::validateSkidSteerConfig(preset.chassis); !chassis.ok()) {
         return chassis;

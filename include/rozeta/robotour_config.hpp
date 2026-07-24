@@ -164,6 +164,8 @@ struct FieldPreset {
     int lidar_baud_rate{230400};
     MotorProtocol motor_protocol{MotorProtocol::CytronMdds30};
     motors::MotorCalibration motor_calibration{};
+    // Acceleration/deceleration limits applied to every trip by motors::SmoothDrive.
+    motors::DriveProfile drive{};
     int camera_index{0};
     bool camera_enabled{false};
     bool depth_enabled{false};

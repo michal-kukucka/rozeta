@@ -11,7 +11,8 @@ The initial milestone focuses on the foundation, not final hardware drivers:
 - C++17 public headers plus a stable value-type C ABI for core math and obstacle sectors
 - core types, status/error handling, configuration loading, math helpers and geo-local conversion
 - logging interface with console and CSV file logger
-- differential-drive motor interface with mock implementation, calibration persistence, linear speed ramps (acceleration/deceleration), optional serial backend (TextLine, Buchlovice binary, Cytron MDDS30 bridge) and emergency stop
+- differential-drive motor interface with mock implementation, calibration persistence, linear speed ramps (acceleration/deceleration), trip-level `SmoothDrive` acceleration/fluent braking, optional serial backend (TextLine, Buchlovice binary, Cytron MDDS30 bridge) and emergency stop
+- Cytron MDDS30 as the default drive path, with the Arduino UNO bridge firmware shipped in `arduino/mdds30_bridge/` and an upload guide in `docs/arduino_mdds30_bridge.md`
 - NMEA GPS parser/validator for GGA/RMC plus serial and M4 TCP/UDP network receivers with stream buffering
 - differential-drive odometry
 - LiDAR interface, filtering, console visualization, an optional native YDLIDAR X4 packet parser/backend (including a C ABI for Python/FFI), and optional LDROBOT LD06/LD19-compatible parser/backend for AliExpress delta2/delta2g-style modules
@@ -166,6 +167,25 @@ rozeta::motors::MockMotorController motors;
 motors.setSpeed(0.4, 0.4);
 motors.stop();
 motors.emergencyStop();
+```
+
+Default drive path — Cytron MDDS30 through the Arduino bridge, with smooth acceleration and braking:
+
+```cpp
+// Upload arduino/mdds30_bridge/ to the board first — see docs/arduino_mdds30_bridge.md.
+rozeta::motors::SerialMotorController motors(
+    rozeta::motors::cytronMdds30Config("/dev/cu.usbmodem14201"));
+motors.open();
+
+rozeta::motors::SmoothDrive drive(motors, rozeta::motors::cytronMdds30DriveProfile());
+drive.setTarget(0.8, 0.8);   // accelerates within the profile limit
+drive.tick(now_ms);          // call from the control loop; also keeps the bridge watchdog fed
+drive.brake();               // fluent braking down to STOP
+```
+
+```bash
+./build/examples/cytron_trip_demo                                  # mock backend
+./build/examples/cytron_trip_demo --device /dev/cu.usbmodem14201   # real bridge
 ```
 
 Robotour-style loop:
@@ -354,7 +374,8 @@ Detailed docs are included in `docs/` and are ready to be reused as a future off
 - `docs/release.md` — release and dry-run tag checklist
 - `docs/architecture.md` — library layering, APIs, hardware abstraction and test strategy
 - `docs/module_overview.md` — module-by-module status and responsibilities
-- `docs/motor_module.md` — differential-drive motor API, mock backend and safety behavior
+- `docs/motor_module.md` — differential-drive motor API, mock backend, `SmoothDrive` trip ramping and safety behavior
+- `docs/arduino_mdds30_bridge.md` — Arduino UNO bridge firmware upload, wiring, MDDS30 DIP switches and serial protocol
 - `docs/gps_module.md` — NMEA parsing and geo/local coordinate usage
 - `docs/lidar_module.md` — LiDAR scan structures, filtering, YDLIDAR backend, LDROBOT LD06/LD19-compatible backend and sample replay
 - `docs/maps_module.md` — offline CSV route format, loader behavior, Buchlovice graph routing, M6 route cues and fixtures
@@ -408,6 +429,7 @@ Covered behavior:
 - optional YDLIDAR-style parser/backend when `ROZETA_WITH_YDLIDAR=ON`
 - offline CSV route loading, nearest-path lookup and route follower progression
 - motor command validation/emergency stop
+- `SmoothDrive` acceleration, fluent braking, reverse-through-standstill and bridge keepalive timing
 - motor calibration save/load
 - optional serial motor command formatting when `ROZETA_WITH_SERIAL_MOTORS=ON`
 - camera frame shape, payload validation and mock capture path

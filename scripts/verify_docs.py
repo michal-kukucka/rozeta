@@ -68,6 +68,9 @@ REQUIRED_FILES = [
     "scripts/verify_release_readiness.py",
     "docs/kinect_module.md",
     "docs/buchlovice_motor_hardware_smoke.md",
+    "docs/cytron_motor_hardware_smoke.md",
+    "docs/arduino_mdds30_bridge.md",
+    "arduino/mdds30_bridge/mdds30_bridge.ino",
     "docs/ui_module.md",
     "docs/diagrams/module-map.html",
     "docs/diagrams/project-structure.html",
@@ -453,6 +456,40 @@ REQUIRED_MAP_DATA_PHRASES = [
     "way_id,point_index,lat,lon",
 ]
 
+REQUIRED_BUCHLOVICE_M30_PHRASES = [
+    "M30 — Cytron MDDS30 Arduino bridge as the default drive path",
+    "arduino/mdds30_bridge/mdds30_bridge.ino",
+    "DriveProfile",
+    "SmoothDrive",
+    "cytronMdds30Config",
+    "cytronMdds30DriveProfile",
+    "drive.command_interval_ms",
+    "motor_protocol",
+    "cytron_trip_demo",
+]
+
+REQUIRED_ARDUINO_BRIDGE_PHRASES = [
+    "the Arduino firmware must be uploaded before anything works",
+    "arduino-cli compile --fqbn arduino:avr:uno arduino/mdds30_bridge",
+    "Tools → Board → Arduino UNO",
+    "OK HERMES_MDDS30_BRIDGE_READY",
+    "M L=<l> R=<r>",
+    "TIMEOUT=<ms>",
+    "Signed Magnitude",
+    "wheels off the ground",
+    "Troubleshooting",
+]
+
+# The bridge firmware and the C++ backend must keep speaking the same protocol.
+REQUIRED_FIRMWARE_TOKENS = [
+    'Serial.begin(115200)',
+    'watchdogTimeoutMs = 300',
+    'line == "STOP"',
+    'line.startsWith("M ")',
+    'OK HERMES_MDDS30_BRIDGE_READY',
+    'constrain(percent, -100, 100)',
+]
+
 
 def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
@@ -612,6 +649,29 @@ def main() -> int:
     for phrase in REQUIRED_BUCHLOVICE_M1_PHRASES:
         if phrase not in buchlovice_m1_docs:
             fail(f"Buchlovice M1 documentation/diagram coverage missing: {phrase}", failures)
+
+    buchlovice_m30_docs = (
+        read("docs/motor_module.md")
+        + "\n"
+        + read("docs/arduino_mdds30_bridge.md")
+        + "\n"
+        + read("docs/field_runner_module.md")
+        + "\n"
+        + read("docs/buchlovice_coverage_milestones.md")
+    )
+    for phrase in REQUIRED_BUCHLOVICE_M30_PHRASES:
+        if phrase not in buchlovice_m30_docs:
+            fail(f"Buchlovice M30 Cytron drive-path documentation missing: {phrase}", failures)
+
+    arduino_bridge_doc = read("docs/arduino_mdds30_bridge.md")
+    for phrase in REQUIRED_ARDUINO_BRIDGE_PHRASES:
+        if phrase not in arduino_bridge_doc:
+            fail(f"Arduino MDDS30 bridge upload guide missing: {phrase}", failures)
+
+    firmware = read("arduino/mdds30_bridge/mdds30_bridge.ino")
+    for token in REQUIRED_FIRMWARE_TOKENS:
+        if token not in firmware:
+            fail(f"Arduino bridge firmware missing protocol token: {token}", failures)
 
     buchlovice_m2_docs = (
         read("docs/runtime_module.md")

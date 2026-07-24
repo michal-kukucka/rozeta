@@ -37,6 +37,10 @@ void test_motor_rejects_non_finite_speeds();
 void test_speed_ramp_accelerates_linearly_to_target();
 void test_speed_ramp_decelerates_to_zero_and_stops();
 void test_speed_ramp_rejects_invalid_configuration();
+void test_smooth_drive_accelerates_and_brakes_within_profile();
+void test_smooth_drive_repeats_command_for_bridge_watchdog();
+void test_smooth_drive_reverses_through_standstill_and_validates();
+void test_smooth_drive_emergency_stop_bypasses_ramp();
 void test_config_loader_reads_key_values();
 void test_config_load_file_reports_missing_and_loads_existing();
 void test_normalize_angle_wraps_small_and_huge_magnitudes();
@@ -274,6 +278,7 @@ void test_robotour_config_rejects_malformed_values_and_unknown_keys();
 void test_robotour_config_validation_catches_unusable_configurations();
 void test_robotour_config_loads_a_preset_file_and_reports_backends();
 void test_robotour_config_rejects_a_bad_preset_file();
+void test_field_runner_cytron_plan_enforces_bridge_keepalive();
 void test_telemetry_parser_loads_robotour_fixture();
 void test_telemetry_parser_rejects_bad_schema_and_rows();
 void test_telemetry_replay_produces_deterministic_navigation_decisions();
@@ -404,6 +409,10 @@ int main(){
         {"speed_ramp_accelerate", test_speed_ramp_accelerates_linearly_to_target},
         {"speed_ramp_decelerate", test_speed_ramp_decelerates_to_zero_and_stops},
         {"speed_ramp_invalid", test_speed_ramp_rejects_invalid_configuration},
+        {"smooth_drive_accelerate_brake", test_smooth_drive_accelerates_and_brakes_within_profile},
+        {"smooth_drive_keepalive", test_smooth_drive_repeats_command_for_bridge_watchdog},
+        {"smooth_drive_reverse", test_smooth_drive_reverses_through_standstill_and_validates},
+        {"smooth_drive_estop", test_smooth_drive_emergency_stop_bypasses_ramp},
         {"config", test_config_loader_reads_key_values},
         {"config_load_file_status", test_config_load_file_reports_missing_and_loads_existing},
         {"normalize_angle", test_normalize_angle_wraps_small_and_huge_magnitudes},
@@ -650,6 +659,7 @@ int main(){
         {"robotour_config_validation", test_robotour_config_validation_catches_unusable_configurations},
         {"robotour_config_file", test_robotour_config_loads_a_preset_file_and_reports_backends},
         {"robotour_config_bad_file", test_robotour_config_rejects_a_bad_preset_file},
+        {"field_runner_cytron_keepalive", test_field_runner_cytron_plan_enforces_bridge_keepalive},
         {"telemetry_parser_fixture", test_telemetry_parser_loads_robotour_fixture},
         {"telemetry_parser_errors", test_telemetry_parser_rejects_bad_schema_and_rows},
         {"telemetry_replay_deterministic", test_telemetry_replay_produces_deterministic_navigation_decisions},

@@ -462,6 +462,27 @@ Remaining action points:
 - Field-trained TorchScript weights, label taxonomies and confidence tuning are deployment artifacts and are intentionally not committed to Rozeta.
 - Real GPU/CUDA execution requires a LibTorch install on the target field laptop and should be smoke-tested with the actual model file before a mission.
 
+### M30 — Cytron MDDS30 Arduino bridge as the default drive path
+
+Status: implemented in `rozeta::motors`, `rozeta::robotour_config` and `rozeta::field_runner`.
+
+Goal: make the Cytron MDDS30 + Arduino UNO bridge the standard way to move a Rozeta robot, ship the
+firmware with the library, and give every trip standard acceleration and fluent braking instead of
+step changes in commanded speed.
+
+Delivered coverage:
+- Shipped the Arduino bridge firmware in-repo at `arduino/mdds30_bridge/mdds30_bridge.ino`, byte-identical to the tester sketch, so one flashed board serves both the tester GUI and Rozeta.
+- Added `docs/arduino_mdds30_bridge.md` with the mandatory firmware-upload procedure (Arduino IDE and `arduino-cli`), wiring table, MDDS30 DIP-switch positions, power-up order, serial protocol and troubleshooting.
+- Added `motors::DriveProfile` and `motors::SmoothDrive`: caller-owned time, acceleration limit while speeding up, deceleration limit while braking, reverse only through standstill, single `stop()` at standstill and command repetition at `command_interval` for the bridge watchdog.
+- Added `motors::cytronMdds30Config()` and `motors::cytronMdds30DriveProfile()` so the default drive path needs no hand-written protocol fields.
+- Added preset keys `motor_protocol`, `motor_baud_rate`, `drive.acceleration`, `drive.deceleration` and `drive.command_interval_ms`; `cytron_mdds30` is the `FieldPreset` default and `validatePreset()` fails closed on unknown protocols or non-positive drive limits.
+- `FieldRunnerPlan` reports `motor_protocol`/`uses_ramped_drive`, always lists `SmoothDrive`, lists `CytronMdds30Bridge` for the default path and blocks a plan whose keepalive reaches the 300 ms bridge watchdog.
+- Added `examples/cytron_trip_demo.cpp` for a complete accelerate/cruise/fluent-brake trip against the mock controller or a real bridge.
+- Added CTest coverage for ramp limits, keepalive resend timing, reverse-through-standstill, emergency stop and the field-runner watchdog preflight, plus a firmware/protocol parity contract test.
+
+Remaining action points:
+- Encoder feedback from the bridge is still not implemented; `encoderFeedback()` returns an empty snapshot.
+- Per-robot `drive.acceleration` / `drive.deceleration` values are field-tuned artifacts and stay in deployment presets.
 
 ## Recommended implementation order
 

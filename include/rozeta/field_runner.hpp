@@ -24,6 +24,10 @@ struct FieldRunnerPlan {
     bool ready{false};
     bool uses_mock_motors{false};
     bool uses_serial_motors{false};
+    // Every plan drives through motors::SmoothDrive so trips accelerate and
+    // brake smoothly instead of stepping between speeds.
+    bool uses_ramped_drive{true};
+    std::string motor_protocol{};
     std::vector<std::string> components{};
     std::vector<std::string> preflight_errors{};
 };

@@ -87,6 +87,65 @@ private:
     std::chrono::milliseconds duration_{0};
 };
 
+// Continuous acceleration/deceleration limits for a whole trip. Unlike SpeedRamp
+// (one fixed start -> target profile), a DriveProfile bounds how fast the
+// commanded speed may change at any moment, so navigation can retarget freely
+// while the wheels still ramp smoothly.
+struct DriveProfile {
+    // Speed units (same scale as MotorController::setSpeed) per second.
+    double acceleration{0.6};
+    double deceleration{0.9};
+    // How often the active command is repeated even when it did not change.
+    // Serial bridges with a communication watchdog need this keepalive.
+    std::chrono::milliseconds command_interval{100};
+};
+
+// Profile matched to the Cytron MDDS30 Arduino bridge: the sketch stops both
+// motors when no command arrives within its 300 ms watchdog, so commands repeat
+// every 100 ms.
+DriveProfile cytronMdds30DriveProfile();
+
+// Trip-level drive helper: the caller sets a target speed pair and ticks the
+// drive with the current time; SmoothDrive slews the commanded speed toward the
+// target within the profile limits and repeats the command often enough to keep
+// a watchdog-protected bridge alive. Thread-free and deterministic — the caller
+// owns time.
+class SmoothDrive {
+public:
+    explicit SmoothDrive(MotorController& controller, DriveProfile profile = DriveProfile{});
+
+    Status validate() const;
+    // Requests a new cruise target; the change is applied gradually by tick().
+    Status setTarget(double leftSpeed, double rightSpeed);
+    // Fluent brake: ramps the target down to standstill at the deceleration limit.
+    Status brake();
+    // Advances the profile and writes to the controller when the command changed
+    // or the keepalive interval elapsed.
+    Status tick(std::chrono::milliseconds now);
+    // Immediate stop that bypasses the ramp and latches the controller.
+    void emergencyStop();
+    // Clears the internal ramp state so a new trip starts from standstill.
+    void reset() noexcept;
+
+    RampSpeeds currentSpeeds() const noexcept { return current_; }
+    RampSpeeds targetSpeeds() const noexcept { return target_; }
+    const DriveProfile& profile() const noexcept { return profile_; }
+    bool atTarget() const noexcept;
+    bool stopped() const noexcept;
+
+private:
+    double slew(double current, double target, double seconds) const;
+
+    MotorController& controller_;
+    DriveProfile profile_{};
+    RampSpeeds current_{};
+    RampSpeeds target_{};
+    std::chrono::milliseconds last_tick_{0};
+    std::chrono::milliseconds last_command_{0};
+    bool started_{false};
+    bool stop_sent_{false};
+};
+
 class MockMotorController final : public MotorController {
 public:
     explicit MockMotorController(MotorCalibration calibration = {});
@@ -131,6 +190,11 @@ struct SerialMotorConfig {
     // must resend the active command at this interval to keep motors running.
     std::chrono::milliseconds cytron_repeat_interval{100};
 };
+
+// Recommended default drive backend: Cytron MDDS30 behind the Arduino UNO
+// bridge sketch shipped in `arduino/mdds30_bridge/`. Fills in the bridge's
+// fixed protocol, 115200 baud and the 100 ms keepalive interval.
+SerialMotorConfig cytronMdds30Config(const std::string& device);
 
 class SerialMotorController final : public MotorController {
 public:

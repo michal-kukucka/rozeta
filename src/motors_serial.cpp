@@ -209,6 +209,15 @@ private:
 
 namespace rozeta::motors {
 
+SerialMotorConfig cytronMdds30Config(const std::string& device) {
+    SerialMotorConfig config;
+    config.device = device;
+    config.baud_rate = 115200;
+    config.protocol = SerialMotorProtocol::CytronMdds30;
+    config.cytron_repeat_interval = std::chrono::milliseconds(100);
+    return config;
+}
+
 struct SerialMotorController::Impl {
     explicit Impl(SerialMotorConfig cfg) : config(std::move(cfg)), transport(port), backend(config, transport) {}
 

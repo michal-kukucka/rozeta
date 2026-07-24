@@ -86,3 +86,126 @@ void test_speed_ramp_rejects_invalid_configuration(){
     REQUIRE_TRUE(too_fast.validate().ok());
     REQUIRE_TRUE(!too_fast.applyAt(controller, std::chrono::milliseconds(100)).ok());
 }
+
+void test_smooth_drive_accelerates_and_brakes_within_profile(){
+    motors::MockMotorController controller;
+    motors::DriveProfile profile;
+    profile.acceleration = 0.5;   // speed units per second
+    profile.deceleration = 1.0;
+    profile.command_interval = std::chrono::milliseconds(100);
+
+    motors::SmoothDrive drive(controller, profile);
+    REQUIRE_TRUE(drive.validate().ok());
+    REQUIRE_TRUE(drive.setTarget(0.5, 0.5).ok());
+
+    // First tick writes the current (still zero) command; motion starts after it.
+    REQUIRE_TRUE(drive.tick(std::chrono::milliseconds(0)).ok());
+    REQUIRE_NEAR(drive.currentSpeeds().left, 0.0, 1e-9);
+
+    // 0.5 units/s over 400 ms is 0.2.
+    REQUIRE_TRUE(drive.tick(std::chrono::milliseconds(400)).ok());
+    REQUIRE_NEAR(drive.currentSpeeds().left, 0.2, 1e-9);
+    REQUIRE_NEAR(controller.lastCommand().left_speed, 0.2, 1e-9);
+
+    // Target is reached exactly, never overshot.
+    REQUIRE_TRUE(drive.tick(std::chrono::milliseconds(5000)).ok());
+    REQUIRE_NEAR(drive.currentSpeeds().left, 0.5, 1e-9);
+    REQUIRE_TRUE(drive.atTarget());
+
+    // Fluent brake: deceleration limit is 1.0 units/s, so 200 ms sheds 0.2.
+    REQUIRE_TRUE(drive.brake().ok());
+    REQUIRE_TRUE(drive.tick(std::chrono::milliseconds(5200)).ok());
+    REQUIRE_NEAR(drive.currentSpeeds().left, 0.3, 1e-9);
+    REQUIRE_TRUE(!drive.stopped());
+
+    REQUIRE_TRUE(drive.tick(std::chrono::milliseconds(6000)).ok());
+    REQUIRE_TRUE(drive.stopped());
+    REQUIRE_NEAR(controller.lastCommand().left_speed, 0.0, 1e-9);
+    REQUIRE_TRUE(controller.lastCommand().left_direction == motors::Direction::Stopped);
+}
+
+void test_smooth_drive_repeats_command_for_bridge_watchdog(){
+    motors::MockMotorController controller;
+    motors::SmoothDrive drive(controller, motors::cytronMdds30DriveProfile());
+    // The Cytron bridge stops both motors after 300 ms of silence.
+    REQUIRE_TRUE(drive.profile().command_interval < std::chrono::milliseconds(300));
+
+    REQUIRE_TRUE(drive.setTarget(0.4, 0.4).ok());
+    REQUIRE_TRUE(drive.tick(std::chrono::milliseconds(0)).ok());
+    REQUIRE_TRUE(drive.tick(std::chrono::milliseconds(5000)).ok());
+    REQUIRE_TRUE(drive.atTarget());
+
+    // Cruising at the target: the command no longer changes, so the keepalive
+    // interval decides when it is resent.
+    controller.stop();
+    REQUIRE_TRUE(drive.tick(std::chrono::milliseconds(5050)).ok());
+    REQUIRE_NEAR(controller.lastCommand().left_speed, 0.0, 1e-9);
+
+    REQUIRE_TRUE(drive.tick(std::chrono::milliseconds(5100)).ok());
+    REQUIRE_NEAR(controller.lastCommand().left_speed, 0.4, 1e-9);
+}
+
+void test_smooth_drive_reverses_through_standstill_and_validates(){
+    motors::MockMotorController controller;
+    motors::DriveProfile profile;
+    profile.acceleration = 1.0;
+    profile.deceleration = 1.0;
+    profile.command_interval = std::chrono::milliseconds(100);
+
+    motors::SmoothDrive drive(controller, profile);
+    REQUIRE_TRUE(drive.setTarget(0.5, 0.5).ok());
+    REQUIRE_TRUE(drive.tick(std::chrono::milliseconds(0)).ok());
+    REQUIRE_TRUE(drive.tick(std::chrono::milliseconds(1000)).ok());
+    REQUIRE_NEAR(drive.currentSpeeds().left, 0.5, 1e-9);
+
+    // A reversed target must pass through zero instead of snapping across it.
+    REQUIRE_TRUE(drive.setTarget(-0.5, -0.5).ok());
+    REQUIRE_TRUE(drive.tick(std::chrono::milliseconds(1400)).ok());
+    REQUIRE_NEAR(drive.currentSpeeds().left, 0.1, 1e-9);
+    REQUIRE_TRUE(drive.tick(std::chrono::milliseconds(1600)).ok());
+    REQUIRE_NEAR(drive.currentSpeeds().left, 0.0, 1e-9);
+    REQUIRE_TRUE(drive.tick(std::chrono::milliseconds(1700)).ok());
+    REQUIRE_NEAR(drive.currentSpeeds().left, -0.1, 1e-9);
+
+    // Backwards clocks must not step the profile.
+    REQUIRE_TRUE(drive.tick(std::chrono::milliseconds(1500)).ok());
+    REQUIRE_NEAR(drive.currentSpeeds().left, -0.1, 1e-9);
+
+    REQUIRE_TRUE(!drive.setTarget(std::nan(""), 0.0).ok());
+
+    motors::DriveProfile invalid;
+    invalid.acceleration = 0.0;
+    motors::SmoothDrive broken(controller, invalid);
+    REQUIRE_TRUE(!broken.validate().ok());
+    REQUIRE_TRUE(!broken.tick(std::chrono::milliseconds(0)).ok());
+
+    invalid.acceleration = 0.5;
+    invalid.command_interval = std::chrono::milliseconds(0);
+    motors::SmoothDrive no_keepalive(controller, invalid);
+    REQUIRE_TRUE(!no_keepalive.validate().ok());
+}
+
+void test_smooth_drive_emergency_stop_bypasses_ramp(){
+    motors::MockMotorController controller;
+    motors::SmoothDrive drive(controller, motors::cytronMdds30DriveProfile());
+    REQUIRE_TRUE(drive.setTarget(0.8, 0.8).ok());
+    REQUIRE_TRUE(drive.tick(std::chrono::milliseconds(0)).ok());
+    REQUIRE_TRUE(drive.tick(std::chrono::milliseconds(2000)).ok());
+    REQUIRE_TRUE(drive.currentSpeeds().left > 0.0);
+
+    drive.emergencyStop();
+    REQUIRE_TRUE(controller.isEmergencyStopped());
+    REQUIRE_TRUE(drive.stopped());
+    REQUIRE_NEAR(drive.currentSpeeds().left, 0.0, 1e-9);
+
+    // A latched controller keeps refusing motion until it is cleared.
+    REQUIRE_TRUE(drive.setTarget(0.4, 0.4).ok());
+    REQUIRE_TRUE(!drive.tick(std::chrono::milliseconds(3000)).ok());
+
+    controller.clearEmergencyStop();
+    drive.reset();
+    REQUIRE_TRUE(drive.setTarget(0.4, 0.4).ok());
+    REQUIRE_TRUE(drive.tick(std::chrono::milliseconds(4000)).ok());
+    REQUIRE_TRUE(drive.tick(std::chrono::milliseconds(9000)).ok());
+    REQUIRE_NEAR(drive.currentSpeeds().left, 0.4, 1e-9);
+}
