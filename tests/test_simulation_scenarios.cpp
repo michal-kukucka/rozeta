@@ -68,7 +68,6 @@ RunResult driveRoute(
     // Start at the first route point, facing the second.
     const double start_bearing = geodesy::initialBearingDegrees(route[0], route[1]);
     world.placeAtGeo(route.front(), geodesy::bearingDegToHeadingRad(start_bearing));
-    (void)start_bearing;
 
     navigation::GeoRouteFollower follower(follower_config);
     REQUIRE_TRUE(follower.setRoute(route).ok());

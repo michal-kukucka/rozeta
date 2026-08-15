@@ -59,7 +59,7 @@ void test_simulation_noise_is_deterministic_for_a_seed() {
     DeterministicNoise zero(0u);
     const double sample = zero.uniform();
     REQUIRE_TRUE(sample >= 0.0 && sample < 1.0);
-    REQUIRE_TRUE(zero.uniform() != sample);
+    REQUIRE_TRUE(std::fabs(zero.uniform() - sample) > 0.0);
 
     // The gaussian is centred and roughly the requested width.
     DeterministicNoise stats(42u);

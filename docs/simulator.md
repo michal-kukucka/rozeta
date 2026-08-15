@@ -56,6 +56,8 @@ any failure, which is why `ctest` can run it end to end
 --max-ticks N               abort after this many control ticks
 --log-every N               status line interval (0 = only the summary)
 --svg PATH                  write a picture of the run
+--window                    show a live window (needs -DROZETA_WITH_SDL2=ON)
+--window-every N            redraw the window every N ticks (default 5)
 --quiet                     summary only
 ```
 
@@ -322,6 +324,29 @@ SVG was chosen so graphical output is never a build dependency. There is no
 window toolkit to install, it works over SSH and in CI, and the file is text, so
 a diff shows what changed between two runs. `ui::renderTextDashboard` and
 `ui::renderOperatorHud` cover the terminal case.
+
+### Live window (optional)
+
+A run can also be watched as it happens:
+
+```bash
+cmake -S . -B build -DROZETA_WITH_SDL2=ON
+cmake --build build -j
+./build/examples/robot_simulator --mode follow --window
+```
+
+`ROZETA_WITH_SDL2` is **OFF by default**, and deliberately so: no graphical
+dependency may be needed to build, test or run the core library or the headless
+simulator. Without it the `--window` flag reports that the build has no window
+support and the run continues headless — it never fails because of a missing
+display. Configuring with `ROZETA_WITH_SDL2=ON` without SDL2 installed produces
+a clear CMake error naming the package to install.
+
+The viewer (`examples/simulator_view.hpp`) draws the same `ui::NavigationScene`
+the SVG renderer takes, with the same aspect-preserving projection, so the
+window and the written file cannot disagree about what a run looked like. Press
+`Esc` or `q`, or close the window, to stop the run; that exits non-zero, since
+the destination was not reached.
 
 ## Maps
 

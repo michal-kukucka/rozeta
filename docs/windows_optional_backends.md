@@ -104,3 +104,14 @@ python scripts/smoke_optional_backends.py kinect-windows-experimental --dry-run
 - OpenCV and LibTorch commands are documented with Windows-specific package/path hints.
 - LiDAR profiles validate replay/parser builds before real serial hardware.
 - Kinect/libfreenect Windows status remains experimental until physical smoke evidence exists.
+
+## Optional SDL2 simulator viewer
+
+`-DROZETA_WITH_SDL2=ON` builds the live simulator window
+(`examples/simulator_view.hpp`). It is OFF by default and is never required:
+the simulator renders through `ui::renderSceneSvg` in every build, and
+`--window` on a build without SDL2 reports the missing support and continues
+headless rather than failing. Install `libsdl2-dev` (Linux),
+`brew install sdl2` (macOS) or `vcpkg install sdl2` (Windows); configuring with
+the option ON and no SDL2 present produces a clear CMake configure failure that
+names the package. Default CI must not enable it.

@@ -18,6 +18,10 @@ option(ROZETA_WITH_SERIAL_MOTORS "Enable optional serial motor backend" OFF)
 option(ROZETA_WITH_YDLIDAR "Enable optional YDLIDAR serial LiDAR backend" OFF)
 option(ROZETA_WITH_LDROBOT_LIDAR "Enable optional LDROBOT LD06/LD19-compatible serial LiDAR backend" OFF)
 option(ROZETA_WITH_KINECT "Enable optional libfreenect Kinect backend" OFF)
+# Live simulator window. OFF by default: graphical dependencies must never be
+# needed to build, test or run the core library or the headless simulator, which
+# always renders through ui::renderSceneSvg instead.
+option(ROZETA_WITH_SDL2 "Enable the optional SDL2 live simulator viewer" OFF)
 
 find_package(Doxygen QUIET)
 
@@ -44,6 +48,22 @@ if(ROZETA_WITH_LIBTORCH)
   endif()
   if(TORCH_CXX_FLAGS)
     separate_arguments(ROZETA_TORCH_CXX_FLAGS NATIVE_COMMAND "${TORCH_CXX_FLAGS}")
+  endif()
+endif()
+
+if(ROZETA_WITH_SDL2)
+  find_package(SDL2 QUIET)
+  if(NOT SDL2_FOUND)
+    find_path(SDL2_INCLUDE_DIR SDL2/SDL.h)
+    find_library(SDL2_LIBRARY SDL2)
+    if(NOT SDL2_INCLUDE_DIR OR NOT SDL2_LIBRARY)
+      message(FATAL_ERROR
+          "ROZETA_WITH_SDL2=ON requires SDL2 development headers and library. "
+          "Install libsdl2-dev (Linux), brew install sdl2 (macOS) or vcpkg "
+          "install sdl2 (Windows), or configure with -DROZETA_WITH_SDL2=OFF to "
+          "keep the default graphics-free build. The simulator still writes an "
+          "SVG of every run without SDL2.")
+    endif()
   endif()
 endif()
 

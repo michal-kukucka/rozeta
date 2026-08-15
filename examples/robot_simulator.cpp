@@ -23,8 +23,11 @@
 #include <rozeta/simulation.hpp>
 #include <rozeta/ui.hpp>
 
+#include "simulator_view.hpp"
+
 #include <chrono>
 #include <cmath>
+#include <algorithm>
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
@@ -60,6 +63,8 @@ struct Options {
     std::uint64_t seed{20260815u};
     std::size_t max_ticks{40000};
     std::size_t log_every{50};
+    std::size_t window_every{5};
+    bool window{false};
     bool quiet{false};
 };
 
@@ -80,6 +85,8 @@ void printUsage(const char* program) {
         << "  --max-ticks N               abort after this many control ticks\n"
         << "  --log-every N               status line interval (0 = only the summary)\n"
         << "  --svg PATH                  write a picture of the run\n"
+        << "  --window                    show a live window (needs -DROZETA_WITH_SDL2=ON)\n"
+        << "  --window-every N            redraw the window every N ticks (default 5)\n"
         << "  --quiet                     summary only\n";
 }
 
@@ -133,6 +140,10 @@ bool parseOptions(int argc, char** argv, Options& options) {
             options.quiet = true;
             continue;
         }
+        if (argument == "--window") {
+            options.window = true;
+            continue;
+        }
         if (argument == "--mode") {
             if (!next(options.mode)) {
                 return false;
@@ -181,7 +192,8 @@ bool parseOptions(int argc, char** argv, Options& options) {
         }
 
         double numeric = 0.0;
-        if (argument == "--seed" || argument == "--max-ticks" || argument == "--log-every") {
+        if (argument == "--seed" || argument == "--max-ticks" || argument == "--log-every" ||
+            argument == "--window-every") {
             if (!next(value) || !parseDouble(value, numeric) || numeric < 0.0) {
                 std::cerr << "invalid value for " << argument << "\n";
                 return false;
@@ -190,8 +202,10 @@ bool parseOptions(int argc, char** argv, Options& options) {
                 options.seed = static_cast<std::uint64_t>(numeric);
             } else if (argument == "--max-ticks") {
                 options.max_ticks = static_cast<std::size_t>(numeric);
-            } else {
+            } else if (argument == "--log-every") {
                 options.log_every = static_cast<std::size_t>(numeric);
+            } else {
+                options.window_every = std::max<std::size_t>(1, static_cast<std::size_t>(numeric));
             }
             continue;
         }
@@ -577,6 +591,17 @@ int runPlanning(const Options& options, bool follow) {
     const auto tick_duration =
         std::chrono::milliseconds{static_cast<long long>(options.dt_s * 1000.0)};
 
+    // The live window is best-effort: if it cannot open (no SDL2 in this
+    // build, no display), say so and keep running headless.
+    rozeta_examples::SimulatorView view;
+    if (options.window) {
+        std::string error;
+        if (!view.open(1000, 720, error)) {
+            std::cerr << "window unavailable, continuing headless: " << error << "\n";
+        }
+    }
+    bool window_closed = false;
+
     std::vector<GeoCoordinate> trajectory;
     std::size_t missing_fixes = 0;
     std::size_t avoidance_ticks = 0;
@@ -639,6 +664,27 @@ int runPlanning(const Options& options, bool follow) {
                       << ")\n";
         }
 
+        if (view.isOpen() && tick % options.window_every == 0) {
+            if (!view.pumpEvents()) {
+                window_closed = true;
+                std::cout << "window closed by the operator; stopping the run\n";
+                drive.stop();
+                break;
+            }
+            scene.trajectory = trajectory;
+            scene.robot = world.truthGeo();
+            scene.robot_heading_rad = world.truthPose().heading;
+            scene.has_robot = true;
+            scene.gps_measurement = measured;
+            scene.has_gps = true;
+            scene.lidar = last_scan.points;
+            scene.phase = navigation::toString(status.phase);
+            scene.left_drive = status.command.left;
+            scene.right_drive = status.command.right;
+            scene.distance_to_goal_m = status.distance_to_goal_m;
+            view.draw(scene);
+        }
+
         if (status.goal_reached) {
             if (!drive.stop().ok()) {
                 std::cerr << "failed to stop the drive at the destination\n";
@@ -685,6 +731,19 @@ int runPlanning(const Options& options, bool follow) {
         }
     }
 
+    if (view.isOpen() && reached) {
+        // Hold the final frame so the finished run is visible.
+        view.draw(scene);
+        while (view.pumpEvents()) {
+            view.draw(scene);
+        }
+    }
+    view.close();
+
+    if (window_closed) {
+        std::cerr << "the run was stopped from the window before the destination\n";
+        return 7;
+    }
     if (!reached) {
         std::cerr << "the robot did not reach the destination within " << options.max_ticks
                   << " ticks\n";
