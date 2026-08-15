@@ -38,6 +38,71 @@ Behavior:
 
 For offline map integration, load `GeoCoordinate` route points with `maps::CsvMapLoader`, convert them to local coordinates with `geoToLocal()`, then pass the local route into `RouteFollower`.
 
+## GeoRouteFollower
+
+`RouteFollower` works in a local metric frame, which suits an obstacle-avoidance
+loop but forces every caller to pick an origin and convert. `GeoRouteFollower`
+follows a geographic route directly:
+
+```cpp
+rozeta::navigation::GeoFollowerConfig config;
+config.cruise_speed = 0.6;              // speed limit in (0, 1]
+config.waypoint_tolerance_m = 2.5;
+config.goal_tolerance_m = 3.0;
+config.turn_in_place_threshold_rad = 0.9;
+
+rozeta::navigation::GeoRouteFollower follower(config);
+follower.setRoute(plan.sampled);        // from maps::planRoute
+
+const auto status = follower.update(measured_position, measured_heading_rad, obstacles);
+drive.setSpeed(status.command.left, status.command.right);
+```
+
+`update()` takes the *measured* position and heading, so the same object drives a
+simulated robot and a physical one. It returns a `NavigationStatus` with the
+waypoint index, distance to the waypoint and to the goal, cross-track error,
+heading error, off-route and obstacle-blocking flags, the per-side drive command
+and a short reason string.
+
+Behaviour:
+
+- **Waypoint progression only looks forward.** A coarse control tick or a GPS
+  jump skips several waypoints at once instead of steering back to one the robot
+  already passed.
+- **Turn in place, then drive.** Above `turn_in_place_threshold_rad` the robot
+  counter-rotates rather than arcing towards a waypoint behind it.
+- **Goal detection** is by straight-line distance to the last route point; once
+  reached the phase stays `GoalReached` and the command stays zero, so a later
+  fix cannot restart the run.
+- **An obstacle inside `obstacle_stop_distance_m` stops the robot** and reports
+  `obstacle_blocking`; the phase stays `Following`, because the mission is not
+  over. Pair it with `obstacle_behavior::ObstacleBehavior` for recovery.
+- **Invalid input is refused, not guessed at**: an empty route, a route with an
+  invalid coordinate or a config outside its valid range fail `setRoute`, and an
+  invalid fix produces no command.
+
+The phase is one of `Idle`, `Following`, `GoalReached` or `Aborted`
+(`navigation::toString` renders it).
+
+## HeadingEstimator
+
+A control tick is usually far shorter than the distance a robot has to move
+before two fixes reveal a direction: at 0.2 s and 0.7 m/s that is 14 cm, well
+inside GPS noise. `HeadingEstimator` holds an anchor position and derives a new
+heading only once real distance has accumulated:
+
+```cpp
+rozeta::navigation::HeadingEstimator heading;
+heading.reset(route.front(), initial_heading_rad);
+
+const double estimate = heading.updateWithCourse(fix, fix.course_deg, fix.speed_mps);
+```
+
+`updateWithCourse` also folds in a receiver-reported course over ground when the
+fix shows real motion. Note that **a GPS cannot observe heading while a
+skid-steer robot turns on the spot** — there is no ground track — so a platform
+that turns in place needs an IMU or compass as well; see `docs/simulator.md`.
+
 ## Depth-derived obstacles
 
 `obstacle_detection::fromDepthFrame()` lets Kinect/depth data feed the same `ObstacleInfo` contract as LiDAR. A `kinect::DepthFrame` can be loaded from a CSV fixture for CI-safe replay, converted to a point cloud with `kinect::depthFrameToPointCloud()`, or reduced directly into ahead/left/right sectors and nearest-distance data for `RouteFollower`. Invalid or missing depth pixels are ignored, so no physical Kinect is required for tests.

@@ -64,3 +64,18 @@ M7 — RGB path and grass perception adds dependency-free camera-frame masks on 
 M16 adds `field_runner::planBuchloviceFieldRunner()` as the preflight planner for the production Buchlovice stack. No-hardware mode lists mock components for CI and desk demos. Hardware mode refuses to report `safe_to_start` unless the preset includes motor and GPS device settings and the physical E-STOP is configured.
 
 M17 adds `safety::PhysicalEstopLatch` and `safety::SafetyMotorGate`. Field applications should sample the physical input, update the latch, pass `physical_estop_latched` into `runtime::MissionRuntime`, and route motor commands through `SafetyMotorGate` so motion is refused until the latch is acknowledged clear.
+
+## Rehearsing the run without hardware
+
+`examples/robot_simulator.cpp` runs the whole loop above — plan, follow, stop at
+the destination — against simulated drive, GPS, IMU and LiDAR that implement the
+same interfaces as the hardware backends:
+
+```bash
+./build/examples/robot_simulator --mode follow --map castle_park --svg run.svg
+```
+
+It is deterministic from `--seed` and exits non-zero on failure, so route
+following is covered by `ctest` rather than by a field trip. See
+`docs/simulator.md` for the sensor models and for the four lines that swap the
+simulated devices for real ones.

@@ -80,6 +80,73 @@ Core graph helpers:
 
 `examples/buchlovice_graph_route.cpp` is executable documentation for loading a Buchlovice-style graph, snapping start/goal points, computing the shortest path and resampling it without hardware.
 
+## Snapping, planning and graph validation
+
+`nearestVertexIndex` finds the closest junction, which can be tens of metres
+from where an operator actually pointed. `snapToGraph` projects onto the nearest
+path *segment* instead:
+
+```cpp
+const auto snap = rozeta::maps::snapToGraph(graph, point, 25.0);
+if (snap.valid) {
+    snap.point;      // the projected position on the network
+    snap.distance_m; // how far off the network the query was
+    snap.onVertex(); // true when it landed on a junction
+}
+```
+
+Nothing within `max_distance_m` reports `valid == false`, so a point far from any
+path is rejected rather than silently routed from somewhere else.
+
+`FootwayGraphIndex` adds a uniform grid for large datasets and answers the same
+query. Build it once per map and share it between plans:
+
+```cpp
+rozeta::maps::FootwayGraphIndex index(std::move(graph));
+const auto plan = rozeta::maps::planRoute(index, start, goal, {25.0, 2.0});
+```
+
+`planRoute` snaps both ends and joins them to the network as temporary vertices,
+so the route starts and ends where the caller asked. It returns the graph nodes
+(`points`), a resampled line for a follower (`sampled`), the total distance and
+both snap results. Disconnected endpoints come back as a failed `Status`, never
+as a partial route.
+
+`shortestPathAStar` is Dijkstra with a great-circle heuristic and returns the
+same route as `shortestPath` while usually visiting far fewer vertices.
+
+`validateGraph` reports what a dataset actually contains:
+
+```cpp
+const auto stats = rozeta::maps::validateGraph(graph);
+stats.vertices; stats.edges; stats.components;
+stats.largest_component; stats.connectedFraction();
+stats.isolated_vertices; stats.zero_length_edges;
+stats.total_length_m; stats.bounds;
+```
+
+Real OpenStreetMap extracts are rarely one connected component, so a route
+between two arbitrary points can be genuinely impossible.
+`largestComponentVertices` gives a set of vertices that are mutually routable,
+which is how the demos pick endpoints for any dataset.
+
+## Map catalog
+
+`loadMapCatalog` reads a JSON list of datasets with bounds, attribution and
+routing defaults, resolving `data_file` against the catalog's own directory:
+
+```cpp
+const auto result = rozeta::maps::loadMapCatalog("data/maps/maps.json");
+const auto* definition = result.catalog.find("castle_park");
+rozeta::maps::FootwayCsvGraphLoader loader;
+const auto graph = loader.loadDetailed(definition->data_file);
+```
+
+Ids are generic, so no library code keys behaviour off a place. Adding an area
+means shipping a CSV and one catalog entry. `MapDefinition::attribution` carries
+the credit that a licence such as ODbL requires any display to show; see
+`data/maps/README.md` for the shipped datasets.
+
 ## M21 OSM/PBF footway import pipeline
 
 `OsmFootwayGraphLoader` imports small OSM XML extracts (`.osm`/`.xml`) directly into the existing `FootwayGraph` contract. It reads `<node id lat lon>` coordinates, keeps walkable `<way>` elements tagged with `highway=footway`, `path`, `pedestrian`, `steps`, `living_street` or `track`, de-duplicates vertices by coordinate, and builds weighted bidirectional edges that work with `nearestVertexIndex()`, `shortestPath()`, `sampleRoute()` and `shouldReuseRoute()`.

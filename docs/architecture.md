@@ -9,7 +9,7 @@ core/transport stacks, and a Linux-proven hardware stack. The architecture separ
 
 ## Design principles
 
-1. **Hardware abstraction** — applications depend on interfaces such as `MotorController`, `GpsReceiver`, `LidarScanner`, `Camera`, `KinectSensor` or `ImuSensor`.
+1. **Hardware abstraction** — applications depend on interfaces such as `MotorController`, `GpsReceiver`, `LidarScanner`, `Camera`, `KinectSensor` or `ImuSensor`. The simulated devices in `rozeta::simulation` implement those same interfaces, so a control loop developed against the simulator runs on hardware unchanged; see `docs/simulator.md`.
 2. **Dependency injection** — Robotour loops receive concrete modules, allowing mocks in tests and real devices in deployment.
 3. **Universal core, field-proven Linux hardware** — portable algorithms and transports build on Linux,
    Windows 10/11 and macOS, while hardware runbooks clearly mark Linux-proven and
@@ -27,6 +27,21 @@ Sensors -> normalized data structures -> RobotState/Pose -> Navigation -> MotorC
              |
              +-> UI SnapshotComposer -> renderer/dashboard
 ```
+
+Geographic navigation adds one more path, built from pure computational layers
+that own no state and no clock:
+
+```text
+map CSV/OSM -> maps::FootwayGraph -> FootwayGraphIndex -> planRoute -> route
+                                                                        |
+GPS fix + IMU heading -> navigation::GeoRouteFollower -> kinematics::WheelSpeeds
+                                                                        |
+                                                     -> MotorController (real or simulated)
+```
+
+`geometry` (planar maths and ray casting) and `geodesy` (one shared WGS-84
+model) sit underneath both `maps` and `simulation`, so distances and bearings
+cannot disagree between planning, following and simulation.
 
 `ui::SnapshotComposer` is deliberately render-backend neutral. It receives existing map, camera, Kinect/depth and robot-state values and produces a `UiSnapshot` for Linux dashboards without pulling GUI dependencies into the default library.
 
