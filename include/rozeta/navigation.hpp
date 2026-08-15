@@ -85,6 +85,12 @@ struct GeoFollowerConfig {
     double goal_tolerance_m{2.0};
     /// Beyond this heading error the robot turns in place instead of arcing.
     double turn_in_place_threshold_rad{1.0};
+    /// How far along the route a single update may resynchronise. Bounds the
+    /// forward waypoint search, so following a route with thousands of points
+    /// costs the same per tick as following a short one. It is also a sanity
+    /// limit: a fix that appears to have skipped further than this along the
+    /// route is more likely noise than progress.
+    double resync_lookahead_m{60.0};
     /// Reported as off route beyond this distance from the planned line.
     double off_route_distance_m{8.0};
     /// Stop and report an obstacle closer than this straight ahead.
@@ -143,6 +149,9 @@ private:
 
     GeoFollowerConfig config_{};
     std::vector<GeoCoordinate> route_{};
+    /// Route length up to each point, filled once by setRoute() so the
+    /// remaining distance is a subtraction instead of a walk to the end.
+    std::vector<double> cumulative_m_{};
     std::size_t waypoint_index_{0};
     NavigationPhase phase_{NavigationPhase::Idle};
     NavigationStatus status_{};

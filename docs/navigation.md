@@ -66,9 +66,13 @@ and a short reason string.
 
 Behaviour:
 
-- **Waypoint progression only looks forward.** A coarse control tick or a GPS
-  jump skips several waypoints at once instead of steering back to one the robot
-  already passed.
+- **Waypoint progression only looks forward**, and only as far as
+  `resync_lookahead_m` along the route. A coarse control tick or a GPS jump
+  skips several waypoints at once instead of steering back to one the robot
+  already passed, while a fix that appears to have skipped a kilometre is
+  ignored as noise. The bound also keeps the per-tick cost independent of route
+  length: cross-track error is measured over the same window and the remaining
+  distance comes from a table built once by `setRoute`.
 - **Turn in place, then drive.** Above `turn_in_place_threshold_rad` the robot
   counter-rotates rather than arcing towards a waypoint behind it.
 - **Goal detection** is by straight-line distance to the last route point; once

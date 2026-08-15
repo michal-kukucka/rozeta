@@ -182,11 +182,22 @@ void test_geo_follower_drives_forward_and_progresses_waypoints() {
     REQUIRE_TRUE(!aligned.off_route);
     REQUIRE_TRUE(aligned.reason == "following route");
 
-    // Waypoints inside the tolerance are consumed, including several at once.
+    // Waypoints inside the tolerance are consumed, including several at once:
+    // a jump of 52 m along the route is inside the resync lookahead.
     REQUIRE_TRUE(follower.waypointIndex() == 1);
     follower.update(at(52.0, 0.0), 0.0);
     REQUIRE_TRUE(follower.waypointIndex() == 6);
     REQUIRE_NEAR(follower.status().distance_to_goal_m, 48.0, 0.2);
+
+    // A jump further along the route than the lookahead is not followed: the
+    // robot cannot have travelled that far in one control tick.
+    GeoFollowerConfig short_resync = config;
+    short_resync.resync_lookahead_m = 15.0;
+    GeoRouteFollower cautious(short_resync);
+    REQUIRE_TRUE(cautious.setRoute(straightRoute()).ok());
+    cautious.update(at(0.0, 0.0), 0.0);
+    cautious.update(at(90.0, 0.0), 0.0);
+    REQUIRE_TRUE(cautious.waypointIndex() <= 2);
 
     // North of the route while facing east: the target is to the right, so the
     // left side runs faster and the robot arcs back towards the line.

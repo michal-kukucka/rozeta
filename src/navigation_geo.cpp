@@ -27,7 +27,15 @@ double headingErrorTo(
     return normalizeAngle(geodesy::bearingDegToHeadingRad(bearing) - heading_rad);
 }
 
-double crossTrackError(const std::vector<GeoCoordinate>& route, const GeoCoordinate& position) {
+/// Distance from the planned line, measured over the stretch of route around
+/// \p index rather than the whole polyline. A window is both cheaper and more
+/// honest: on a route that passes near itself, the global minimum would report
+/// a small error while the robot is actually off the leg it is driving.
+double crossTrackError(
+    const std::vector<GeoCoordinate>& route,
+    std::size_t index,
+    const GeoCoordinate& position,
+    double window_m) {
     if (route.empty()) {
         return std::numeric_limits<double>::infinity();
     }
@@ -35,10 +43,16 @@ double crossTrackError(const std::vector<GeoCoordinate>& route, const GeoCoordin
         return geodesy::haversineDistance(position, route.front());
     }
 
+    const std::size_t first = index > 0 ? index - 1 : 0;
     std::vector<Vector2> local;
-    local.reserve(route.size());
-    for (const auto& point : route) {
-        local.push_back(geodesy::toLocalXy(position, point));
+    local.push_back(geodesy::toLocalXy(position, route[first]));
+    double along_route_m = 0.0;
+    for (std::size_t at = first + 1; at < route.size(); ++at) {
+        along_route_m += geodesy::haversineDistance(route[at - 1], route[at]);
+        local.push_back(geodesy::toLocalXy(position, route[at]));
+        if (along_route_m > window_m) {
+            break;
+        }
     }
     return geometry::distanceToPolyline({0.0, 0.0}, local);
 }
@@ -192,6 +206,11 @@ Status GeoRouteFollower::setRoute(std::vector<GeoCoordinate> route) {
     }
 
     route_ = std::move(route);
+    cumulative_m_.assign(route_.size(), 0.0);
+    for (std::size_t index = 1; index < route_.size(); ++index) {
+        cumulative_m_[index] =
+            cumulative_m_[index - 1] + geodesy::haversineDistance(route_[index - 1], route_[index]);
+    }
     waypoint_index_ = 0;
     phase_ = NavigationPhase::Following;
     status_ = {};
@@ -202,6 +221,7 @@ Status GeoRouteFollower::setRoute(std::vector<GeoCoordinate> route) {
 
 void GeoRouteFollower::clearRoute() {
     route_.clear();
+    cumulative_m_.clear();
     reset();
 }
 
@@ -227,7 +247,15 @@ void GeoRouteFollower::advanceWaypoints(const GeoCoordinate& position) {
     // instead of steering back to one the robot already passed.
     std::size_t best = waypoint_index_;
     double best_distance = geodesy::haversineDistance(position, route_[waypoint_index_]);
+    const double lookahead_m = std::max(0.0, config_.resync_lookahead_m);
+    double along_route_m = 0.0;
     for (std::size_t index = waypoint_index_ + 1; index < route_.size(); ++index) {
+        along_route_m += geodesy::haversineDistance(route_[index - 1], route_[index]);
+        if (along_route_m > lookahead_m) {
+            // Anything further along cannot have been reached in one update.
+            // Bounding here keeps the cost per tick independent of route length.
+            break;
+        }
         const double distance = geodesy::haversineDistance(position, route_[index]);
         if (distance < best_distance) {
             best_distance = distance;
@@ -280,9 +308,12 @@ NavigationStatus GeoRouteFollower::update(
     status_.waypoint_index = waypoint_index_;
 
     const GeoCoordinate& goal = route_.back();
-    status_.distance_to_goal_m = remainingRouteDistance(route_, waypoint_index_, position);
+    // Distance to the next waypoint plus the precomputed rest of the route.
+    status_.distance_to_goal_m = geodesy::haversineDistance(position, route_[waypoint_index_]) +
+        (cumulative_m_.back() - cumulative_m_[waypoint_index_]);
     const double straight_to_goal = geodesy::haversineDistance(position, goal);
-    status_.cross_track_error_m = crossTrackError(route_, position);
+    status_.cross_track_error_m =
+        crossTrackError(route_, waypoint_index_, position, config_.resync_lookahead_m);
     status_.off_route = status_.cross_track_error_m > config_.off_route_distance_m;
 
     if (straight_to_goal <= config_.goal_tolerance_m) {
