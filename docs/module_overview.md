@@ -83,13 +83,31 @@ Combines normalized sensor results into `ObstacleInfo` with ahead/left/right fla
 
 M10 — Obstacle wait and bypass behavior adds `obstacle_behavior::ObstacleBehavior`, a deterministic state machine for competition safety: stop-and-wait with configurable duration, recheck after wait, pulse-based bypass maneuver (spin/forward/counter-spin), max attempt gating, in-maneuver emergency stop, and bypass direction selection from combined LiDAR/depth/RGB side coverage. The obstacle behavior module lives in `include/rozeta/obstacle_behavior.hpp`.
 
+## Geometry
+
+`geometry` holds the planar helpers shared by map snapping, route following and the simulated LiDAR: `projectPointOnSegment`, `distanceToPolyline`, `polylineLength`, `pointInPolygon`, `boundsOf` and the ray casters `intersectRaySegment`, `castRay` and `intersectRayCircle`. Everything works in a right-handed metric frame (x east, y north, angles counterclockwise from +x), the same convention `Pose2D` uses. Non-finite input is rejected rather than propagated.
+
+## Geodesy
+
+`geodesy` is the one WGS-84 model the library shares, so distances agree between modules. It provides `haversineDistance`, `initialBearingDegrees`, `metersPerDegree`, `localToGeo` (the inverse of `geoToLocal`), `offsetMeters`, `toLocalXy`, `interpolate`, `resamplePolyline` (exact endpoints), `polylineLength`, `GeoBounds` and `isValidGeoCoordinate`, which rejects (0, 0) because receivers emit it to mean "no fix". `headingRadToBearingDeg`/`bearingDegToHeadingRad` convert between compass bearings (clockwise from north) and `Pose2D` headings (counterclockwise from east).
+
+## Kinematics
+
+`kinematics` models a skid-steer chassis: one commanded speed per side, no steering joint. `mixDrive` turns throttle/steer into per-side speeds in either `Arcade` mode (throttle +/- steer; the inner side reaches zero under full steer, so the robot arcs) or `Tank` mode (throttle attenuated by `(1 - |steer|)^2` first, so the sides counter-rotate through a turn). `wheelSpeedsToTwist`/`twistToWheelSpeeds` convert between per-side speeds and a body twist through `SkidSteerConfig` (track width, top speed and a `turn_slip_factor` for the scrub four driven wheels produce), and `integratePose` advances a pose along the exact arc of a constant twist.
+
 ## Navigation
 
 `navigation::SimpleNavigator` maps pose, target waypoint and obstacles into motor decisions: go-to-waypoint, obstacle avoidance and emergency stop. `navigation::RouteFollower` adds monotonic multi-waypoint progress while reusing the same decision contract.
 
+`navigation::GeoRouteFollower` follows a geographic route directly: it consumes a measured position plus a measured heading and emits per-side drive commands, tracking waypoint progression, goal detection, cross-track error, off-route state and obstacle stops through a `NavigationPhase` state machine (`Idle`, `Following`, `GoalReached`, `Aborted`). Waypoint progression only ever looks forward, so a coarse control tick or a GPS jump skips waypoints instead of steering back to one already passed. `navigation::HeadingEstimator` derives heading from successive fixes, holding an anchor position until the robot has actually travelled `min_movement_m`; below that, position noise dominates the direction of travel. It also accepts a receiver-reported course over ground when the fix shows real motion.
+
 ## Maps
 
 `maps::CsvMapLoader` loads offline CSV route files into `OfflineMap` paths with explicit `Status` errors for missing, malformed or empty route files. `nearestPathIndex` selects the closest path and returns `kInvalidPathIndex` for empty maps.
+
+`maps::FootwayCsvGraphLoader` (the generic name for the way-node CSV loader; `BuchloviceFootwayGraphLoader` remains as an alias) and `maps::OsmFootwayGraphLoader` build a `FootwayGraph`. On top of it: `snapToGraph` projects a point onto the nearest path *segment*, not merely the nearest vertex, and reports the edge, the position along it and whether it landed on an endpoint; `FootwayGraphIndex` adds a uniform grid so snapping does not scan every edge, and rejects points outside the map up front; `validateGraph` reports vertices, edges, connected components, isolated vertices, zero-length edges, total length and bounds; `shortestPath` (Dijkstra) and `shortestPathAStar` (great-circle heuristic) route between vertices; and `planRoute` plans between arbitrary geographic points by attaching both snapped ends as temporary vertices, so a route starts and ends where the caller asked rather than at the nearest junction. Unreachable endpoints come back as a failed `Status`, never as a partial route.
+
+`maps::loadMapCatalog` reads a JSON catalog of datasets - id, display name, bounds, attribution and routing defaults - resolving `data_file` against the catalog directory. Ids are generic, so no library code keys behaviour off a place. See `data/maps/README.md` for the shipped datasets and their licence.
 
 ## IMU
 
@@ -137,8 +155,14 @@ The `field_operator_wizard` example can run interactively or with `--script cont
 
 M15 — Configuration schema and field presets for robotour_config. `robotour_config::FieldPreset` bundles runtime, obstacle behavior, and mission config into named presets: `buchloviceFieldPreset()` (hardware with camera+depth, 10s wait) and `noHardwareDemoPreset()` (mock-only, fast 200ms cycles). M18 turns `loadPreset(path)` into a dependency-free file-based config parser for key/value settings such as `motor_device`, `gps_device`, `lidar_device`, `camera_enabled`, `obstacle.wait_duration_ms`, `obstacle.max_bypass_attempts` and `mission.arrival_radius_m`. `validatePreset()` rejects invalid arrival radii and negative durations.
 
+## Simulation
+
+`simulation` implements the same interfaces the hardware backends do, so navigation code cannot tell the two apart: `SimulatedDrive` is a `motors::MotorController`, `SimulatedGps` a `gps::GpsReceiver`, `SimulatedImu` an `imu::ImuSensor` and `SimulatedLidar` a `lidar::LidarScanner`. `SimulatedWorld` owns the ground-truth pose and advances only when the caller steps it - no threads, no clock - so a run is reproducible from its seed alone through `DeterministicNoise`. Sensors expose measured values only: Gaussian GPS noise with a bounded bias walk, dropouts and a course that disappears when the robot stops; a ray-cast LiDAR with configurable field of view, sample count, range and noise; and an IMU heading with bias and drift, which is what lets a skid-steer robot keep steering while it turns on the spot. `obstaclesFromGraphEdges` turns a map graph into corridor walls and `removeObstaclesNearRoute` keeps a planned line clear of them. See `docs/simulator.md`.
+
 ## UI
 
 `ui::SnapshotComposer` connects `maps::OfflineMap`, camera RGB frames, Kinect RGB/depth frames and `RobotState` into a render-backend-neutral realtime `UiSnapshot`. The UI module also provides mission overlays for start, operation, final and current robot markers plus viewport projection helpers for drawing the robot position on the active map.
 
-See `docs/ui_module.md` for realtime mission visualization usage.
+`ui::renderSceneSvg` renders a `NavigationScene` - map graph, planned route, start and destination, robot pose and heading, trajectory, GPS measurement, LiDAR rays, navigation state and left/right drive values - as a standalone SVG document. SVG is text, so graphical output is never a build dependency: a headless build and CI produce the same picture a desktop viewer opens.
+
+See `docs/ui_module.md` for realtime mission visualization usage and `docs/simulator.md` for the simulator view.

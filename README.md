@@ -35,7 +35,8 @@ The initial milestone focuses on the foundation, not final hardware drivers:
 ```text
 include/rozeta/       Public module APIs
 src/                  Implementations for currently active modules
-examples/             Small integration examples and Robotour demo loop
+examples/             Small integration examples, the simulator and the Robotour demo loop
+data/maps/            OpenStreetMap-derived datasets and the map catalog (ODbL, see data/maps/README.md)
 tests/                Dependency-free unit tests, one executable via CTest
 docs/                 Architecture and per-module documentation
 ```
@@ -206,6 +207,19 @@ Offline route following without hardware:
 ./build/examples/route_follower_demo tests/fixtures/maps/robotour_route.csv
 ```
 
+Full autonomous run in the simulator — plans a route over a real OpenStreetMap
+path network, drives it with simulated drive/GPS/IMU/LiDAR, and writes a picture
+of the result:
+
+```bash
+./build/examples/robot_simulator --mode follow --svg run.svg
+```
+
+The simulator is deterministic from `--seed`, exits non-zero on failure and
+needs no hardware, no map server and no graphics stack. `--mode manual` drives a
+scripted movement pattern, `--mode plan` reports a route without driving it. See
+`docs/simulator.md`.
+
 Buchlovice graph routing without hardware:
 
 ```bash
@@ -288,6 +302,10 @@ Detailed docs are included in `docs/` and are ready to be reused as a future off
 - `docs/ui_module.md` — realtime mission UI snapshots, text dashboard and optional renderer bridge seam
 - `docs/module_overview.md#kinect` — Kinect/depth frame helpers and depth-derived obstacle sectors
 - `docs/robotour_use_case.md` — Robotour-style autonomous vehicle workflow
+- `docs/simulator.md` — deterministic simulator, sensor models and how simulated devices are replaced by hardware
+- `docs/ROBOTOUR_MIGRATION.md` — what was migrated from the Robotour Praha reference, what was excluded and why
+- `data/maps/README.md` — shipped map datasets, format, licence and attribution
+- `examples/robot_simulator.cpp` — standalone headless simulator with SVG output
 - `examples/replay_robotour_log.cpp` — fixture-driven telemetry replay demo
 - `examples/replay_ui_snapshots.cpp` — fixture-driven telemetry-to-UI snapshot replay demo
 - `examples/mission_ui_dashboard.cpp` — no-hardware UI dashboard snapshot demo

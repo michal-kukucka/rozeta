@@ -22,10 +22,13 @@ PUBLIC_HEADER_DOCS = {
     "depth": "docs/navigation.md",
     "export": "docs/architecture.md",
     "field_runner": "docs/field_runner_module.md",
+    "geodesy": "docs/module_overview.md",
+    "geometry": "docs/module_overview.md",
     "gps": "docs/gps_module.md",
     "hardware_smoke": "docs/hardware_smoke_module.md",
     "imu": "docs/imu_module.md",
     "kinect": "docs/kinect_module.md",
+    "kinematics": "docs/module_overview.md",
     "lidar": "docs/lidar_module.md",
     "logging": "docs/module_overview.md",
     "maps": "docs/maps_module.md",
@@ -38,6 +41,7 @@ PUBLIC_HEADER_DOCS = {
     "operator_io": "docs/module_overview.md",
     "robotour_config": "docs/module_overview.md",
     "safety": "docs/safety_module.md",
+    "simulation": "docs/simulator.md",
     "odometry": "docs/module_overview.md",
     "perception": "docs/perception_module.md",
     "telemetry": "docs/telemetry_module.md",
@@ -46,6 +50,10 @@ PUBLIC_HEADER_DOCS = {
 
 REQUIRED_FILES = [
     "README.md",
+    "docs/simulator.md",
+    "docs/ROBOTOUR_MIGRATION.md",
+    "data/maps/README.md",
+    "data/maps/maps.json",
     "docs/index.html",
     "docs/api-reference.md",
     "docs/architecture.md",
@@ -409,6 +417,38 @@ REQUIRED_BUCHLOVICE_M29_TEST_PHRASES = [
 ]
 
 
+REQUIRED_SIMULATOR_PHRASES = [
+    "SimulatedDrive",
+    "SimulatedGps",
+    "SimulatedImu",
+    "SimulatedLidar",
+    "robot_simulator",
+    "--mode manual|plan|follow",
+    "ground-truth pose",
+    "reproducible from",
+    "Replacing simulated devices with hardware",
+    "renderSceneSvg",
+    "ctest -R rozeta_simulator",
+]
+
+REQUIRED_MIGRATION_PHRASES = [
+    "Robotour Praha",
+    "What was migrated or redesigned",
+    "Deliberately excluded",
+    "Assumptions",
+    "Future work",
+    "Kinect",
+    "no dependency on the reference",
+]
+
+REQUIRED_MAP_DATA_PHRASES = [
+    "OpenStreetMap",
+    "ODbL",
+    "https://www.openstreetmap.org/copyright",
+    "way_id,point_index,lat,lon",
+]
+
+
 def read(rel: str) -> str:
     return (ROOT / rel).read_text(encoding="utf-8")
 
@@ -462,6 +502,21 @@ def main() -> int:
     for example in sorted((ROOT / "examples").glob("*.cpp")):
         if example.stem not in examples_doc:
             fail(f"example {example.name} is not referenced in README/API/use-case docs", failures)
+
+    simulator_doc = read("docs/simulator.md")
+    for phrase in REQUIRED_SIMULATOR_PHRASES:
+        if phrase not in simulator_doc:
+            fail(f"docs/simulator.md missing: {phrase}", failures)
+
+    migration_doc = read("docs/ROBOTOUR_MIGRATION.md")
+    for phrase in REQUIRED_MIGRATION_PHRASES:
+        if phrase not in migration_doc:
+            fail(f"docs/ROBOTOUR_MIGRATION.md missing: {phrase}", failures)
+
+    map_data_doc = read("data/maps/README.md")
+    for phrase in REQUIRED_MAP_DATA_PHRASES:
+        if phrase not in map_data_doc:
+            fail(f"data/maps/README.md missing attribution/format detail: {phrase}", failures)
 
     site = read("docs/index.html")
     for phrase in REQUIRED_SITE_PHRASES:
