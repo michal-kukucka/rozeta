@@ -4,6 +4,7 @@
 #include <rozeta/maps.hpp>
 
 #include <cmath>
+#include <limits>
 #include <string>
 #include <vector>
 
@@ -131,6 +132,27 @@ void test_map_graph_index_matches_brute_force_snap() {
 
     REQUIRE_TRUE(!index.snap(at(0.0, 5000.0), 25.0).valid);
     REQUIRE_TRUE(FootwayGraphIndex().empty());
+}
+
+void test_map_graph_index_rejects_far_away_points_quickly() {
+    // A point thousands of kilometres away must be rejected outright. The ring
+    // search grows one cell (50 m) at a time, so without a bound it would walk
+    // the whole distance and never return.
+    FootwayGraphIndex index(gridGraph());
+    REQUIRE_TRUE(!index.snap({0.5, 0.5, 0.0}, 25.0).valid);
+    REQUIRE_TRUE(!index.snap({-33.9, 151.2, 0.0}, 25.0).valid);
+    REQUIRE_TRUE(!index.snap({89.0, 179.0, 0.0}, 1000.0).valid);
+
+    // Without a distance limit the search still terminates, at the nearest
+    // point of the network rather than nowhere.
+    const auto unlimited =
+        index.snap(at(0.0, 400.0), std::numeric_limits<double>::infinity());
+    REQUIRE_TRUE(unlimited.valid);
+    REQUIRE_NEAR(unlimited.distance_m, 300.0, 1.0);
+
+    const auto plan =
+        planRoute(index, {0.5, 0.5, 0.0}, at(25.0, 0.0));
+    REQUIRE_TRUE(!plan.ok());
 }
 
 void test_map_graph_validate_reports_components_and_length() {

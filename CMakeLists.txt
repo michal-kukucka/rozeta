@@ -97,6 +97,7 @@ set(ROZETA_SOURCES
     src/field_runner.cpp
     src/mission.cpp
     src/ui.cpp
+    src/ui_scene.cpp
     src/obstacle_detection.cpp
     src/obstacle_behavior.cpp
     src/operator_io.cpp

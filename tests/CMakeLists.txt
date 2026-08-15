@@ -7,6 +7,7 @@ add_executable(rozeta_tests
     test_simulation.cpp
     test_geo_navigation.cpp
     test_simulation_scenarios.cpp
+    test_ui_scene.cpp
     test_gps.cpp
     test_gps_receiver.cpp
     test_network_gps.cpp
@@ -137,6 +138,61 @@ if(Python3_Interpreter_FOUND)
           ${CMAKE_SOURCE_DIR}/scripts/smoke_opencv_qr_stub.py
           ${CMAKE_CXX_COMPILER})
   rozeta_label_test(rozeta_opencv_qr_stub_smoke portable hardware-optional)
+endif()
+
+if(TARGET robot_simulator)
+  # Headless end-to-end simulation. Each case fails the build if the robot does
+  # not finish the run, so a regression in planning, kinematics, the sensor
+  # models or the follower shows up as a red test rather than a slower demo.
+  set(ROZETA_SIM_CATALOG ${CMAKE_SOURCE_DIR}/data/maps/maps.json)
+  add_test(
+      NAME rozeta_simulator_manual
+      COMMAND robot_simulator --mode manual --catalog ${ROZETA_SIM_CATALOG} --quiet)
+  rozeta_label_test(rozeta_simulator_manual simulation portable)
+  add_test(
+      NAME rozeta_simulator_plan
+      COMMAND robot_simulator --mode plan --catalog ${ROZETA_SIM_CATALOG} --map castle_park)
+  rozeta_label_test(rozeta_simulator_plan simulation portable)
+  add_test(
+      NAME rozeta_simulator_follow
+      COMMAND robot_simulator --mode follow --catalog ${ROZETA_SIM_CATALOG} --map castle_park
+              --seed 20260815 --quiet --log-every 0
+              --svg ${CMAKE_CURRENT_BINARY_DIR}/simulator_run.svg)
+  rozeta_label_test(rozeta_simulator_follow simulation portable)
+  add_test(
+      NAME rozeta_simulator_follow_with_lidar
+      COMMAND robot_simulator --mode follow --catalog ${ROZETA_SIM_CATALOG} --map castle_park
+              --corridor 3.0 --seed 4242 --quiet --log-every 0)
+  rozeta_label_test(rozeta_simulator_follow_with_lidar simulation portable)
+  add_test(
+      NAME rozeta_simulator_follow_village
+      COMMAND robot_simulator --mode follow --catalog ${ROZETA_SIM_CATALOG} --map village
+              --seed 7 --quiet --log-every 0)
+  rozeta_label_test(rozeta_simulator_follow_village simulation portable)
+  # Failure paths must be loud: an unknown map, an unroutable destination and a
+  # tick budget that cannot be met all have to exit non-zero.
+  add_test(
+      NAME rozeta_simulator_unknown_map_fails
+      COMMAND robot_simulator --mode plan --catalog ${ROZETA_SIM_CATALOG} --map no_such_place)
+  set_tests_properties(rozeta_simulator_unknown_map_fails PROPERTIES WILL_FAIL TRUE)
+  rozeta_label_test(rozeta_simulator_unknown_map_fails simulation portable)
+  add_test(
+      NAME rozeta_simulator_unreachable_goal_fails
+      COMMAND robot_simulator --mode plan --catalog ${ROZETA_SIM_CATALOG} --map castle_park
+              --goal 0.5,0.5)
+  set_tests_properties(rozeta_simulator_unreachable_goal_fails PROPERTIES WILL_FAIL TRUE)
+  rozeta_label_test(rozeta_simulator_unreachable_goal_fails simulation portable)
+  add_test(
+      NAME rozeta_simulator_tick_budget_fails
+      COMMAND robot_simulator --mode follow --catalog ${ROZETA_SIM_CATALOG} --map castle_park
+              --max-ticks 5 --quiet --log-every 0)
+  set_tests_properties(rozeta_simulator_tick_budget_fails PROPERTIES WILL_FAIL TRUE)
+  rozeta_label_test(rozeta_simulator_tick_budget_fails simulation portable)
+  add_test(
+      NAME rozeta_simulator_bad_arguments_fail
+      COMMAND robot_simulator --mode nonsense)
+  set_tests_properties(rozeta_simulator_bad_arguments_fail PROPERTIES WILL_FAIL TRUE)
+  rozeta_label_test(rozeta_simulator_bad_arguments_fail simulation portable)
 endif()
 
 if(TARGET field_operator_wizard)

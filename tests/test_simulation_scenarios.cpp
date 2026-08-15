@@ -5,6 +5,7 @@
 #include "test_helpers.hpp"
 
 #include <rozeta/geodesy.hpp>
+#include <rozeta/geometry.hpp>
 #include <rozeta/maps.hpp>
 #include <rozeta/navigation.hpp>
 #include <rozeta/obstacle_detection.hpp>
@@ -333,6 +334,113 @@ void test_scenario_lidar_equipped_run_sees_corridor_walls() {
 
     const auto result = driveRoute(plan.sampled, config, follower, 0.2, 20000, true);
     REQUIRE_TRUE(result.reached);
+}
+
+void test_scenario_blocked_route_stops_the_robot() {
+    // A wall straight across the route: the follower must stop rather than
+    // drive through it, and the run must not silently report success.
+    const auto graph = loadShippedGraph("buchlovice_park_footways.csv");
+    maps::FootwayGraphIndex index(graph);
+    const auto plan =
+        maps::planRoute(index, {49.0845, 17.3361, 0.0}, {49.08285, 17.3399, 0.0});
+    REQUIRE_TRUE(plan.ok());
+
+    auto config = scenarioConfig(plan.sampled.front(), 606u);
+    config.lidar.field_of_view_deg = 180.0;
+    config.lidar.sample_count = 61;
+    config.lidar.max_range_m = 10.0;
+
+    simulation::SimulatedWorld world(config);
+    simulation::SimulatedDrive drive(world);
+    simulation::SimulatedGps receiver(world);
+    simulation::SimulatedImu compass(world);
+    simulation::SimulatedLidar scanner(world);
+    REQUIRE_TRUE(receiver.open("simulated").ok());
+    REQUIRE_TRUE(compass.open("simulated").ok());
+    REQUIRE_TRUE(scanner.initialize("simulated").ok());
+    REQUIRE_TRUE(scanner.start().ok());
+
+    // Place the wall across the route about 20 m in.
+    const std::size_t blocked_index = std::min<std::size_t>(10, plan.sampled.size() - 1);
+    const auto blockage = world.toLocal(plan.sampled[blocked_index]);
+    world.addBoxObstacle(blockage, 6.0, 6.0, "blockage");
+    REQUIRE_TRUE(world.obstacles().size() == 4);
+
+    world.placeAtGeo(
+        plan.sampled.front(),
+        geodesy::bearingDegToHeadingRad(
+            geodesy::initialBearingDegrees(plan.sampled[0], plan.sampled[1])));
+
+    auto follower_config = scenarioFollower();
+    follower_config.obstacle_stop_distance_m = 1.0;
+    navigation::GeoRouteFollower follower(follower_config);
+    REQUIRE_TRUE(follower.setRoute(plan.sampled).ok());
+
+    bool ever_blocked = false;
+    double closest_approach_m = 1e9;
+    for (int tick = 0; tick < 2000; ++tick) {
+        const double heading = compass.read().heading_rad;
+        const auto fix = receiver.readFix();
+        REQUIRE_TRUE(fix.has_value());
+        const GeoCoordinate measured{fix->latitude, fix->longitude, fix->altitude_m};
+        const auto obstacles = obstacle_detection::fromLidar(scanner.readScan().points, 1.0);
+
+        const auto status = follower.update(measured, heading, obstacles);
+        closest_approach_m = std::min(
+            closest_approach_m,
+            geodesy::haversineDistance(world.truthGeo(), plan.sampled[blocked_index]));
+        if (status.obstacle_blocking) {
+            ever_blocked = true;
+            REQUIRE_NEAR(status.command.left, 0.0, 1e-12);
+            REQUIRE_NEAR(status.command.right, 0.0, 1e-12);
+        }
+        REQUIRE_TRUE(!status.goal_reached); // the wall is in the way
+        REQUIRE_TRUE(drive.setSpeed(status.command.left, status.command.right).ok());
+        REQUIRE_TRUE(world.step(0.2).ok());
+    }
+
+    REQUIRE_TRUE(ever_blocked);
+    REQUIRE_TRUE(!follower.finished());
+    // It stopped in front of the box (3 m half width), never inside it.
+    REQUIRE_TRUE(closest_approach_m > 1.5);
+}
+
+void test_scenario_route_clearance_filter_keeps_the_planned_line_open() {
+    const auto graph = loadShippedGraph("stromovka_park_footways.csv");
+    maps::FootwayGraphIndex index(graph);
+    const auto component = maps::largestComponentVertices(graph);
+    REQUIRE_TRUE(component.size() > 100);
+    const auto plan = maps::planRoute(
+        index,
+        graph.vertices[component.front()].coordinate,
+        graph.vertices[component[component.size() / 2]].coordinate);
+    REQUIRE_TRUE(plan.ok());
+
+    const GeoCoordinate origin = plan.sampled.front();
+    const auto walls = simulation::obstaclesFromGraphEdges(graph, origin, 3.0);
+    REQUIRE_TRUE(!walls.empty());
+
+    // On a dense network some walls belong to paths that merely pass close by
+    // and land on the planned line; the filter removes exactly those.
+    const auto filtered =
+        simulation::removeObstaclesNearRoute(walls, origin, plan.sampled, 2.7);
+    REQUIRE_TRUE(filtered.size() < walls.size());
+
+    std::vector<Vector2> line;
+    line.reserve(plan.sampled.size());
+    for (const auto& point : plan.sampled) {
+        line.push_back(geodesy::toLocalXy(origin, point));
+    }
+    for (const auto& obstacle : filtered) {
+        REQUIRE_TRUE(geometry::distanceToPolyline(obstacle.segment.from, line) >= 2.7);
+        REQUIRE_TRUE(geometry::distanceToPolyline(obstacle.segment.to, line) >= 2.7);
+    }
+
+    // Degenerate arguments leave the set untouched.
+    REQUIRE_TRUE(simulation::removeObstaclesNearRoute(walls, origin, {}, 2.7).size() == walls.size());
+    REQUIRE_TRUE(
+        simulation::removeObstaclesNearRoute(walls, origin, plan.sampled, 0.0).size() ==
+        walls.size());
 }
 
 void test_scenario_unreachable_destination_is_reported_not_driven() {

@@ -3,6 +3,7 @@
 #include <rozeta/camera.hpp>
 #include <rozeta/core.hpp>
 #include <rozeta/depth.hpp>
+#include <rozeta/lidar.hpp>
 #include <rozeta/maps.hpp>
 
 #include <cstddef>
@@ -146,7 +147,49 @@ private:
     depth::DepthFrame kinect_depth_frame_{};
 };
 
+/// Everything a navigation view shows. Fields left empty are simply not drawn,
+/// so the same scene works for a planning preview and a live run.
+struct NavigationScene {
+    maps::FootwayGraph graph{};                 ///< Path network.
+    std::vector<GeoCoordinate> route{};         ///< Planned route.
+    std::vector<GeoCoordinate> trajectory{};    ///< Where the robot has been.
+    GeoCoordinate start{};
+    GeoCoordinate goal{};
+    bool has_start{false};
+    bool has_goal{false};
+    GeoCoordinate robot{};                      ///< True/estimated robot position.
+    double robot_heading_rad{0.0};
+    bool has_robot{false};
+    GeoCoordinate gps_measurement{};            ///< Last measured fix.
+    bool has_gps{false};
+    std::vector<lidar::ScanPoint> lidar{};      ///< Robot-relative scan.
+    double lidar_max_range_m{12.0};
+    std::string phase{};                        ///< Navigation state label.
+    double left_drive{0.0};
+    double right_drive{0.0};
+    double distance_to_goal_m{0.0};
+    std::string title{};
+    std::string attribution{};                  ///< Map data credit, always shown.
+};
+
+struct SceneStyle {
+    int width{1000};
+    int height{720};
+    int padding_px{40};
+    bool dark{true};
+    /// Draw the LiDAR beams as rays from the robot rather than hit points only.
+    bool draw_lidar_rays{true};
+};
+
 MapBounds mapBounds(const maps::OfflineMap& map);
+/// Geographic extent covered by a scene, over every layer it draws.
+MapBounds sceneBounds(const NavigationScene& scene);
+Status validateSceneStyle(const SceneStyle& style);
+/// Renders a scene as a standalone SVG document.
+///
+/// SVG keeps graphical output dependency-free: it is text, so it works in a
+/// headless build and in CI, and any browser or image viewer can open it.
+std::string renderSceneSvg(const NavigationScene& scene, const SceneStyle& style = {});
 ScreenPoint projectGeoToViewport(
     const GeoCoordinate& point,
     const MapBounds& bounds,

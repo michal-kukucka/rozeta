@@ -332,10 +332,26 @@ lidar::Scan SimulatedWorld::sampleLidar() {
         return scan;
     }
 
+    // Broad phase: a scan only sees obstacles inside its range square, so
+    // filter once per scan instead of testing every wall on every beam. On a
+    // whole-park obstacle set this is the difference between a demo that runs
+    // and one that does not.
     std::vector<geometry::Segment2> segments;
     segments.reserve(obstacles_.size());
+    const double reach = profile.max_range_m;
+    const double min_x = truth_pose_.x - reach;
+    const double max_x = truth_pose_.x + reach;
+    const double min_y = truth_pose_.y - reach;
+    const double max_y = truth_pose_.y + reach;
     for (const auto& obstacle : obstacles_) {
-        segments.push_back(obstacle.segment);
+        const auto& segment = obstacle.segment;
+        if (std::max(segment.from.x, segment.to.x) < min_x ||
+            std::min(segment.from.x, segment.to.x) > max_x ||
+            std::max(segment.from.y, segment.to.y) < min_y ||
+            std::min(segment.from.y, segment.to.y) > max_y) {
+            continue;
+        }
+        segments.push_back(segment);
     }
 
     const double span = profile.field_of_view_deg;
@@ -345,8 +361,9 @@ lidar::Scan SimulatedWorld::sampleLidar() {
     const Vector2 origin{truth_pose_.x, truth_pose_.y};
     scan.points.reserve(profile.sample_count);
     for (std::size_t index = 0; index < profile.sample_count; ++index) {
-        // Angles are robot-relative: 0 straight ahead, positive to the left,
-        // matching the hardware scanners' convention.
+        // Robot-relative angles: 0 straight ahead, positive clockwise (to the
+        // robot's right). This is the convention the hardware parsers and
+        // obstacle_detection::fromLidar() already use.
         const double angle_deg = -span / 2.0 + step * static_cast<double>(index);
         lidar::ScanPoint point;
         point.angle_deg = angle_deg;
@@ -359,7 +376,7 @@ lidar::Scan SimulatedWorld::sampleLidar() {
             continue;
         }
 
-        const double world_angle = truth_pose_.heading + angle_deg * kPi / 180.0;
+        const double world_angle = truth_pose_.heading - angle_deg * kPi / 180.0;
         const auto hit = geometry::castRay(origin, world_angle, segments, profile.max_range_m);
         if (hit.hit) {
             double range = hit.distance_m + noise_.gaussian(0.0, profile.range_noise_stddev_m);
@@ -529,9 +546,51 @@ std::vector<Obstacle> obstaclesFromGraphEdges(
         }
         const double nx = -dy / length * corridor_half_width_m;
         const double ny = dx / length * corridor_half_width_m;
-        obstacles.push_back({{{from.x + nx, from.y + ny}, {to.x + nx, to.y + ny}}, edge.way_id});
-        obstacles.push_back({{{from.x - nx, from.y - ny}, {to.x - nx, to.y - ny}}, edge.way_id});
+        // Stop each wall short of both endpoints. Without the gap the walls of
+        // a crossing path would seal the junction and the robot could never
+        // turn through it - the same reason a real hedge stops at a crossing.
+        const double trim = std::min(corridor_half_width_m, length / 3.0);
+        const double tx = dx / length * trim;
+        const double ty = dy / length * trim;
+        const Vector2 begin{from.x + tx, from.y + ty};
+        const Vector2 end{to.x - tx, to.y - ty};
+        obstacles.push_back({{{begin.x + nx, begin.y + ny}, {end.x + nx, end.y + ny}}, edge.way_id});
+        obstacles.push_back({{{begin.x - nx, begin.y - ny}, {end.x - nx, end.y - ny}}, edge.way_id});
     }
+    return obstacles;
+}
+
+std::vector<Obstacle> removeObstaclesNearRoute(
+    std::vector<Obstacle> obstacles,
+    const GeoCoordinate& origin,
+    const std::vector<GeoCoordinate>& route,
+    double clearance_m) {
+    if (route.size() < 2 || !(clearance_m > 0.0)) {
+        return obstacles;
+    }
+
+    std::vector<Vector2> line;
+    line.reserve(route.size());
+    for (const auto& point : route) {
+        line.push_back(geodesy::toLocalXy(origin, point));
+    }
+
+    const auto too_close = [&](const Obstacle& obstacle) {
+        // Sampling the wall at its ends and middle is enough: walls are short
+        // compared with the route's own point spacing.
+        const Vector2 middle{
+            (obstacle.segment.from.x + obstacle.segment.to.x) / 2.0,
+            (obstacle.segment.from.y + obstacle.segment.to.y) / 2.0};
+        for (const auto& probe : {obstacle.segment.from, middle, obstacle.segment.to}) {
+            if (geometry::distanceToPolyline(probe, line) < clearance_m) {
+                return true;
+            }
+        }
+        return false;
+    };
+
+    obstacles.erase(
+        std::remove_if(obstacles.begin(), obstacles.end(), too_close), obstacles.end());
     return obstacles;
 }
 

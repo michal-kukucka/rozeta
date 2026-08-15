@@ -20,6 +20,7 @@ set(ROZETA_EXAMPLES
     hardware_smoke_matrix
     field_operator_wizard
     buchlovice_telemetry_converter
+    robot_simulator
 )
 set(ROZETA_HARDWARE_OPTIONAL_EXAMPLES)
 if(ROZETA_WITH_SERIAL_MOTORS)
@@ -37,6 +38,11 @@ foreach(example ${ROZETA_EXAMPLES})
   target_link_libraries(${example} PRIVATE rozeta_static)
   rozeta_apply_warnings(${example})
 endforeach()
+
+# The simulator ships with the repository's own datasets; the path is a build
+# time default that --catalog can always override.
+target_compile_definitions(robot_simulator
+    PRIVATE ROZETA_DEFAULT_MAP_CATALOG="${CMAKE_SOURCE_DIR}/data/maps/maps.json")
 
 add_executable(c_api_smoke c_api_smoke.c)
 target_link_libraries(c_api_smoke PRIVATE rozeta_static)

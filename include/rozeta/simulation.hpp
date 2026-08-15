@@ -112,6 +112,10 @@ struct ImuNoiseProfile {
 };
 
 /// Simulated LiDAR geometry and noise.
+///
+/// Scan angles are robot-relative and grow clockwise (0 straight ahead,
+/// positive to the right), matching the hardware parsers and
+/// obstacle_detection::fromLidar().
 struct LidarProfile {
     /// Total field of view in degrees, centred on the robot's forward axis.
     double field_of_view_deg{180.0};
@@ -294,9 +298,22 @@ private:
 
 /// Turns a loaded map graph into obstacle walls offset from the path centre
 /// lines, which gives the simulated LiDAR something to see along a route.
+/// Walls stop short of the path endpoints so junctions stay drivable.
 ROZETA_API std::vector<Obstacle> obstaclesFromGraphEdges(
     const maps::FootwayGraph& graph,
     const GeoCoordinate& origin,
     double corridor_half_width_m);
+
+/// Drops walls lying within \p clearance_m of \p route.
+///
+/// Generated walls know nothing about which paths cross: on a dense network the
+/// wall of a neighbouring path can end up straight across a planned route.
+/// Filtering keeps a route the planner already declared drivable drivable,
+/// while everything beside it still shows up on the LiDAR.
+ROZETA_API std::vector<Obstacle> removeObstaclesNearRoute(
+    std::vector<Obstacle> obstacles,
+    const GeoCoordinate& origin,
+    const std::vector<GeoCoordinate>& route,
+    double clearance_m);
 
 } // namespace rozeta::simulation

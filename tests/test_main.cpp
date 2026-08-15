@@ -85,6 +85,7 @@ void test_kinematics_turning_in_place_detection_and_motor_commands();
 void test_map_graph_snaps_onto_segment_not_only_vertices();
 void test_map_graph_snap_rejects_far_and_invalid_points();
 void test_map_graph_index_matches_brute_force_snap();
+void test_map_graph_index_rejects_far_away_points_quickly();
 void test_map_graph_validate_reports_components_and_length();
 void test_map_graph_astar_matches_dijkstra();
 void test_map_graph_astar_rejects_invalid_and_unreachable_vertices();
@@ -122,6 +123,12 @@ void test_scenario_autonomous_run_survives_gps_noise_and_dropouts();
 void test_scenario_autonomous_run_is_reproducible_for_a_seed();
 void test_scenario_multiple_routes_over_the_city_park_dataset();
 void test_scenario_lidar_equipped_run_sees_corridor_walls();
+void test_ui_scene_bounds_cover_every_layer();
+void test_ui_scene_svg_draws_every_layer();
+void test_ui_scene_svg_handles_empty_and_invalid_input();
+void test_ui_scene_svg_honours_style();
+void test_scenario_blocked_route_stops_the_robot();
+void test_scenario_route_clearance_filter_keeps_the_planned_line_open();
 void test_scenario_unreachable_destination_is_reported_not_driven();
 void test_maps_nearest_path_index_selects_closest_path();
 void test_maps_nearest_path_index_empty_map_returns_invalid_index();
@@ -397,6 +404,7 @@ int main(){
         {"map_graph_snap_segment", test_map_graph_snaps_onto_segment_not_only_vertices},
         {"map_graph_snap_rejects", test_map_graph_snap_rejects_far_and_invalid_points},
         {"map_graph_index", test_map_graph_index_matches_brute_force_snap},
+        {"map_graph_index_far", test_map_graph_index_rejects_far_away_points_quickly},
         {"map_graph_validate", test_map_graph_validate_reports_components_and_length},
         {"map_graph_astar", test_map_graph_astar_matches_dijkstra},
         {"map_graph_astar_invalid", test_map_graph_astar_rejects_invalid_and_unreachable_vertices},
@@ -434,6 +442,12 @@ int main(){
         {"scenario_reproducible_run", test_scenario_autonomous_run_is_reproducible_for_a_seed},
         {"scenario_multiple_routes", test_scenario_multiple_routes_over_the_city_park_dataset},
         {"scenario_lidar_run", test_scenario_lidar_equipped_run_sees_corridor_walls},
+        {"ui_scene_bounds", test_ui_scene_bounds_cover_every_layer},
+        {"ui_scene_svg_layers", test_ui_scene_svg_draws_every_layer},
+        {"ui_scene_svg_invalid", test_ui_scene_svg_handles_empty_and_invalid_input},
+        {"ui_scene_svg_style", test_ui_scene_svg_honours_style},
+        {"scenario_blocked_route", test_scenario_blocked_route_stops_the_robot},
+        {"scenario_route_clearance", test_scenario_route_clearance_filter_keeps_the_planned_line_open},
         {"scenario_unreachable", test_scenario_unreachable_destination_is_reported_not_driven},
         {"maps_nearest_path", test_maps_nearest_path_index_selects_closest_path},
         {"maps_empty_index", test_maps_nearest_path_index_empty_map_returns_invalid_index},

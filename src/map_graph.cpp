@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <cmath>
 #include <cstddef>
+#include <cstdlib>
 #include <limits>
 #include <map>
 #include <queue>
@@ -138,6 +139,9 @@ struct FootwayGraphIndex::Impl {
     std::map<GridKey, std::vector<std::size_t>> cells{};
     double cell_size_deg{kMinGridCellDegrees};
     double meters_per_cell{kGridCellMeters};
+    geodesy::GeoBounds bounds{};
+    GridKey min_cell{};
+    GridKey max_cell{};
 
     GridKey cellOf(double latitude, double longitude) const {
         return {
@@ -158,7 +162,7 @@ struct FootwayGraphIndex::Impl {
         for (const auto& vertex : graph.vertices) {
             coordinates.push_back(vertex.coordinate);
         }
-        const auto bounds = geodesy::boundsOf(coordinates);
+        bounds = geodesy::boundsOf(coordinates);
         const double reference_latitude = bounds.valid ? bounds.min.latitude : 0.0;
         const auto scale = geodesy::metersPerDegree(reference_latitude);
         cell_size_deg = std::max(kGridCellMeters / scale.latitude, kMinGridCellDegrees);
@@ -183,6 +187,22 @@ struct FootwayGraphIndex::Impl {
                 }
             }
         }
+
+        if (bounds.valid) {
+            min_cell = cellOf(bounds.min.latitude, bounds.min.longitude);
+            max_cell = cellOf(bounds.max.latitude, bounds.max.longitude);
+        }
+    }
+
+    /// Rings beyond this can no longer reach an occupied cell, so the search
+    /// must stop: without it a query far outside the map would expand one cell
+    /// at a time across the whole distance.
+    long long maxUsefulRadius(const GridKey& base) const {
+        const long long rows = std::max(
+            std::llabs(base.row - min_cell.row), std::llabs(base.row - max_cell.row));
+        const long long columns = std::max(
+            std::llabs(base.column - min_cell.column), std::llabs(base.column - max_cell.column));
+        return std::max(rows, columns) + 1;
     }
 
     GraphSnapResult snap(const GeoCoordinate& point, double max_distance_m) const {
@@ -197,7 +217,22 @@ struct FootwayGraphIndex::Impl {
             return vertex_snap;
         }
 
+        // Cheap rejection first: a point beyond the map's own extent plus the
+        // allowed snap distance can never produce a hit.
+        if (bounds.valid && std::isfinite(max_distance_m)) {
+            const auto scale = geodesy::metersPerDegree(point.latitude);
+            const double margin_lat = max_distance_m / scale.latitude;
+            const double margin_lon = max_distance_m / scale.longitude;
+            if (point.latitude < bounds.min.latitude - margin_lat ||
+                point.latitude > bounds.max.latitude + margin_lat ||
+                point.longitude < bounds.min.longitude - margin_lon ||
+                point.longitude > bounds.max.longitude + margin_lon) {
+                return {};
+            }
+        }
+
         const GridKey base = cellOf(point.latitude, point.longitude);
+        const long long max_radius = maxUsefulRadius(base);
         GraphSnapResult best;
         best.distance_m = std::numeric_limits<double>::infinity();
         std::vector<bool> checked(edges.size(), false);
@@ -236,10 +271,7 @@ struct FootwayGraphIndex::Impl {
             if (best.valid && best.distance_m <= ring_m) {
                 break;
             }
-            if (checked_count >= edges.size()) {
-                break;
-            }
-            if (ring_m > 1e7) {
+            if (checked_count >= edges.size() || radius >= max_radius) {
                 break;
             }
         }
