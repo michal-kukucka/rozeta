@@ -398,6 +398,50 @@ void test_simulated_lidar_profile_field_of_view_and_noise() {
     REQUIRE_TRUE(!scanner.readScan().points[0].valid);
 }
 
+void test_simulated_lidar_sees_circular_obstacles() {
+    auto config = noiselessConfig();
+    config.lidar.field_of_view_deg = 180.0;
+    config.lidar.sample_count = 181;
+    config.lidar.max_range_m = 20.0;
+    SimulatedWorld world(config);
+    SimulatedLidar scanner(world);
+    world.placeAt({0.0, 0.0, 0.0});
+    REQUIRE_TRUE(scanner.initialize("").ok());
+    REQUIRE_TRUE(scanner.start().ok());
+
+    // A tree trunk 10 m straight ahead, 0.5 m across.
+    world.addCircularObstacle({10.0, 0.0}, 0.25, "tree");
+    REQUIRE_TRUE(world.circularObstacles().size() == 1);
+    auto scan = scanner.readScan();
+    REQUIRE_TRUE(scan.points[90].valid);
+    REQUIRE_NEAR(scan.points[90].distance_m, 9.75, 1e-6); // the near face
+
+    // The trunk is narrow, so only the beams that actually cross it return.
+    std::size_t hits = 0;
+    for (const auto& point : scan.points) {
+        if (point.valid) {
+            ++hits;
+        }
+    }
+    REQUIRE_TRUE(hits >= 1 && hits <= 5);
+
+    // The closest of a wall and a trunk on the same bearing wins.
+    world.addObstacle({{{5.0, -3.0}, {5.0, 3.0}}, "wall"});
+    scan = scanner.readScan();
+    REQUIRE_NEAR(scan.points[90].distance_m, 5.0, 1e-6);
+
+    // Invalid circles are rejected, and clearing removes both kinds.
+    world.addCircularObstacle({1.0, 0.0}, 0.0, "bad");
+    world.addCircularObstacle({std::nan(""), 0.0}, 1.0, "bad");
+    REQUIRE_TRUE(world.circularObstacles().size() == 1);
+    world.clearObstacles();
+    REQUIRE_TRUE(world.circularObstacles().empty());
+    REQUIRE_TRUE(world.obstacles().empty());
+    for (const auto& point : scanner.readScan().points) {
+        REQUIRE_TRUE(!point.valid);
+    }
+}
+
 void test_simulation_obstacles_from_graph_edges_line_a_corridor() {
     maps::FootwayGraph graph;
     graph.vertices.push_back({"a", geodesy::offsetMeters(kOrigin, 0.0, 0.0)});

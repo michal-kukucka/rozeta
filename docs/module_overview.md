@@ -85,7 +85,7 @@ M10 — Obstacle wait and bypass behavior adds `obstacle_behavior::ObstacleBehav
 
 ## Geometry
 
-`geometry` holds the planar helpers shared by map snapping, route following and the simulated LiDAR: `projectPointOnSegment`, `distanceToPolyline`, `polylineLength`, `pointInPolygon`, `boundsOf` and the ray casters `intersectRaySegment`, `castRay` and `intersectRayCircle`. Everything works in a right-handed metric frame (x east, y north, angles counterclockwise from +x), the same convention `Pose2D` uses. Non-finite input is rejected rather than propagated.
+`geometry` holds the planar helpers shared by map snapping, route following and the simulated LiDAR: `projectPointOnSegment`, `distanceToPolyline`, `polylineLength`, `pointInPolygon`, `boundsOf`/`boundsContain` and the ray casters `intersectRaySegment`, `castRay` and `intersectRayCircle`. Everything works in a right-handed metric frame (x east, y north, angles counterclockwise from +x), the same convention `Pose2D` uses. Non-finite input is rejected rather than propagated.
 
 ## Geodesy
 
@@ -157,7 +157,7 @@ M15 — Configuration schema and field presets for robotour_config. `robotour_co
 
 ## Simulation
 
-`simulation` implements the same interfaces the hardware backends do, so navigation code cannot tell the two apart: `SimulatedDrive` is a `motors::MotorController`, `SimulatedGps` a `gps::GpsReceiver`, `SimulatedImu` an `imu::ImuSensor` and `SimulatedLidar` a `lidar::LidarScanner`. `SimulatedWorld` owns the ground-truth pose and advances only when the caller steps it - no threads, no clock - so a run is reproducible from its seed alone through `DeterministicNoise`. Sensors expose measured values only: Gaussian GPS noise with a bounded bias walk, dropouts and a course that disappears when the robot stops; a ray-cast LiDAR with configurable field of view, sample count, range and noise; and an IMU heading with bias and drift, which is what lets a skid-steer robot keep steering while it turns on the spot. `obstaclesFromGraphEdges` turns a map graph into corridor walls and `removeObstaclesNearRoute` keeps a planned line clear of them. See `docs/simulator.md`.
+`simulation` implements the same interfaces the hardware backends do, so navigation code cannot tell the two apart: `SimulatedDrive` is a `motors::MotorController`, `SimulatedGps` a `gps::GpsReceiver`, `SimulatedImu` an `imu::ImuSensor` and `SimulatedLidar` a `lidar::LidarScanner`. `SimulatedWorld` owns the ground-truth pose and advances only when the caller steps it - no threads, no clock - so a run is reproducible from its seed alone through `DeterministicNoise`. Sensors expose measured values only: Gaussian GPS noise with a bounded bias walk, dropouts and a course that disappears when the robot stops; a ray-cast LiDAR with configurable field of view, sample count, range and noise; and an IMU heading with bias and drift, which is what lets a skid-steer robot keep steering while it turns on the spot. Obstacles are wall segments or round `CircularObstacle` trunks; `obstaclesFromGraphEdges` turns a map graph into corridor walls and `removeObstaclesNearRoute` keeps a planned line clear of them. See `docs/simulator.md`.
 
 ## UI
 

@@ -74,10 +74,6 @@ void test_geometry_bounds() {
     REQUIRE_TRUE(!boundsContain(bounds, {10.0, 0.0}));
     REQUIRE_TRUE(boundsContain(bounds, {5.0, 0.0}, 1.5));
 
-    const auto expanded = expandBounds(bounds, 2.0);
-    REQUIRE_NEAR(expanded.min.x, -5.0, 1e-12);
-    REQUIRE_NEAR(expanded.max.y, 9.0, 1e-12);
-
     REQUIRE_TRUE(!boundsOf({}).valid);
     REQUIRE_TRUE(!boundsContain(Bounds2{}, {0.0, 0.0}));
 }

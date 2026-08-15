@@ -23,10 +23,6 @@ double cross(const Vector2& a, const Vector2& b) {
     return a.x * b.y - a.y * b.x;
 }
 
-double length(const Vector2& value) {
-    return std::sqrt(value.x * value.x + value.y * value.y);
-}
-
 Vector2 lerp(const Vector2& a, const Vector2& b, double t) {
     return {a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t};
 }
@@ -134,18 +130,6 @@ bool boundsContain(const Bounds2& bounds, const Vector2& point, double margin_m)
     }
     return point.x >= bounds.min.x - margin_m && point.x <= bounds.max.x + margin_m &&
         point.y >= bounds.min.y - margin_m && point.y <= bounds.max.y + margin_m;
-}
-
-Bounds2 expandBounds(const Bounds2& bounds, double margin_m) {
-    if (!bounds.valid) {
-        return bounds;
-    }
-    Bounds2 expanded = bounds;
-    expanded.min.x -= margin_m;
-    expanded.min.y -= margin_m;
-    expanded.max.x += margin_m;
-    expanded.max.y += margin_m;
-    return expanded;
 }
 
 RayHit intersectRaySegment(

@@ -68,6 +68,14 @@ struct Obstacle {
     std::string label{};
 };
 
+/// A round obstacle: a tree, a bollard, a lamp post. Kept separate from walls
+/// so the ray caster can use the cheaper circle intersection for it.
+struct CircularObstacle {
+    Vector2 center{};
+    double radius_m{0.0};
+    std::string label{};
+};
+
 /// Chassis, sensor mounting and noise settings of a simulated robot.
 struct RobotProfile {
     kinematics::SkidSteerConfig chassis{};
@@ -248,8 +256,11 @@ public:
     void addBoxObstacle(const Vector2& center, double width_m, double height_m, std::string label = {});
     /// Adds walls along a polyline, e.g. a hedge or a fence beside a path.
     void addWallChain(const std::vector<Vector2>& points, std::string label = {});
+    /// Adds a round obstacle, e.g. a tree trunk or a bollard.
+    void addCircularObstacle(const Vector2& center, double radius_m, std::string label = {});
     void clearObstacles();
     const std::vector<Obstacle>& obstacles() const { return obstacles_; }
+    const std::vector<CircularObstacle>& circularObstacles() const { return circles_; }
 
     /// Advances the world by \p dt_s using the currently commanded speeds.
     Status step(double dt_s);
@@ -281,6 +292,7 @@ public:
 private:
     WorldConfig config_{};
     std::vector<Obstacle> obstacles_{};
+    std::vector<CircularObstacle> circles_{};
     Pose2D truth_pose_{};
     kinematics::WheelSpeeds commanded_{};
     kinematics::Twist2D twist_{};

@@ -174,8 +174,19 @@ void SimulatedWorld::addWallChain(const std::vector<Vector2>& points, std::strin
     }
 }
 
+void SimulatedWorld::addCircularObstacle(
+    const Vector2& center,
+    double radius_m,
+    std::string label) {
+    if (!(radius_m > 0.0) || !std::isfinite(center.x) || !std::isfinite(center.y)) {
+        return;
+    }
+    circles_.push_back({center, radius_m, std::move(label)});
+}
+
 void SimulatedWorld::clearObstacles() {
     obstacles_.clear();
+    circles_.clear();
 }
 
 Status SimulatedWorld::commandWheels(const kinematics::WheelSpeeds& speeds) {
@@ -377,7 +388,14 @@ lidar::Scan SimulatedWorld::sampleLidar() {
         }
 
         const double world_angle = truth_pose_.heading - angle_deg * kPi / 180.0;
-        const auto hit = geometry::castRay(origin, world_angle, segments, profile.max_range_m);
+        auto hit = geometry::castRay(origin, world_angle, segments, profile.max_range_m);
+        for (const auto& circle : circles_) {
+            const auto round_hit = geometry::intersectRayCircle(
+                origin, world_angle, circle.center, circle.radius_m, profile.max_range_m);
+            if (round_hit.hit && (!hit.hit || round_hit.distance_m < hit.distance_m)) {
+                hit = round_hit;
+            }
+        }
         if (hit.hit) {
             double range = hit.distance_m + noise_.gaussian(0.0, profile.range_noise_stddev_m);
             range = std::max(0.0, range);

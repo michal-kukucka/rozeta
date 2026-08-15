@@ -1,5 +1,8 @@
 #include <rozeta/maps.hpp>
 
+#include <rozeta/geodesy.hpp>
+#include <rozeta/geometry.hpp>
+
 #include <algorithm>
 #include <cerrno>
 #include <cctype>
@@ -982,33 +985,27 @@ GeofenceResult checkGeofence(
     }
 
     const GeoCoordinate origin = geofence.vertices.front();
-    const auto point = geoToLocal(origin, current_position);
-    bool inside = false;
-    constexpr double boundary_epsilon_m = 0.05;
-
-    for (std::size_t index = 0, previous = geofence.vertices.size() - 1;
-         index < geofence.vertices.size();
-         previous = index++) {
-        const auto a = geoToLocal(origin, geofence.vertices[previous]);
-        const auto b = geoToLocal(origin, geofence.vertices[index]);
-        if (distanceToLocalSegmentHorizontalMeters(point, a, b) <= boundary_epsilon_m) {
-            result.inside = true;
-            result.violation = false;
-            return result;
-        }
-
-        const bool crosses = (a.y > point.y) != (b.y > point.y);
-        if (crosses) {
-            const double x_at_y =
-                (b.x - a.x) * (point.y - a.y) / (b.y - a.y) + a.x;
-            if (point.x < x_at_y) {
-                inside = !inside;
-            }
-        }
+    const Vector2 point = geodesy::toLocalXy(origin, current_position);
+    std::vector<Vector2> polygon;
+    polygon.reserve(geofence.vertices.size());
+    for (const auto& vertex : geofence.vertices) {
+        polygon.push_back(geodesy::toLocalXy(origin, vertex));
     }
 
-    result.inside = inside;
-    result.violation = !inside;
+    // A position sitting exactly on the fence line counts as inside: the
+    // even-odd test alone would decide it by floating-point luck. The ring is
+    // closed for the distance check so the last edge is covered too.
+    constexpr double boundary_epsilon_m = 0.05;
+    std::vector<Vector2> ring = polygon;
+    ring.push_back(polygon.front());
+    if (geometry::distanceToPolyline(point, ring) <= boundary_epsilon_m) {
+        result.inside = true;
+        result.violation = false;
+        return result;
+    }
+
+    result.inside = geometry::pointInPolygon(point, polygon);
+    result.violation = !result.inside;
     return result;
 }
 

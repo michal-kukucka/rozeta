@@ -43,7 +43,6 @@ struct RayHit {
 
 ROZETA_API double dot(const Vector2& a, const Vector2& b);
 ROZETA_API double cross(const Vector2& a, const Vector2& b);
-ROZETA_API double length(const Vector2& value);
 ROZETA_API Vector2 lerp(const Vector2& a, const Vector2& b, double t);
 
 /// Projects \p point onto segment \p from -> \p to. A zero-length segment
@@ -67,7 +66,6 @@ ROZETA_API bool pointInPolygon(const Vector2& point, const std::vector<Vector2>&
 
 ROZETA_API Bounds2 boundsOf(const std::vector<Vector2>& points);
 ROZETA_API bool boundsContain(const Bounds2& bounds, const Vector2& point, double margin_m = 0.0);
-ROZETA_API Bounds2 expandBounds(const Bounds2& bounds, double margin_m);
 
 /// Casts a ray from \p origin along \p direction_rad against one segment.
 /// Hits behind the origin or beyond \p max_distance_m are rejected.

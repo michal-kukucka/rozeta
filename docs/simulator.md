@@ -199,7 +199,8 @@ Beams are cast with 2D ray/segment intersection against the world's obstacle
 segments. Angles are robot-relative and grow **clockwise** (0 straight ahead,
 positive to the right), matching the hardware parsers and
 `obstacle_detection::fromLidar`. A beam that hits nothing, or lands outside the
-range window, is reported invalid rather than clamped.
+range window, is reported invalid rather than clamped. Walls and round
+obstacles are both tested; the closest hit wins.
 
 ### Obstacles
 
@@ -207,7 +208,11 @@ range window, is reported invalid rather than clamped.
 world.addObstacle({{{5.0, -3.0}, {5.0, 3.0}}, "wall"});
 world.addBoxObstacle({10.0, 0.0}, 4.0, 4.0, "shed");
 world.addWallChain({{0.0, 5.0}, {10.0, 5.0}, {20.0, 5.0}}, "hedge");
+world.addCircularObstacle({12.0, 1.5}, 0.25, "tree");
 ```
+
+Round obstacles — trees, bollards, lamp posts — are kept separate from walls so
+the ray caster can use the cheaper circle intersection for them.
 
 `obstaclesFromGraphEdges(graph, origin, half_width)` turns a whole path network
 into corridor walls, which gives the LiDAR something to see along any route.

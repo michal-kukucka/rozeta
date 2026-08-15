@@ -104,6 +104,7 @@ void test_simulated_gps_is_reproducible_and_supports_dropouts();
 void test_simulated_gps_bias_walk_stays_bounded();
 void test_simulated_lidar_ray_casts_obstacles();
 void test_simulated_lidar_profile_field_of_view_and_noise();
+void test_simulated_lidar_sees_circular_obstacles();
 void test_simulation_obstacles_from_graph_edges_line_a_corridor();
 void test_simulation_world_helpers_and_state_snapshot();
 void test_geo_navigation_phase_names();
@@ -423,6 +424,7 @@ int main(){
         {"simulated_gps_bias", test_simulated_gps_bias_walk_stays_bounded},
         {"simulated_lidar_raycast", test_simulated_lidar_ray_casts_obstacles},
         {"simulated_lidar_profile", test_simulated_lidar_profile_field_of_view_and_noise},
+        {"simulated_lidar_circles", test_simulated_lidar_sees_circular_obstacles},
         {"simulation_graph_obstacles", test_simulation_obstacles_from_graph_edges_line_a_corridor},
         {"simulation_world_state", test_simulation_world_helpers_and_state_snapshot},
         {"geo_navigation_phases", test_geo_navigation_phase_names},
