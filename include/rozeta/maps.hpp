@@ -1,8 +1,11 @@
 #pragma once
 
 #include <rozeta/core.hpp>
+#include <rozeta/export.h>
+#include <rozeta/geodesy.hpp>
 
 #include <cstddef>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -179,15 +182,178 @@ public:
     MapLoadResult loadDetailed(const std::string& path) const;
 };
 
-class BuchloviceFootwayGraphLoader final {
+/// Loads a navigable graph from the way-node CSV format
+/// (`way_id,point_index,lat,lon`, one row per point of an OpenStreetMap way).
+/// Consecutive points of a way become an undirected edge weighted by distance;
+/// points that share coordinates collapse into one vertex, which is what keeps
+/// junctions between ways connected.
+class FootwayCsvGraphLoader final {
 public:
     GraphLoadResult loadDetailed(const std::string& path) const;
 };
+
+/// Deprecated spelling of FootwayCsvGraphLoader, kept so existing callers keep
+/// compiling. The loader was never Buchlovice-specific.
+using BuchloviceFootwayGraphLoader = FootwayCsvGraphLoader;
 
 class OsmFootwayGraphLoader final {
 public:
     GraphLoadResult loadDetailed(const std::string& path) const;
 };
+
+/// Result of snapping a geographic point onto the navigable network.
+struct GraphSnapResult {
+    bool valid{false};
+    GeoCoordinate point{};       ///< Projected position on the network.
+    double distance_m{0.0};      ///< Distance from the query point.
+    std::size_t edge_from{kInvalidPathIndex};
+    std::size_t edge_to{kInvalidPathIndex};
+    double t{0.0};               ///< Position along the edge, in [0, 1].
+    std::size_t vertex{kInvalidPathIndex}; ///< Set when the projection landed on an endpoint.
+
+    bool onVertex() const { return vertex != kInvalidPathIndex; }
+};
+
+/// Connectivity summary of a loaded graph.
+struct GraphStats {
+    std::size_t vertices{0};
+    std::size_t edges{0};
+    std::size_t components{0};
+    std::size_t largest_component{0};
+    std::size_t isolated_vertices{0};
+    std::size_t zero_length_edges{0};
+    double total_length_m{0.0};
+    geodesy::GeoBounds bounds{};
+
+    /// Share of vertices reachable within the largest connected component.
+    double connectedFraction() const {
+        return vertices == 0 ? 0.0 : static_cast<double>(largest_component) / static_cast<double>(vertices);
+    }
+};
+
+struct RoutePlanConfig {
+    /// A start/goal farther than this from any path is rejected instead of
+    /// silently routed from somewhere else.
+    double snap_max_distance_m{25.0};
+    /// Spacing of the sampled route handed to a follower. <= 0 keeps the raw
+    /// graph nodes.
+    double sample_spacing_m{2.0};
+};
+
+/// Route between two geographic points, snapped onto the network.
+struct RoutePlan {
+    std::vector<GeoCoordinate> points{};  ///< Graph nodes, including the snapped endpoints.
+    std::vector<GeoCoordinate> sampled{}; ///< `points` resampled at sample_spacing_m.
+    double distance_m{0.0};
+    GraphSnapResult start_snap{};
+    GraphSnapResult goal_snap{};
+    Status status{Status::okStatus()};
+
+    bool ok() const { return status.ok(); }
+};
+
+/// Uniform grid over the graph edges, so snapping does not scan every edge.
+/// Build it once per map; snap() is const and safe to share between readers.
+class ROZETA_API FootwayGraphIndex {
+public:
+    FootwayGraphIndex();
+    explicit FootwayGraphIndex(FootwayGraph graph);
+    ~FootwayGraphIndex();
+
+    FootwayGraphIndex(const FootwayGraphIndex&) = delete;
+    FootwayGraphIndex& operator=(const FootwayGraphIndex&) = delete;
+    FootwayGraphIndex(FootwayGraphIndex&&) noexcept;
+    FootwayGraphIndex& operator=(FootwayGraphIndex&&) noexcept;
+
+    void build(FootwayGraph graph);
+    const FootwayGraph& graph() const;
+    bool empty() const;
+    std::size_t cellCount() const;
+    /// Nearest position on the network, or an invalid result when nothing is
+    /// within \p max_distance_m.
+    GraphSnapResult snap(const GeoCoordinate& point, double max_distance_m) const;
+
+private:
+    struct Impl;
+    std::unique_ptr<Impl> impl_;
+};
+
+ROZETA_API GraphSnapResult snapToGraph(
+    const FootwayGraph& graph,
+    const GeoCoordinate& point,
+    double max_distance_m);
+ROZETA_API GraphStats validateGraph(const FootwayGraph& graph);
+/// Vertex ids of the largest connected component, ascending.
+ROZETA_API std::vector<std::size_t> largestComponentVertices(const FootwayGraph& graph);
+/// Dijkstra with a great-circle heuristic. Same result as shortestPath() on a
+/// metric graph, usually after visiting far fewer vertices.
+ROZETA_API GraphRouteResult shortestPathAStar(
+    const FootwayGraph& graph,
+    std::size_t start_vertex,
+    std::size_t goal_vertex);
+/// Plans between arbitrary geographic points: both ends are projected onto the
+/// network and joined as temporary vertices, so the route starts and ends where
+/// the caller asked rather than at the nearest junction.
+ROZETA_API RoutePlan planRoute(
+    const FootwayGraph& graph,
+    const GeoCoordinate& start,
+    const GeoCoordinate& goal,
+    const RoutePlanConfig& config = {});
+ROZETA_API RoutePlan planRoute(
+    const FootwayGraphIndex& index,
+    const GeoCoordinate& start,
+    const GeoCoordinate& goal,
+    const RoutePlanConfig& config = {});
+
+/// Licensing information that must travel with a dataset.
+struct MapAttribution {
+    std::string text{};
+    std::string license{};
+    std::string url{};
+};
+
+/// Optional per-map routing and simulation defaults.
+struct MapDefaults {
+    double sample_spacing_m{2.0};
+    double snap_max_distance_m{25.0};
+    double simulation_speed_mps{1.0};
+    bool has_start{false};
+    bool has_goal{false};
+    GeoCoordinate start{};
+    GeoCoordinate goal{};
+};
+
+/// One dataset in a catalog. Nothing here is location-specific: adding an area
+/// means shipping a CSV and one catalog entry.
+struct MapDefinition {
+    std::string id{};
+    std::string display_name{};
+    std::string description{};
+    std::string data_file{}; ///< Resolved against the catalog directory.
+    std::string crs{"EPSG:4326"};
+    MapAttribution attribution{};
+    geodesy::GeoBounds bounds{};
+    MapDefaults defaults{};
+};
+
+struct MapCatalog {
+    std::vector<MapDefinition> maps{};
+    MapAttribution attribution{};
+
+    const MapDefinition* find(const std::string& id) const;
+};
+
+struct MapCatalogResult {
+    MapCatalog catalog{};
+    Status status{Status::okStatus()};
+
+    bool ok() const { return status.ok(); }
+};
+
+/// Reads a JSON map catalog. Relative `data_file` entries are resolved against
+/// the directory holding the catalog, so a catalog plus its datasets can be
+/// copied anywhere as one unit.
+ROZETA_API MapCatalogResult loadMapCatalog(const std::string& path);
 
 std::size_t nearestPathIndex(const OfflineMap& map, const GeoCoordinate& point);
 std::size_t nearestVertexIndex(const FootwayGraph& graph, const GeoCoordinate& point);

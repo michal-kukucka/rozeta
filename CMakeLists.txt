@@ -70,6 +70,9 @@ endif()
 set(ROZETA_SOURCES
     src/c_api.cpp
     src/core.cpp
+    src/geometry.cpp
+    src/geodesy.cpp
+    src/kinematics.cpp
     src/logging.cpp
     src/telemetry.cpp
     src/motors.cpp
@@ -83,6 +86,9 @@ set(ROZETA_SOURCES
     src/perception.cpp
     src/kinect.cpp
     src/maps.cpp
+    src/map_graph.cpp
+    src/map_catalog.cpp
+    src/internal/json_value.cpp
     src/navigation.cpp
     src/runtime.cpp
     src/safety.cpp

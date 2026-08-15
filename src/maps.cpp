@@ -749,7 +749,7 @@ MapLoadResult CsvMapLoader::loadDetailed(const std::string& path) const {
     return parseCsv(input);
 }
 
-GraphLoadResult BuchloviceFootwayGraphLoader::loadDetailed(const std::string& path) const {
+GraphLoadResult FootwayCsvGraphLoader::loadDetailed(const std::string& path) const {
     if (path.empty()) {
         return {{}, Status::error(ErrorCode::InvalidArgument, "footway CSV path is empty")};
     }
@@ -1013,40 +1013,15 @@ GeofenceResult checkGeofence(
 }
 
 double haversineDistance(const GeoCoordinate& a, const GeoCoordinate& b) {
-    if (!isFiniteCoordinate(a) || !isFiniteCoordinate(b)) {
-        return std::numeric_limits<double>::infinity();
-    }
-
-    constexpr double earth_radius_m = 6371000.0;
-    const double lat1 = degreesToRadians(a.latitude);
-    const double lat2 = degreesToRadians(b.latitude);
-    const double delta_lat = degreesToRadians(b.latitude - a.latitude);
-    const double delta_lon = degreesToRadians(b.longitude - a.longitude);
-
-    const double sin_lat = std::sin(delta_lat / 2.0);
-    const double sin_lon = std::sin(delta_lon / 2.0);
-    const double h = sin_lat * sin_lat +
-        std::cos(lat1) * std::cos(lat2) * sin_lon * sin_lon;
-    const double clamped = std::min(1.0, std::max(0.0, h));
-    return 2.0 * earth_radius_m * std::asin(std::sqrt(clamped));
+    return geodesy::haversineDistance(a, b);
 }
 
 double initialBearing(const GeoCoordinate& from, const GeoCoordinate& to) {
-    if (!isFiniteCoordinate(from) || !isFiniteCoordinate(to)) {
-        return std::numeric_limits<double>::quiet_NaN();
-    }
-    return bearingDegreesBetween(from, to);
+    return geodesy::initialBearingDegrees(from, to);
 }
 
 double signedSmallestAngleDifference(double from_deg, double to_deg) {
-    double diff = normalizeBearingDegrees(to_deg) - normalizeBearingDegrees(from_deg);
-    while (diff > 180.0) {
-        diff -= 360.0;
-    }
-    while (diff <= -180.0) {
-        diff += 360.0;
-    }
-    return diff;
+    return geodesy::signedAngleDifferenceDegrees(from_deg, to_deg);
 }
 
 BearingAheadResult bearingToAheadPoint(
