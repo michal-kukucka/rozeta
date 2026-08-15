@@ -1,0 +1,9 @@
+{
+  "maps": [
+    {
+      "id": "inverted",
+      "data_file": "buchlovice_park_footways.csv",
+      "bounds": {"min_lat": 49.5, "min_lon": 17.0, "max_lat": 49.0, "max_lon": 17.1}
+    }
+  ]
+}

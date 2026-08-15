@@ -90,6 +90,8 @@ set(ROZETA_SOURCES
     src/map_catalog.cpp
     src/internal/json_value.cpp
     src/navigation.cpp
+    src/navigation_geo.cpp
+    src/simulation.cpp
     src/runtime.cpp
     src/safety.cpp
     src/field_runner.cpp

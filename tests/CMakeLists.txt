@@ -1,5 +1,12 @@
 add_executable(rozeta_tests
     test_main.cpp
+    test_geometry.cpp
+    test_geodesy.cpp
+    test_kinematics.cpp
+    test_map_graph.cpp
+    test_simulation.cpp
+    test_geo_navigation.cpp
+    test_simulation_scenarios.cpp
     test_gps.cpp
     test_gps_receiver.cpp
     test_network_gps.cpp

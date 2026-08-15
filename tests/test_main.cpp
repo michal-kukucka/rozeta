@@ -59,6 +59,70 @@ void test_hardware_smoke_matrix_fails_closed_without_estop_or_wheel_lift();
 void test_hardware_smoke_matrix_renders_deterministic_operator_plan();
 void test_hardware_smoke_matrix_validates_only_enabled_source_groups();
 void test_hardware_smoke_matrix_rejects_invalid_calibration_and_quotes_commands();
+void test_geometry_projects_point_on_segment();
+void test_geometry_degenerate_segment_projects_to_start();
+void test_geometry_polyline_distance_and_length();
+void test_geometry_point_in_polygon();
+void test_geometry_bounds();
+void test_geometry_ray_hits_and_misses_segment();
+void test_geometry_cast_ray_returns_closest_hit();
+void test_geometry_ray_circle_intersection();
+void test_geometry_rejects_non_finite_input();
+void test_geodesy_haversine_matches_known_distances();
+void test_geodesy_local_round_trip();
+void test_geodesy_bearing_and_heading_conversions();
+void test_geodesy_validates_coordinates();
+void test_geodesy_resamples_polyline_with_exact_endpoints();
+void test_geodesy_bounds_and_interpolation();
+void test_geodesy_meters_per_degree_shrinks_towards_poles();
+void test_kinematics_validates_chassis_config();
+void test_kinematics_tank_mix_counter_rotates_through_turns();
+void test_kinematics_arcade_mix_arcs_and_respects_limit();
+void test_kinematics_mix_clamps_invalid_input();
+void test_kinematics_wheel_speeds_and_twist_round_trip();
+void test_kinematics_integrates_straight_turn_and_spin();
+void test_kinematics_turning_in_place_detection_and_motor_commands();
+void test_map_graph_snaps_onto_segment_not_only_vertices();
+void test_map_graph_snap_rejects_far_and_invalid_points();
+void test_map_graph_index_matches_brute_force_snap();
+void test_map_graph_validate_reports_components_and_length();
+void test_map_graph_astar_matches_dijkstra();
+void test_map_graph_astar_rejects_invalid_and_unreachable_vertices();
+void test_map_graph_plan_route_snaps_both_endpoints();
+void test_map_graph_plan_route_on_one_edge_stays_on_it();
+void test_map_graph_plan_route_reports_unreachable_and_invalid_input();
+void test_map_graph_loads_shipped_openstreetmap_dataset();
+void test_map_catalog_loads_shipped_catalog();
+void test_map_catalog_reports_bad_input();
+void test_simulation_noise_is_deterministic_for_a_seed();
+void test_simulation_world_validates_config();
+void test_simulated_drive_moves_forward_reverse_and_turns_in_place();
+void test_simulated_drive_emergency_stop_and_encoders();
+void test_simulated_gps_reports_measured_position_separate_from_truth();
+void test_simulated_gps_is_reproducible_and_supports_dropouts();
+void test_simulated_gps_bias_walk_stays_bounded();
+void test_simulated_lidar_ray_casts_obstacles();
+void test_simulated_lidar_profile_field_of_view_and_noise();
+void test_simulation_obstacles_from_graph_edges_line_a_corridor();
+void test_simulation_world_helpers_and_state_snapshot();
+void test_geo_navigation_phase_names();
+void test_heading_estimator_needs_real_movement();
+void test_heading_estimator_smoothing_and_course_input();
+void test_geo_navigation_route_helpers();
+void test_geo_follower_rejects_invalid_routes_and_config();
+void test_geo_follower_drives_forward_and_progresses_waypoints();
+void test_geo_follower_turns_in_place_for_large_heading_error();
+void test_geo_follower_detects_goal_and_stays_finished();
+void test_geo_follower_stops_for_obstacles_and_aborts();
+void test_geo_follower_single_point_route_is_immediately_reached();
+void test_scenario_manual_movement_traces_a_square();
+void test_scenario_route_planning_on_shipped_dataset();
+void test_scenario_autonomous_run_reaches_destination();
+void test_scenario_autonomous_run_survives_gps_noise_and_dropouts();
+void test_scenario_autonomous_run_is_reproducible_for_a_seed();
+void test_scenario_multiple_routes_over_the_city_park_dataset();
+void test_scenario_lidar_equipped_run_sees_corridor_walls();
+void test_scenario_unreachable_destination_is_reported_not_driven();
 void test_maps_nearest_path_index_selects_closest_path();
 void test_maps_nearest_path_index_empty_map_returns_invalid_index();
 void test_maps_csv_loader_loads_fixture_route_and_sorts_by_sequence();
@@ -307,6 +371,70 @@ int main(){
         {"hardware_smoke_render", test_hardware_smoke_matrix_renders_deterministic_operator_plan},
         {"hardware_smoke_enabled_sources", test_hardware_smoke_matrix_validates_only_enabled_source_groups},
         {"hardware_smoke_quote", test_hardware_smoke_matrix_rejects_invalid_calibration_and_quotes_commands},
+        {"geometry_project_segment", test_geometry_projects_point_on_segment},
+        {"geometry_degenerate_segment", test_geometry_degenerate_segment_projects_to_start},
+        {"geometry_polyline", test_geometry_polyline_distance_and_length},
+        {"geometry_point_in_polygon", test_geometry_point_in_polygon},
+        {"geometry_bounds", test_geometry_bounds},
+        {"geometry_ray_segment", test_geometry_ray_hits_and_misses_segment},
+        {"geometry_cast_ray", test_geometry_cast_ray_returns_closest_hit},
+        {"geometry_ray_circle", test_geometry_ray_circle_intersection},
+        {"geometry_non_finite", test_geometry_rejects_non_finite_input},
+        {"geodesy_haversine", test_geodesy_haversine_matches_known_distances},
+        {"geodesy_local_round_trip", test_geodesy_local_round_trip},
+        {"geodesy_bearing_heading", test_geodesy_bearing_and_heading_conversions},
+        {"geodesy_valid_coordinate", test_geodesy_validates_coordinates},
+        {"geodesy_resample", test_geodesy_resamples_polyline_with_exact_endpoints},
+        {"geodesy_bounds", test_geodesy_bounds_and_interpolation},
+        {"geodesy_meters_per_degree", test_geodesy_meters_per_degree_shrinks_towards_poles},
+        {"kinematics_config", test_kinematics_validates_chassis_config},
+        {"kinematics_tank_mix", test_kinematics_tank_mix_counter_rotates_through_turns},
+        {"kinematics_arcade_mix", test_kinematics_arcade_mix_arcs_and_respects_limit},
+        {"kinematics_mix_clamp", test_kinematics_mix_clamps_invalid_input},
+        {"kinematics_twist", test_kinematics_wheel_speeds_and_twist_round_trip},
+        {"kinematics_integrate", test_kinematics_integrates_straight_turn_and_spin},
+        {"kinematics_motor_command", test_kinematics_turning_in_place_detection_and_motor_commands},
+        {"map_graph_snap_segment", test_map_graph_snaps_onto_segment_not_only_vertices},
+        {"map_graph_snap_rejects", test_map_graph_snap_rejects_far_and_invalid_points},
+        {"map_graph_index", test_map_graph_index_matches_brute_force_snap},
+        {"map_graph_validate", test_map_graph_validate_reports_components_and_length},
+        {"map_graph_astar", test_map_graph_astar_matches_dijkstra},
+        {"map_graph_astar_invalid", test_map_graph_astar_rejects_invalid_and_unreachable_vertices},
+        {"map_graph_plan_route", test_map_graph_plan_route_snaps_both_endpoints},
+        {"map_graph_plan_same_edge", test_map_graph_plan_route_on_one_edge_stays_on_it},
+        {"map_graph_plan_invalid", test_map_graph_plan_route_reports_unreachable_and_invalid_input},
+        {"map_graph_shipped_dataset", test_map_graph_loads_shipped_openstreetmap_dataset},
+        {"map_catalog_shipped", test_map_catalog_loads_shipped_catalog},
+        {"map_catalog_bad_input", test_map_catalog_reports_bad_input},
+        {"simulation_noise_determinism", test_simulation_noise_is_deterministic_for_a_seed},
+        {"simulation_world_validate", test_simulation_world_validates_config},
+        {"simulated_drive_motion", test_simulated_drive_moves_forward_reverse_and_turns_in_place},
+        {"simulated_drive_estop", test_simulated_drive_emergency_stop_and_encoders},
+        {"simulated_gps_measured", test_simulated_gps_reports_measured_position_separate_from_truth},
+        {"simulated_gps_repeatable", test_simulated_gps_is_reproducible_and_supports_dropouts},
+        {"simulated_gps_bias", test_simulated_gps_bias_walk_stays_bounded},
+        {"simulated_lidar_raycast", test_simulated_lidar_ray_casts_obstacles},
+        {"simulated_lidar_profile", test_simulated_lidar_profile_field_of_view_and_noise},
+        {"simulation_graph_obstacles", test_simulation_obstacles_from_graph_edges_line_a_corridor},
+        {"simulation_world_state", test_simulation_world_helpers_and_state_snapshot},
+        {"geo_navigation_phases", test_geo_navigation_phase_names},
+        {"heading_estimator_movement", test_heading_estimator_needs_real_movement},
+        {"heading_estimator_smoothing", test_heading_estimator_smoothing_and_course_input},
+        {"geo_navigation_helpers", test_geo_navigation_route_helpers},
+        {"geo_follower_invalid", test_geo_follower_rejects_invalid_routes_and_config},
+        {"geo_follower_waypoints", test_geo_follower_drives_forward_and_progresses_waypoints},
+        {"geo_follower_turn_in_place", test_geo_follower_turns_in_place_for_large_heading_error},
+        {"geo_follower_goal", test_geo_follower_detects_goal_and_stays_finished},
+        {"geo_follower_obstacle_abort", test_geo_follower_stops_for_obstacles_and_aborts},
+        {"geo_follower_single_point", test_geo_follower_single_point_route_is_immediately_reached},
+        {"scenario_manual_square", test_scenario_manual_movement_traces_a_square},
+        {"scenario_route_planning", test_scenario_route_planning_on_shipped_dataset},
+        {"scenario_autonomous_run", test_scenario_autonomous_run_reaches_destination},
+        {"scenario_noisy_run", test_scenario_autonomous_run_survives_gps_noise_and_dropouts},
+        {"scenario_reproducible_run", test_scenario_autonomous_run_is_reproducible_for_a_seed},
+        {"scenario_multiple_routes", test_scenario_multiple_routes_over_the_city_park_dataset},
+        {"scenario_lidar_run", test_scenario_lidar_equipped_run_sees_corridor_walls},
+        {"scenario_unreachable", test_scenario_unreachable_destination_is_reported_not_driven},
         {"maps_nearest_path", test_maps_nearest_path_index_selects_closest_path},
         {"maps_empty_index", test_maps_nearest_path_index_empty_map_returns_invalid_index},
         {"maps_csv_fixture", test_maps_csv_loader_loads_fixture_route_and_sorts_by_sequence},

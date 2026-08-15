@@ -1,0 +1,76 @@
+{
+  "_comment": [
+    "Rozeta map catalog. Adding an area means dropping a way-node CSV next to",
+    "this file and adding one entry below -- no library code changes.",
+    "Read with rozeta::maps::loadMapCatalog(); see docs/maps_module.md.",
+    "Map data (c) OpenStreetMap contributors, licensed under the ODbL 1.0:",
+    "https://www.openstreetmap.org/copyright"
+  ],
+  "attribution": {
+    "text": "Map data © OpenStreetMap contributors",
+    "license": "ODbL 1.0",
+    "url": "https://www.openstreetmap.org/copyright"
+  },
+  "maps": [
+    {
+      "id": "castle_park",
+      "display_name": "Castle park (Buchlovice, CZ)",
+      "description": "Small castle park footway network. Compact and fully connected: the default dataset for demos and tests.",
+      "data_file": "buchlovice_park_footways.csv",
+      "crs": "EPSG:4326",
+      "bounds": {
+        "min_lat": 49.0806693,
+        "min_lon": 17.3333068,
+        "max_lat": 49.0867863,
+        "max_lon": 17.3440355
+      },
+      "defaults": {
+        "sample_spacing_m": 2.0,
+        "snap_max_distance_m": 25.0,
+        "simulation_speed_mps": 1.0,
+        "start": [49.0845, 17.3361],
+        "goal": [49.08285, 17.3399]
+      }
+    },
+    {
+      "id": "city_park",
+      "display_name": "City park (Stromovka, Prague, CZ)",
+      "description": "Large urban park: footway, pedestrian and cycleway segments. Exercises routing over a graph an order of magnitude bigger than the castle park.",
+      "data_file": "stromovka_park_footways.csv",
+      "crs": "EPSG:4326",
+      "bounds": {
+        "min_lat": 50.1027791,
+        "min_lon": 14.4040942,
+        "max_lat": 50.110745,
+        "max_lon": 14.4313468
+      },
+      "defaults": {
+        "sample_spacing_m": 2.0,
+        "snap_max_distance_m": 25.0,
+        "simulation_speed_mps": 1.2,
+        "start": [50.1090021, 14.4040942],
+        "goal": [50.1040801, 14.4313468]
+      }
+    },
+    {
+      "id": "village",
+      "display_name": "Village paths (Drietoma, SK)",
+      "description": "Village core: residential streets, tracks and footpaths. Contains disconnected fragments, so it also covers the unreachable-route case.",
+      "data_file": "drietoma_village_paths.csv",
+      "crs": "EPSG:4326",
+      "bounds": {
+        "min_lat": 48.883,
+        "min_lon": 17.942,
+        "max_lat": 48.907,
+        "max_lon": 17.97
+      },
+      "defaults": {
+        "sample_spacing_m": 2.0,
+        "snap_max_distance_m": 25.0,
+        "simulation_speed_mps": 1.0,
+        "start": [48.8914892, 17.9592138],
+        "goal": [48.8962999, 17.9559244]
+      }
+    }
+  ]
+}

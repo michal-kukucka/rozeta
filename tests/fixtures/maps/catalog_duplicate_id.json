@@ -1,0 +1,6 @@
+{
+  "maps": [
+    {"id": "twice", "data_file": "a.csv", "bounds": [49.0, 17.0, 49.1, 17.1]},
+    {"id": "twice", "data_file": "b.csv", "bounds": [49.0, 17.0, 49.1, 17.1]}
+  ]
+}

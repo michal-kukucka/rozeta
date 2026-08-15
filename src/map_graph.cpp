@@ -162,7 +162,10 @@ struct FootwayGraphIndex::Impl {
         const double reference_latitude = bounds.valid ? bounds.min.latitude : 0.0;
         const auto scale = geodesy::metersPerDegree(reference_latitude);
         cell_size_deg = std::max(kGridCellMeters / scale.latitude, kMinGridCellDegrees);
-        meters_per_cell = cell_size_deg * scale.latitude;
+        // Cells are square in degrees but not in meters: a degree of longitude
+        // is shorter away from the equator. The ring-termination bound must use
+        // the narrower axis or the search can stop before the true nearest edge.
+        meters_per_cell = cell_size_deg * std::min(scale.latitude, scale.longitude);
 
         for (std::size_t index = 0; index < edges.size(); ++index) {
             const auto& from = graph.vertices[edges[index].first].coordinate;

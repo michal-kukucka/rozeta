@@ -1,0 +1,9 @@
+{
+  "maps": [
+    {
+      "display_name": "no id here",
+      "data_file": "buchlovice_park_footways.csv",
+      "bounds": [49.0, 17.0, 49.1, 17.1]
+    }
+  ]
+}
