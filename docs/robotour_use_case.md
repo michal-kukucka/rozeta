@@ -79,3 +79,38 @@ It is deterministic from `--seed` and exits non-zero on failure, so route
 following is covered by `ctest` rather than by a field trip. See
 `docs/simulator.md` for the sensor models and for the four lines that swap the
 simulated devices for real ones.
+
+## Running the whole thing from one configuration
+
+`examples/robotour_app.cpp` is the workflow above as a finished application:
+every step on this page — catalog, planning, following, corridor and turn cues,
+obstacle wait/bypass, the E-STOP gate, the `MissionRuntime` phases, the
+`RobotourMission` legs, telemetry — assembled from one `key = value` preset,
+with nothing keyed off a place or a platform.
+
+```bash
+# fully simulated run over Stromovka park in Prague
+./build/examples/robotour_app --preset examples/presets/prague_stromovka.preset
+
+# the transport task: collect, deliver, return
+./build/examples/robotour_app --preset examples/presets/prague_mission.preset
+
+# the field robot, checked without opening a device
+./build/examples/robotour_app --preset examples/presets/buchlovice_field.preset --dry-run
+```
+
+Moving from rehearsal to the field is four preset lines, not a code change:
+
+```ini
+backend.drive    = serial
+backend.position = serial
+motor_device     = /dev/ttyUSB0
+gps_device       = /dev/ttyACM0
+```
+
+`--dry-run` runs `planBuchloviceFieldRunner()` and reports every preflight
+error without constructing a backend or writing a file, so it is the right
+thing to run before a field session on a robot that is not yet powered up;
+`--plan-svg PATH` writes the picture of the planned route when you want one. `--list-keys` prints every
+setting and `--print-config` records exactly what a run was given. Full
+description in `docs/robotour_app.md`.

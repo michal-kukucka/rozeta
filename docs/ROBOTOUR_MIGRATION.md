@@ -219,7 +219,9 @@ sealed junctions (now trimmed short of path endpoints, with
   pre-existing `kinect` module is unchanged.
 - **Tk operator UI, camera preview, gamepad handling, person detection**
   (`robot_app.py`, `demo_run.py`). Application and UI concerns; a library should
-  not own a window toolkit or a model zoo.
+  not own a window toolkit or a model zoo. The *application* that the reference
+  also was is now `examples/robotour_app.cpp` — see "The application layer"
+  below — but it is an example, not a module, and it owns no toolkit either.
 - **Threaded GPS provider with reconnect and backoff.** Rozeta already has
   serial and network receivers; the reference's threading model is an
   application choice, and the library deliberately stays thread-free so callers
@@ -231,6 +233,47 @@ sealed junctions (now trimmed short of path endpoints, with
   library behaviour.
 - **Arduino sketch** (`arduino/mdds30_bridge`). Firmware, not library code;
   Rozeta's Cytron MDDS30 protocol support already targets that bridge.
+
+## The application layer
+
+Excluding the reference's UI left a real gap: the reference was an
+*application*, and reading it as "behaviour that works" produced library
+components with nothing driving them end to end. `robotour_config::FieldPreset`
+and `field_runner` existed but no example used them, so a field configuration
+was reachable only from C++.
+
+`examples/robotour_app.cpp` closes that. It is the counterpart of `robot_app.py`
+built entirely out of the library: preset-driven backend selection, map catalog
+and graph planning, `GeoRouteFollower` with corridor and turn cues, the
+obstacle wait/bypass behaviour, the physical E-STOP gate, the `MissionRuntime`
+phase machine, the `RobotourMission` legs, telemetry and the operator display.
+Full description in `docs/robotour_app.md`.
+
+What was migrated from the reference's configuration model, and what was not:
+
+- **`nav_config.json` becomes a `key = value` preset.** The reference read
+  JSON; Rozeta ships no third-party JSON library and only reads the map catalog
+  as JSON, so the preset uses the same `key = value` format `core::Config`
+  already defines. An unknown key is an error rather than a silent default,
+  which the reference's `dict.get(key, default)` model could not offer.
+- **Coverage is wider, not narrower.** Where the reference exposed navigation,
+  GPS and gamepad settings, the preset also exposes the follower, the heading
+  estimator, the chassis, the obstacle behaviour, module criticality and
+  timeouts, the safety wiring and every simulated sensor error model.
+- **Two layers, one file.** `applyPresetKey()` reports an unknown key instead
+  of throwing, so the application layers its own `app.` keys — output paths,
+  logging, the window — onto the same file without the library knowing about
+  them. A library that owned `app.window` would be the mistake the reference
+  made in the other direction.
+- **The three-mode navigation controller is still not ported.** The reference's
+  off/simulation/live-GPS exclusivity is expressed as four independent backend
+  selections (`backend.drive`, `backend.position`, `backend.heading`,
+  `backend.ranging`), which is strictly more general: a simulated drive with a
+  real network GPS feed is a useful configuration the reference could not name.
+- **`gamepad_*` is still excluded.** Manual driving is an input-device concern,
+  and nothing in the library reads a joystick.
+- **`stromovka_enabled` is still excluded**, and the Stromovka dataset is now
+  simply `map.id = city_park`, which no code branches on.
 
 ## Assumptions
 
@@ -267,11 +310,15 @@ sealed junctions (now trimmed short of path endpoints, with
 - **Wheel-odometry pose fusion in the demo.** `SimulatedDrive` reports encoder
   ticks and `imu::PoseFusion` exists; wiring them together would show
   dead-reckoning through a GPS outage.
-- **A live window.** The SVG view is a snapshot. An optional SDL2/ImGui viewer
-  could animate a run, provided it stays optional and never gates the core
-  build.
 - **OSM PBF loading.** `OsmFootwayGraphLoader` still reports `NotImplemented`
   for `.pbf`.
 - **Route corridor integration.** `maps::checkRouteCorridor` and
-  `maps::junctionCue` predate this work and are not yet wired into
-  `GeoRouteFollower`; the follower computes its own cross-track error.
+  `maps::junctionCue` are still not wired into `GeoRouteFollower`, which
+  computes its own cross-track error. `robotour_app` calls all three and
+  reports them side by side, so the duplication is now visible rather than
+  merely latent; folding the cues into the follower would remove it.
+- **Operator input during a run.** `operator_io` supplies the wizard and the
+  key abstraction, but `robotour_app` runs unattended: the start request and
+  the loading/unloading acknowledgements come from configuration rather than
+  from a person. Wiring `OperatorInput` into the loop would let a real operator
+  hold the countdown and confirm each service point.

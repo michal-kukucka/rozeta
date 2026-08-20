@@ -220,6 +220,72 @@ needs no hardware, no map server and no graphics stack. `--mode manual` drives a
 scripted movement pattern, `--mode plan` reports a route without driving it. See
 `docs/simulator.md`.
 
+Complete configurable Robotour application — every backend, tuning constant and
+output named in a preset file, nothing keyed off a place or a platform:
+
+```bash
+# fully simulated run over Stromovka park in Prague
+./build/examples/robotour_app --preset examples/presets/prague_stromovka.preset
+
+# the Robotour transport task: collect, deliver, return
+./build/examples/robotour_app --preset examples/presets/prague_mission.preset
+
+# a hardware preset, checked without opening a single device
+./build/examples/robotour_app --preset examples/presets/buchlovice_field.preset --dry-run
+```
+
+`robotour_app` assembles the whole library behind its interfaces: map catalog
+and graph planning, `GeoRouteFollower` with corridor and turn cues, mock,
+serial, network or simulated backends, the obstacle wait/bypass behaviour, the
+physical E-STOP gate, the `MissionRuntime` phase machine, the `RobotourMission`
+legs, telemetry and the operator display. Swapping `backend.drive = simulated`
+for `serial` changes no control code.
+
+### Starting it
+
+Configuration resolves in three layers — the built-in base preset, then the
+preset file, then `--set` overrides, which win:
+
+```bash
+# no preset at all: the built-in simulation base over Stromovka
+./build/examples/robotour_app --set app.window=true
+
+# a file, with two keys overridden on top of it
+./build/examples/robotour_app --preset examples/presets/prague_stromovka.preset \
+  --set follower.cruise_speed=0.4 --set sim.gps.dropout_probability=0.2
+```
+
+| flag | effect |
+|------|--------|
+| `--preset PATH` | load a preset file |
+| `--base NAME` | base to start from: `simulation` (default), `buchlovice`, `no_hardware` |
+| `--set KEY=VALUE` | override one key; repeatable, applied last |
+| `--dry-run` | load, plan and report; opens no device and writes no file |
+| `--plan-svg PATH` | write a picture of the planned route |
+| `--print-config` | print the resolved configuration and exit |
+| `--list-keys` | list all 132 keys and exit |
+| `--list-maps` | list the datasets in the catalog |
+| `--help` | usage summary |
+
+**132 keys** in two namespaces: 116 library keys configure the robot — backends,
+devices, map, mission, chassis, follower, guidance, obstacle behaviour, runtime
+health, safety, GPS transports and every simulated sensor error model — and 16
+`app.*` keys configure the application's output, logging and window. An unknown
+key is an error, never a silent default.
+
+`--print-config` writes the resolved configuration in the format it reads, so
+feeding it back in reproduces the run exactly; `app.preset_out=PATH` makes every
+run record itself.
+
+With `app.window = true` the window is an operator console: click to pick a
+start and a destination, `R` to re-plan, `SPACE` for the E-STOP, `P` to pause,
+`M`/`G`/`L`/`C` to connect or disconnect motors, GPS, LiDAR and camera mid-run,
+`1`/`2`/`3` to cycle which backend each one uses, `H` for the key panel.
+
+Full reference — every flag, every key with its default, the operator controls
+and the exit codes: **`docs/robotour_app_parameters.md`**. What the application
+is and how it is assembled: `docs/robotour_app.md`.
+
 Buchlovice graph routing without hardware:
 
 ```bash
@@ -305,6 +371,9 @@ Detailed docs are included in `docs/` and are ready to be reused as a future off
 - `docs/simulator.md` — deterministic simulator, sensor models and how simulated devices are replaced by hardware
 - `docs/ROBOTOUR_MIGRATION.md` — what was migrated from the Robotour Praha reference, what was excluded and why
 - `data/maps/README.md` — shipped map datasets, format, licence and attribution
+- `docs/robotour_app.md` — the configurable Robotour application, its preset format and operator controls
+- `docs/robotour_app_parameters.md` — complete launch reference: 9 flags, 132 keys with defaults, exit codes
+- `examples/robotour_app.cpp` — complete preset-driven Robotour application over the whole library
 - `examples/robot_simulator.cpp` — standalone headless simulator with SVG output
 - `examples/replay_robotour_log.cpp` — fixture-driven telemetry replay demo
 - `examples/replay_ui_snapshots.cpp` — fixture-driven telemetry-to-UI snapshot replay demo
