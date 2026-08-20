@@ -1,0 +1,82 @@
+# Robotour Praha — fully simulated run over Stromovka park.
+#
+#   robotour_app --preset examples/presets/prague_stromovka.preset
+#
+# Everything is simulated, so this preset runs on any machine with no hardware
+# and no network. `--set KEY=VALUE` overrides any line below; `--list-keys`
+# prints every key the application accepts.
+
+name = prague_stromovka
+
+# ── backends ───────────────────────────────────────────────────────
+# Swap any line for `serial` (or `network` for position) and the control loop
+# is unchanged — that is what the interfaces are for.
+backend.drive    = simulated
+backend.position = simulated
+backend.heading  = simulated
+backend.ranging  = simulated
+
+# ── course ─────────────────────────────────────────────────────────
+map.id                  = city_park
+map.snap_max_distance_m = 25
+map.sample_spacing_m    = 2
+# Unset start/goal fall back to the catalog defaults for the dataset.
+# map.start = 50.1090021,14.4040942
+# map.goal  = 50.1040801,14.4313468
+
+# ── chassis ────────────────────────────────────────────────────────
+# Four-wheel skid steer: ~42 cm between the wheel contact lines, 1.2 m/s flat
+# out, and a slip factor because four driven wheels scrub instead of pivoting.
+chassis.track_width_m       = 0.42
+chassis.max_wheel_speed_mps = 1.2
+chassis.turn_slip_factor    = 1.4
+
+# ── route following ────────────────────────────────────────────────
+follower.cruise_speed               = 0.6
+follower.heading_gain               = 1.6
+follower.waypoint_tolerance_m       = 2.5
+follower.goal_tolerance_m           = 3.0
+follower.turn_in_place_threshold_rad = 0.9
+follower.off_route_distance_m       = 8.0
+follower.mix_mode                   = tank
+
+# ── guidance shown to the operator ─────────────────────────────────
+corridor.max_distance_m     = 8.0
+corridor.warning_distance_m = 4.0
+junction.lookahead_m        = 30.0
+junction.turn_threshold_deg = 35.0
+
+# ── obstacles ──────────────────────────────────────────────────────
+# 0 leaves the park empty. Set a half width (2-3 m suits this dataset) to
+# generate walls beside every path for the simulated LiDAR to see.
+sim.corridor_half_width_m   = 0
+detect.obstacle_threshold_m = 1.0
+detect.side_clearance_m     = 0.36
+obstacle.wait_duration_ms   = 3000
+obstacle.max_bypass_attempts = 4
+
+# ── sensor error models ────────────────────────────────────────────
+sim.dt_s                   = 0.2
+sim.seed                   = 20260815
+sim.max_ticks              = 40000
+sim.gps.horizontal_stddev_m = 0.6
+sim.gps.dropout_probability = 0.05
+sim.gps.bias_m              = 1.0
+sim.gps.bias_rate_mps       = 0.05
+sim.gps.course_stddev_deg   = 3.0
+sim.imu.heading_stddev_rad  = 0.02
+sim.imu.heading_bias_rad    = 0.01
+sim.lidar.sample_count      = 91
+sim.lidar.max_range_m       = 12.0
+
+# ── safety ─────────────────────────────────────────────────────────
+# Nothing physical can move, so no E-STOP is demanded. A hardware preset must
+# set safety.physical_estop_device instead of clearing this.
+safety.physical_estop_required = false
+
+# ── output ─────────────────────────────────────────────────────────
+app.log_every = 500
+app.svg       = prague_stromovka.svg
+# app.telemetry_csv = prague_ticks.csv
+# app.event_log     = prague_events.csv
+# app.window        = true          # needs -DROZETA_WITH_SDL2=ON

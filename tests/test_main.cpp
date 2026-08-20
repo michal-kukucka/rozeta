@@ -267,6 +267,13 @@ void test_safety_motor_gate_refuses_motion_until_latch_reset();
 void test_field_runner_no_hardware_plan_uses_mocks_and_allows_fixture_run();
 void test_field_runner_hardware_plan_requires_physical_estop();
 void test_field_runner_hardware_plan_composes_real_backends_when_safe();
+void test_robotour_config_exposes_every_layer_as_keys();
+void test_robotour_config_round_trips_through_its_own_format();
+void test_robotour_config_parses_every_coordinate_spelling();
+void test_robotour_config_rejects_malformed_values_and_unknown_keys();
+void test_robotour_config_validation_catches_unusable_configurations();
+void test_robotour_config_loads_a_preset_file_and_reports_backends();
+void test_robotour_config_rejects_a_bad_preset_file();
 void test_telemetry_parser_loads_robotour_fixture();
 void test_telemetry_parser_rejects_bad_schema_and_rows();
 void test_telemetry_replay_produces_deterministic_navigation_decisions();
@@ -596,6 +603,13 @@ int main(){
         {"field_runner_no_hardware", test_field_runner_no_hardware_plan_uses_mocks_and_allows_fixture_run},
         {"field_runner_requires_estop", test_field_runner_hardware_plan_requires_physical_estop},
         {"field_runner_hardware_plan", test_field_runner_hardware_plan_composes_real_backends_when_safe},
+        {"robotour_config_keys", test_robotour_config_exposes_every_layer_as_keys},
+        {"robotour_config_round_trip", test_robotour_config_round_trips_through_its_own_format},
+        {"robotour_config_coordinates", test_robotour_config_parses_every_coordinate_spelling},
+        {"robotour_config_bad_values", test_robotour_config_rejects_malformed_values_and_unknown_keys},
+        {"robotour_config_validation", test_robotour_config_validation_catches_unusable_configurations},
+        {"robotour_config_file", test_robotour_config_loads_a_preset_file_and_reports_backends},
+        {"robotour_config_bad_file", test_robotour_config_rejects_a_bad_preset_file},
         {"telemetry_parser_fixture", test_telemetry_parser_loads_robotour_fixture},
         {"telemetry_parser_errors", test_telemetry_parser_rejects_bad_schema_and_rows},
         {"telemetry_replay_deterministic", test_telemetry_replay_produces_deterministic_navigation_decisions},

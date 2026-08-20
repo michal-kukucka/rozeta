@@ -37,6 +37,7 @@ add_executable(rozeta_tests
     test_m14_m15.cpp
     test_safety.cpp
     test_field_runner.cpp
+    test_robotour_config.cpp
 )
 if(ROZETA_PLATFORM_POSIX)
   target_sources(rozeta_tests PRIVATE test_serial_port.cpp)
@@ -222,5 +223,137 @@ if(TARGET field_operator_wizard)
             ${CMAKE_SOURCE_DIR}/tests/test_field_operator_wizard_cli.py
             $<TARGET_FILE:field_operator_wizard>)
     rozeta_label_test(field_operator_wizard_cli_contract portable)
+  endif()
+endif()
+
+# The live window's key map and click unprojection cannot be reached by running
+# the application, so they get their own binary that pushes SDL events.
+if(ROZETA_WITH_SDL2)
+  add_executable(rozeta_view_input_tests test_simulator_view_input.cpp)
+  target_link_libraries(rozeta_view_input_tests PRIVATE rozeta_static)
+  target_include_directories(rozeta_view_input_tests PRIVATE ${CMAKE_SOURCE_DIR}/examples)
+  target_compile_definitions(rozeta_view_input_tests PRIVATE ROZETA_WITH_SDL2)
+  if(TARGET SDL2::SDL2)
+    target_link_libraries(rozeta_view_input_tests PRIVATE SDL2::SDL2)
+  else()
+    target_include_directories(rozeta_view_input_tests PRIVATE ${SDL2_INCLUDE_DIR})
+    target_link_libraries(rozeta_view_input_tests PRIVATE ${SDL2_LIBRARY})
+  endif()
+  rozeta_apply_warnings(rozeta_view_input_tests)
+  add_test(NAME rozeta_view_input COMMAND rozeta_view_input_tests)
+  rozeta_label_test(rozeta_view_input portable hardware-optional)
+endif()
+
+if(TARGET robotour_app)
+  # End-to-end runs of the configurable application. Each case exercises a
+  # different way of configuring it — command line, preset file, mission mode —
+  # so a regression in the configuration layer or in the assembled stack fails
+  # the build rather than surfacing on a robot.
+  set(ROZETA_APP_CATALOG ${CMAKE_SOURCE_DIR}/data/maps/maps.json)
+  set(ROZETA_APP_PRESETS ${CMAKE_SOURCE_DIR}/examples/presets)
+
+  add_test(
+      NAME robotour_app_list_keys
+      COMMAND robotour_app --list-keys)
+  rozeta_label_test(robotour_app_list_keys portable)
+
+  add_test(
+      NAME robotour_app_dry_run
+      COMMAND robotour_app --set map.catalog=${ROZETA_APP_CATALOG}
+              --set map.id=castle_park --dry-run --set app.quiet=true)
+  rozeta_label_test(robotour_app_dry_run portable simulation)
+
+  # A dry run on a hardware preset must open no device and must report the
+  # missing E-STOP, so running it on an unpowered robot is safe and honest.
+  add_test(
+      NAME robotour_app_hardware_dry_run_requires_estop
+      COMMAND robotour_app --base buchlovice --set map.catalog=${ROZETA_APP_CATALOG}
+              --dry-run --set app.quiet=true)
+  set_tests_properties(robotour_app_hardware_dry_run_requires_estop
+      PROPERTIES WILL_FAIL TRUE)
+  rozeta_label_test(robotour_app_hardware_dry_run_requires_estop portable)
+
+  add_test(
+      NAME robotour_app_follow_castle_park
+      COMMAND robotour_app --set map.catalog=${ROZETA_APP_CATALOG}
+              --set map.id=castle_park --set app.log_every=0
+              --set app.svg=${CMAKE_CURRENT_BINARY_DIR}/robotour_app_run.svg
+              --set app.telemetry_csv=${CMAKE_CURRENT_BINARY_DIR}/robotour_app_ticks.csv)
+  rozeta_label_test(robotour_app_follow_castle_park portable simulation)
+
+  add_test(
+      NAME robotour_app_follow_with_lidar
+      COMMAND robotour_app --set map.catalog=${ROZETA_APP_CATALOG}
+              --set map.id=castle_park --set sim.corridor_half_width_m=2.5
+              --set app.log_every=0 --set app.quiet=true)
+  rozeta_label_test(robotour_app_follow_with_lidar portable simulation)
+
+  add_test(
+      NAME robotour_app_preset_file
+      COMMAND robotour_app --preset ${ROZETA_APP_PRESETS}/prague_stromovka.preset
+              --set map.catalog=${ROZETA_APP_CATALOG} --set app.log_every=0
+              --set app.svg=${CMAKE_CURRENT_BINARY_DIR}/robotour_app_prague.svg)
+  rozeta_label_test(robotour_app_preset_file portable simulation)
+
+  # Three planned legs with an acknowledgement between them: the transport task
+  # Robotour actually sets, not a point-to-point drive.
+  add_test(
+      NAME robotour_app_mission_legs
+      COMMAND robotour_app --preset ${ROZETA_APP_PRESETS}/prague_mission.preset
+              --set map.catalog=${ROZETA_APP_CATALOG} --set app.log_every=0
+              --set app.svg=${CMAKE_CURRENT_BINARY_DIR}/robotour_app_mission.svg
+              --set app.event_log=${CMAKE_CURRENT_BINARY_DIR}/robotour_app_events.csv)
+  rozeta_label_test(robotour_app_mission_legs portable simulation)
+
+  # An operator gate with no window to release it must not hang a headless run.
+  add_test(
+      NAME robotour_app_headless_ignores_operator_gate
+      COMMAND robotour_app --set map.catalog=${ROZETA_APP_CATALOG}
+              --set map.id=castle_park --set app.auto_start=false
+              --set app.log_every=0 --set app.quiet=true)
+  rozeta_label_test(robotour_app_headless_ignores_operator_gate portable simulation)
+
+  add_test(
+      NAME robotour_app_unknown_key_fails
+      COMMAND robotour_app --set no.such.key=1)
+  set_tests_properties(robotour_app_unknown_key_fails PROPERTIES WILL_FAIL TRUE)
+  rozeta_label_test(robotour_app_unknown_key_fails portable)
+
+  add_test(
+      NAME robotour_app_bad_value_fails
+      COMMAND robotour_app --set follower.cruise_speed=hurry)
+  set_tests_properties(robotour_app_bad_value_fails PROPERTIES WILL_FAIL TRUE)
+  rozeta_label_test(robotour_app_bad_value_fails portable)
+
+  add_test(
+      NAME robotour_app_out_of_range_value_fails
+      COMMAND robotour_app --set follower.cruise_speed=3)
+  set_tests_properties(robotour_app_out_of_range_value_fails PROPERTIES WILL_FAIL TRUE)
+  rozeta_label_test(robotour_app_out_of_range_value_fails portable)
+
+  add_test(
+      NAME robotour_app_unknown_map_fails
+      COMMAND robotour_app --set map.catalog=${ROZETA_APP_CATALOG}
+              --set map.id=no_such_place --dry-run)
+  set_tests_properties(robotour_app_unknown_map_fails PROPERTIES WILL_FAIL TRUE)
+  rozeta_label_test(robotour_app_unknown_map_fails portable)
+
+  add_test(
+      NAME robotour_app_tick_budget_fails
+      COMMAND robotour_app --set map.catalog=${ROZETA_APP_CATALOG}
+              --set map.id=castle_park --set sim.max_ticks=50 --set app.quiet=true
+              --set app.log_every=0)
+  set_tests_properties(robotour_app_tick_budget_fails PROPERTIES WILL_FAIL TRUE)
+  rozeta_label_test(robotour_app_tick_budget_fails portable simulation)
+
+  if(Python3_Interpreter_FOUND)
+    add_test(
+        NAME robotour_app_config_round_trip
+        COMMAND ${Python3_EXECUTABLE}
+            ${CMAKE_SOURCE_DIR}/tests/test_robotour_app_cli.py
+            $<TARGET_FILE:robotour_app>
+            ${ROZETA_APP_CATALOG}
+            ${ROZETA_APP_PRESETS})
+    rozeta_label_test(robotour_app_config_round_trip portable)
   endif()
 endif()

@@ -733,10 +733,7 @@ int runPlanning(const Options& options, bool follow) {
 
     if (view.isOpen() && reached) {
         // Hold the final frame so the finished run is visible.
-        view.draw(scene);
-        while (view.pumpEvents()) {
-            view.draw(scene);
-        }
+        view.waitForClose(scene);
     }
     view.close();
 

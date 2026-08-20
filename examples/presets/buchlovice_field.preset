@@ -1,0 +1,87 @@
+# Field robot on the Buchlovice course: real motors, real GPS, no LiDAR.
+#
+#   robotour_app --preset examples/presets/buchlovice_field.preset --dry-run
+#   robotour_app --preset examples/presets/buchlovice_field.preset
+#
+# `--dry-run` is read-only: it opens no device and writes no file, so it is safe
+# to invoke on a robot that is not powered up. It reports which of the outputs
+# below it skipped; add `--plan-svg plan.svg` for a picture of the route. Check
+# it reports no preflight error before dropping the flag.
+#
+# The serial motor backend needs a build with -DROZETA_WITH_SERIAL_MOTORS=ON.
+
+name = buchlovice_field
+
+# ── backends ───────────────────────────────────────────────────────
+backend.drive    = serial
+backend.position = serial
+# A GPS cannot observe heading while a skid-steer robot turns on the spot, so
+# a platform without an IMU has to keep creeping forward while it corrects.
+backend.heading  = from_motion
+backend.ranging  = none
+
+# ── devices ────────────────────────────────────────────────────────
+# On macOS these are /dev/tty.usbserial-* or /dev/tty.usbmodem-*; on Windows,
+# COM ports.
+motor_device    = /dev/ttyUSB0
+motor_baud_rate = 115200
+motor_protocol  = cytron_mdds30
+gps_device      = /dev/ttyACM0
+gps_baud_rate   = 115200
+
+# Wiring calibration: swap a scale sign if a side runs backwards.
+motor.max_speed   = 1.0
+motor.left_scale  = 1.0
+motor.right_scale = 1.0
+
+camera_enabled = false
+depth_enabled  = false
+
+# ── course ─────────────────────────────────────────────────────────
+map.id                  = castle_park
+map.snap_max_distance_m = 25
+map.sample_spacing_m    = 2
+
+# ── driving ────────────────────────────────────────────────────────
+chassis.track_width_m       = 0.42
+chassis.max_wheel_speed_mps = 1.2
+chassis.turn_slip_factor    = 1.4
+
+# Field runs start slow. Raise the cruise speed once the course is known.
+follower.cruise_speed          = 0.35
+follower.heading_gain          = 1.4
+follower.waypoint_tolerance_m  = 2.5
+follower.goal_tolerance_m      = 3.0
+follower.off_route_distance_m  = 8.0
+
+heading.min_movement_m       = 0.5
+heading.smoothing            = 0.35
+heading.min_course_speed_mps = 0.3
+
+# ── module health ──────────────────────────────────────────────────
+# A critical module that stops answering faults the run and stops the motors.
+# The timeouts are what turn "unhealthy" into "silent for too long".
+runtime.motors_critical    = true
+runtime.gps_critical       = true
+runtime.camera_critical    = false
+runtime.depth_critical     = false
+runtime.map_critical       = true
+runtime.motor_keepalive_ms = 100
+runtime.gps_timeout_ms     = 3000
+
+# ── obstacles ──────────────────────────────────────────────────────
+obstacle.wait_duration_ms    = 10000
+obstacle.max_bypass_attempts = 2
+
+# ── safety ─────────────────────────────────────────────────────────
+# The run refuses to start until this names a real E-STOP input, which is the
+# point: a field robot without one should not be easy to launch.
+safety.physical_estop_required = true
+# safety.physical_estop_device = /dev/ttyACM1
+
+# ── output ─────────────────────────────────────────────────────────
+app.log_every     = 25
+app.console_log   = true
+app.telemetry_csv = buchlovice_ticks.csv
+app.event_log     = buchlovice_events.csv
+app.svg           = buchlovice_run.svg

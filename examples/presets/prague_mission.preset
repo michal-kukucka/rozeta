@@ -1,0 +1,47 @@
+# Robotour Praha — the full transport task over Stromovka park.
+#
+#   robotour_app --preset examples/presets/prague_mission.preset
+#
+# Robotour is not a point-to-point drive: the robot collects a load, delivers
+# it, and returns. This preset turns the mission state machine on, so the run
+# is three planned legs with an acknowledgement between them.
+
+name = prague_mission
+
+backend.drive    = simulated
+backend.position = simulated
+backend.heading  = simulated
+backend.ranging  = simulated
+
+map.id = city_park
+
+# ── the task ───────────────────────────────────────────────────────
+mission.enabled           = true
+mission.return_to_start   = true
+mission.arrival_radius_m  = 3.0
+mission.start_position    = 50.1090021,14.4040942
+mission.loading_target    = 50.1076126,14.4176767
+mission.unloading_target  = 50.1040801,14.4313468
+
+# ── driving ────────────────────────────────────────────────────────
+chassis.track_width_m       = 0.42
+chassis.max_wheel_speed_mps = 1.2
+chassis.turn_slip_factor    = 1.4
+follower.cruise_speed       = 0.6
+follower.heading_gain       = 1.6
+follower.goal_tolerance_m   = 3.0
+
+sim.dt_s      = 0.2
+sim.max_ticks = 40000
+sim.gps.horizontal_stddev_m = 0.6
+sim.gps.dropout_probability = 0.05
+
+safety.physical_estop_required = false
+
+# ── output ─────────────────────────────────────────────────────────
+# Ticks spent standing still at each service point before the load/unload is
+# acknowledged. 0 stops the run there and waits for a real operator instead.
+app.auto_ack_ticks = 10
+app.log_every      = 1000
+app.svg            = prague_mission.svg
+app.event_log      = prague_mission_events.csv

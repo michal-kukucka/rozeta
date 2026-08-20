@@ -21,6 +21,7 @@ set(ROZETA_EXAMPLES
     field_operator_wizard
     buchlovice_telemetry_converter
     robot_simulator
+    robotour_app
 )
 set(ROZETA_HARDWARE_OPTIONAL_EXAMPLES)
 if(ROZETA_WITH_SERIAL_MOTORS)
@@ -43,17 +44,21 @@ endforeach()
 # time default that --catalog can always override.
 target_compile_definitions(robot_simulator
     PRIVATE ROZETA_DEFAULT_MAP_CATALOG="${CMAKE_SOURCE_DIR}/data/maps/maps.json")
+target_compile_definitions(robotour_app
+    PRIVATE ROZETA_DEFAULT_MAP_CATALOG="${CMAKE_SOURCE_DIR}/data/maps/maps.json")
 
 # Optional live window. Without it the simulator still runs and still renders,
 # just to an SVG file instead of a window.
 if(ROZETA_WITH_SDL2)
-  target_compile_definitions(robot_simulator PRIVATE ROZETA_WITH_SDL2)
-  if(TARGET SDL2::SDL2)
-    target_link_libraries(robot_simulator PRIVATE SDL2::SDL2)
-  else()
-    target_include_directories(robot_simulator PRIVATE ${SDL2_INCLUDE_DIR})
-    target_link_libraries(robot_simulator PRIVATE ${SDL2_LIBRARY})
-  endif()
+  foreach(windowed robot_simulator robotour_app)
+    target_compile_definitions(${windowed} PRIVATE ROZETA_WITH_SDL2)
+    if(TARGET SDL2::SDL2)
+      target_link_libraries(${windowed} PRIVATE SDL2::SDL2)
+    else()
+      target_include_directories(${windowed} PRIVATE ${SDL2_INCLUDE_DIR})
+      target_link_libraries(${windowed} PRIVATE ${SDL2_LIBRARY})
+    endif()
+  endforeach()
 endif()
 
 add_executable(c_api_smoke c_api_smoke.c)
