@@ -166,3 +166,23 @@ M15 — Configuration schema and field presets for robotour_config. `robotour_co
 `ui::renderSceneSvg` renders a `NavigationScene` - map graph, planned route, start and destination, robot pose and heading, trajectory, GPS measurement, LiDAR rays, navigation state and left/right drive values - as a standalone SVG document. SVG is text, so graphical output is never a build dependency: a headless build and CI produce the same picture a desktop viewer opens.
 
 See `docs/ui_module.md` for realtime mission visualization usage and `docs/simulator.md` for the simulator view.
+
+## Clock
+
+`rozeta::Clock` is the injectable time source every resilience module takes instead of reading `std::chrono` directly. `SystemClock` wraps `steady_clock` with its zero point at construction; `SimulatedClock` is advanced by the caller and refuses to move backwards, because a clock that can run backwards would let a stale reading look fresh. Deterministic time is what turns a twenty-second GPS dropout into a test that runs in microseconds. See `docs/resilience_module.md`.
+
+## Health
+
+`health::SensorHealth` turns a stream of samples into `Ok`/`Degraded`/`Stale`/`Failed`/`Unavailable` with a reason, an age, an observed latency, a failure count and a confidence in [0, 1]. Deterioration is immediate; recovery needs several consecutive valid samples, and entering a worse state resets that counter so pre-failure samples cannot count towards leaving it. An invalid sample never refreshes the age, so a receiver emitting rejected sentences still goes Stale. `health::HealthRegistry` aggregates named sensors into a `SystemHealthSummary` naming the worst critical sensor. See `docs/resilience_module.md`.
+
+## GPS gate
+
+`gps::GpsGate` decides whether a single fix may move the robot. It rejects non-finite, out-of-range and `0,0` coordinates, impossible jumps (budgeted from platform speed, a fixed grace and the receiver's own measured scatter), a frozen receiver (unchanged coordinates while independent `MotionEvidence` reports motion) and fixes worse than the accuracy floor. Accuracy, HDOP, satellite count and disagreement with odometry degrade `confidence` rather than discarding the sample. After repeated rejections the gate re-anchors on the newest fix at halved confidence, so a receiver that genuinely re-acquired elsewhere is eventually believed. See `docs/resilience_module.md`.
+
+## Safety state
+
+`safety::SafetyStateMachine` is the single answer to "may the motors turn": `READY`, `RUNNING`, `DEGRADED`, `STOPPING`, `STOPPED`, `EMERGENCY_STOP`, `FAULT`, with an explicit reason on every transition and a bounded history for the black box. Emergency stop is latched and a physical E-STOP outranks every other input. `BoundedAutonomyConfig` caps how long and how far the robot may run without a fresh absolute fix. `safety::SpeedGovernor` takes the minimum over every applicable limit, so two faults never combine into a higher speed than either alone. `safety::MotorCommandLimiter` is the final gate: finite, within [-1, 1], scaled by the active limit, and exactly zero whenever motion is not permitted. See `docs/resilience_module.md`.
+
+## Faults
+
+`faults::FaultInjector` applies a scheduled failure list to sensor samples and drive commands through backends that implement the same interfaces as the real ones — `FaultyGps`, `FaultyLidar`, `FaultyDrive` — so nothing above them can tell a fault is active. Scenarios are text (`at:`, `fault:`, `duration:`, `magnitude:`, `label:`) and a misspelled fault name is a parse error rather than a silent no-op. Same seed plus same schedule gives the same run on every platform. See `docs/resilience_module.md`.

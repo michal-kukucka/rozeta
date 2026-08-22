@@ -16,6 +16,11 @@ ROOT = Path(__file__).resolve().parents[1]
 
 PUBLIC_HEADER_DOCS = {
     "calibration": "docs/calibration_module.md",
+    "clock": "docs/resilience_module.md",
+    "faults": "docs/resilience_module.md",
+    "gps_gate": "docs/resilience_module.md",
+    "health": "docs/resilience_module.md",
+    "safety_state": "docs/resilience_module.md",
     "camera": "docs/camera_module.md",
     "c_api": "docs/api-reference.md",
     "core": "docs/module_overview.md",
