@@ -429,6 +429,15 @@ NmeaParseResult NmeaParser::parseLineDetailed(const std::string& line) const {
             result.message = "malformed GGA numeric field";
             return result;
         }
+        // HDOP is field 8. Receivers legitimately leave it empty while the fix
+        // is still usable, so a missing value is not a parse failure -- it just
+        // leaves hdop at zero, which downstream reads as "not reported".
+        if (!p[8].empty()) {
+            double hdop = 0.0;
+            if (parseDouble(p[8], hdop) && hdop > 0.0) {
+                f.hdop = hdop;
+            }
+        }
         f.valid = f.fix_quality > 0;
         result.fix = f;
         result.code = f.valid ? NmeaParseCode::Ok : NmeaParseCode::InvalidFix;

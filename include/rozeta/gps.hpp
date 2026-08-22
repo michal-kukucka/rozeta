@@ -22,6 +22,12 @@ struct GpsFix {
     int fix_quality{0};
     int satellite_count{0};
     Timestamp timestamp{now()};
+    /// Horizontal dilution of precision, when the sentence carried one.
+    /// Zero means "not reported": receivers never report a useful HDOP of 0.
+    double hdop{0};
+    /// Reported horizontal accuracy in meters, when the source provides one
+    /// directly (phone GPS apps do; bare NMEA does not). Zero means unknown.
+    double accuracy_m{0};
 };
 
 enum class NmeaValidationCode {
