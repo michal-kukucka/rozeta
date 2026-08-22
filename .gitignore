@@ -7,3 +7,6 @@ rozeta_test_config.ini
 .DS_Store
 docs/generated/
 __pycache__/
+# CTest's own output directory, written next to the source when ctest
+# is run from the source tree rather than the build one.
+Testing/
