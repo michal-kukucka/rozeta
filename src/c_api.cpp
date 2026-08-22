@@ -6,6 +6,7 @@
 #include <rozeta/gps_gate.hpp>
 #include <rozeta/health.hpp>
 #include <rozeta/imu.hpp>
+#include <rozeta/lidar.hpp>
 #include <rozeta/operator_io.hpp>
 #include <rozeta/runtime.hpp>
 #include <rozeta/safety.hpp>
@@ -19,6 +20,7 @@
 #include <cstdio>
 #include <limits>
 #include <string>
+#include <cstring>
 
 #ifndef ROZETA_VERSION_STRING
 #define ROZETA_VERSION_STRING "0.1.0"
@@ -72,6 +74,157 @@ extern "C" RozetaObstacleInfo rozeta_obstacles_from_lidar(
         info.nearestDistance = nearest;
     }
     return info;
+}
+
+#ifdef ROZETA_WITH_YDLIDAR
+namespace {
+
+struct YdLidarX4Handle {
+    explicit YdLidarX4Handle(rozeta::lidar::YdLidarConfig cfg)
+        : config(std::move(cfg)), scanner(config) {}
+
+    rozeta::lidar::YdLidarConfig config;
+    rozeta::lidar::YdLidarScanner scanner;
+    std::string last_error{};
+    std::chrono::steady_clock::time_point last_scan_at{};
+    double scan_frequency_hz{0.0};
+};
+
+void recordYdLidarStatus(YdLidarX4Handle& handle, const rozeta::Status& status) {
+    handle.last_error = status.ok() ? "" : status.message;
+}
+
+} // namespace
+#endif
+
+extern "C" RozetaYdLidarX4Config rozeta_ydlidar_x4_default_config(void) {
+    RozetaYdLidarX4Config config{};
+    std::strncpy(config.device, "/dev/ttyUSB0", sizeof(config.device) - 1);
+    config.baud_rate = 128000;
+    config.read_timeout_ms = 100;
+    config.write_timeout_ms = 100;
+    config.motor_start_delay_ms = 700;
+    config.scan_timeout_ms = 1500;
+    config.min_range_m = 0.12;
+    config.max_range_m = 10.0;
+    config.use_dtr_motor_control = 1;
+    config.apply_triangle_angle_correction = 1;
+    return config;
+}
+
+extern "C" void* rozeta_ydlidar_x4_create(RozetaYdLidarX4Config input) {
+#ifdef ROZETA_WITH_YDLIDAR
+    rozeta::lidar::YdLidarConfig config;
+    if (input.device[0] != '\0') {
+        config.device = input.device;
+    }
+    config.baud_rate = input.baud_rate;
+    config.read_timeout = std::chrono::milliseconds(input.read_timeout_ms);
+    config.write_timeout = std::chrono::milliseconds(input.write_timeout_ms);
+    config.motor_start_delay = std::chrono::milliseconds(input.motor_start_delay_ms);
+    config.scan_timeout = std::chrono::milliseconds(input.scan_timeout_ms);
+    config.min_range_m = input.min_range_m;
+    config.max_range_m = input.max_range_m;
+    config.use_dtr_motor_control = input.use_dtr_motor_control != 0;
+    config.apply_triangle_angle_correction = input.apply_triangle_angle_correction != 0;
+    return new (std::nothrow) YdLidarX4Handle(std::move(config));
+#else
+    (void)input;
+    return nullptr;
+#endif
+}
+
+extern "C" void rozeta_ydlidar_x4_destroy(void* scanner) {
+#ifdef ROZETA_WITH_YDLIDAR
+    delete static_cast<YdLidarX4Handle*>(scanner);
+#else
+    (void)scanner;
+#endif
+}
+
+extern "C" int rozeta_ydlidar_x4_initialize(void* scanner) {
+#ifdef ROZETA_WITH_YDLIDAR
+    if (scanner == nullptr) return -1;
+    auto& handle = *static_cast<YdLidarX4Handle*>(scanner);
+    const auto status = handle.scanner.initialize(handle.config.device);
+    recordYdLidarStatus(handle, status);
+    return status.ok() ? 0 : -1;
+#else
+    (void)scanner;
+    return -1;
+#endif
+}
+
+extern "C" int rozeta_ydlidar_x4_start(void* scanner) {
+#ifdef ROZETA_WITH_YDLIDAR
+    if (scanner == nullptr) return -1;
+    auto& handle = *static_cast<YdLidarX4Handle*>(scanner);
+    const auto status = handle.scanner.start();
+    recordYdLidarStatus(handle, status);
+    return status.ok() ? 0 : -1;
+#else
+    (void)scanner;
+    return -1;
+#endif
+}
+
+extern "C" int rozeta_ydlidar_x4_stop(void* scanner) {
+#ifdef ROZETA_WITH_YDLIDAR
+    if (scanner == nullptr) return -1;
+    auto& handle = *static_cast<YdLidarX4Handle*>(scanner);
+    const auto status = handle.scanner.stop();
+    recordYdLidarStatus(handle, status);
+    return status.ok() ? 0 : -1;
+#else
+    (void)scanner;
+    return -1;
+#endif
+}
+
+extern "C" int rozeta_ydlidar_x4_read_scan(
+    void* scanner, RozetaLidarScanPoint* points, size_t capacity, size_t* out_count) {
+    if (out_count != nullptr) *out_count = 0;
+#ifdef ROZETA_WITH_YDLIDAR
+    if (scanner == nullptr || out_count == nullptr || (points == nullptr && capacity != 0)) return -1;
+    auto& handle = *static_cast<YdLidarX4Handle*>(scanner);
+    const auto scan = handle.scanner.readScan();
+    const auto status = handle.scanner.lastStatus();
+    recordYdLidarStatus(handle, status);
+    if (!status.ok()) return -1;
+    const size_t count = std::min(capacity, scan.points.size());
+    for (size_t i = 0; i < count; ++i) {
+        points[i] = {scan.points[i].angle_deg, scan.points[i].distance_m, scan.points[i].valid ? 1 : 0};
+    }
+    *out_count = count;
+    const auto finished = std::chrono::steady_clock::now();
+    if (handle.last_scan_at.time_since_epoch().count() != 0) {
+        const double seconds = std::chrono::duration<double>(finished - handle.last_scan_at).count();
+        handle.scan_frequency_hz = seconds > 0.0 ? 1.0 / seconds : 0.0;
+    }
+    handle.last_scan_at = finished;
+    return scan.points.size() > capacity ? 1 : 0;
+#else
+    (void)scanner; (void)points; (void)capacity;
+    return -1;
+#endif
+}
+
+extern "C" double rozeta_ydlidar_x4_last_scan_frequency_hz(void* scanner) {
+#ifdef ROZETA_WITH_YDLIDAR
+    return scanner == nullptr ? 0.0 : static_cast<YdLidarX4Handle*>(scanner)->scan_frequency_hz;
+#else
+    (void)scanner;
+    return 0.0;
+#endif
+}
+
+extern "C" const char* rozeta_ydlidar_x4_last_error(void* scanner) {
+#ifdef ROZETA_WITH_YDLIDAR
+    return scanner == nullptr ? "invalid YDLIDAR X4 handle" : static_cast<YdLidarX4Handle*>(scanner)->last_error.c_str();
+#else
+    (void)scanner;
+    return "Rozeta was built without ROZETA_WITH_YDLIDAR";
+#endif
 }
 
 // ── M14 expanded C ABI ────────────────────────────────────────────

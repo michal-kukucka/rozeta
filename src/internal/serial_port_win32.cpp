@@ -267,4 +267,14 @@ Status SerialPort::writeAll(const std::uint8_t* data, std::size_t size) {
     return Status::okStatus();
 }
 
+Status SerialPort::setDtr(bool enabled) {
+    if (!isOpen()) {
+        return makeError(ErrorCode::HardwareUnavailable, "serial DTR", "serial port is not open");
+    }
+    if (!::EscapeCommFunction(impl_->handle, enabled ? SETDTR : CLRDTR)) {
+        return lastError(ErrorCode::IoError, "EscapeCommFunction", impl_->config.device);
+    }
+    return Status::okStatus();
+}
+
 } // namespace rozeta::internal

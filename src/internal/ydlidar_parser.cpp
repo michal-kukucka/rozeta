@@ -33,28 +33,32 @@ double normalize360(double value) {
 }
 
 std::uint16_t frameChecksum(const std::vector<std::uint8_t>& frame) {
-    std::uint16_t sum = 0;
+    std::uint16_t checksum = 0;
     if (frame.size() < kHeaderSize) {
-        return sum;
+        return checksum;
     }
-    sum = static_cast<std::uint16_t>(sum + ydlidarChecksum(frame.data() + 2, 6));
-    if (frame.size() > kHeaderSize) {
-        sum = static_cast<std::uint16_t>(sum + ydlidarChecksum(frame.data() + kHeaderSize, frame.size() - kHeaderSize));
+    // YDLIDAR frames use the XOR of 16-bit little-endian words, including the
+    // sync word and every sample.  (The checksum field itself is excluded.)
+    for (std::size_t offset = 0; offset < 8; offset += 2) {
+        checksum ^= read16(frame.data() + offset);
     }
-    return sum;
+    for (std::size_t offset = kHeaderSize; offset + 1 < frame.size(); offset += 2) {
+        checksum ^= read16(frame.data() + offset);
+    }
+    return checksum;
 }
 
 } // namespace
 
 std::uint16_t ydlidarChecksum(const std::uint8_t* data, std::size_t size) {
-    std::uint16_t sum = 0;
-    if (data == nullptr) {
-        return sum;
+    std::uint16_t checksum = 0;
+    if (data == nullptr || (size % 2) != 0) {
+        return checksum;
     }
-    for (std::size_t i = 0; i < size; ++i) {
-        sum = static_cast<std::uint16_t>(sum + data[i]);
+    for (std::size_t i = 0; i < size; i += 2) {
+        checksum ^= read16(data + i);
     }
-    return sum;
+    return checksum;
 }
 
 std::vector<lidar::ScanPoint> ydlidarPacketToPoints(const YdLidarPacket& packet) {
@@ -83,8 +87,8 @@ std::vector<lidar::ScanPoint> ydlidarPacketToPoints(const YdLidarPacket& packet)
     return points;
 }
 
-std::vector<lidar::ScanPoint> YdLidarParser::feed(const std::uint8_t* data, std::size_t size) {
-    std::vector<lidar::ScanPoint> out;
+std::vector<YdLidarPacket> YdLidarParser::feedPackets(const std::uint8_t* data, std::size_t size) {
+    std::vector<YdLidarPacket> out;
     if (data != nullptr && size > 0) {
         const std::size_t existing = std::min(buffer_.size(), kMaxBufferedBytes);
         const std::size_t available = kMaxBufferedBytes - existing;
@@ -152,10 +156,18 @@ std::vector<lidar::ScanPoint> YdLidarParser::feed(const std::uint8_t* data, std:
         for (std::size_t i = 0; i < lsn; ++i) {
             packet.distances_raw.push_back(read16(frame.data() + kHeaderSize + i * 2));
         }
-        auto points = ydlidarPacketToPoints(packet);
-        out.insert(out.end(), points.begin(), points.end());
+        out.push_back(std::move(packet));
         buffer_.erase(buffer_.begin(), buffer_.begin() + static_cast<std::ptrdiff_t>(frame_size));
     }
+}
+
+std::vector<lidar::ScanPoint> YdLidarParser::feed(const std::uint8_t* data, std::size_t size) {
+    std::vector<lidar::ScanPoint> out;
+    for (const auto& packet : feedPackets(data, size)) {
+        auto points = ydlidarPacketToPoints(packet);
+        out.insert(out.end(), points.begin(), points.end());
+    }
+    return out;
 }
 
 void YdLidarParser::reset() {

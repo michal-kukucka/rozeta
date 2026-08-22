@@ -19,6 +19,7 @@ std::uint16_t ydlidarChecksum(const std::uint8_t* data, std::size_t size);
 
 class YdLidarParser {
 public:
+    std::vector<YdLidarPacket> feedPackets(const std::uint8_t* data, std::size_t size);
     std::vector<lidar::ScanPoint> feed(const std::uint8_t* data, std::size_t size);
     void reset();
 

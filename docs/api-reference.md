@@ -34,7 +34,7 @@ Current public surface:
 - `include/rozeta/motors.hpp` — differential-drive motor control, mock controller, `SpeedRamp` linear acceleration/deceleration profiles, optional serial motor controller (TextLine, Buchlovice binary and Cytron MDDS30 bridge protocols), encoder feedback, calibration persistence and emergency stop semantics.
 - `include/rozeta/gps.hpp` — NMEA checksum validation, stream buffering, serial/file GPS receiver, M4 TCP/UDP `NetworkGpsReceiver`, `parseGpsPayload` for JSON/plain coordinate feeds, parsed GPS fix model and local conversion helpers.
 - `include/rozeta/odometry.hpp` — differential-drive odometry and pose integration.
-- `include/rozeta/lidar.hpp` — LiDAR scan types, scanner interface, filtering, console visualization, optional YDLIDAR-style backend/parser helper, and optional LDROBOT LD06/LD19-compatible backend/parser helper with configurable stream detection (`LdRobotLidarDetectionConfig`).
+- `include/rozeta/lidar.hpp` — LiDAR scan types, scanner interface, filtering, console visualization, optional native YDLIDAR X4 backend/parser helper and C ABI, and optional LDROBOT LD06/LD19-compatible backend/parser helper with configurable stream detection (`LdRobotLidarDetectionConfig`).
 - `include/rozeta/obstacle_detection.hpp` — obstacle sector calculation from LiDAR scans and depth frames.
 - `include/rozeta/obstacle_behavior.hpp` — M10 obstacle wait and bypass behavior: `ObstacleBehavior` deterministic state machine with configurable wait/recheck/bypass pulse sequence, bypass direction selection from combined LiDAR/depth/RGB side coverage, max attempt gating, and in-maneuver emergency stop safety.
 - `include/rozeta/navigation.hpp` — waypoint navigation, route-following progress state and obstacle-aware motor decisions.

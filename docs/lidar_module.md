@@ -96,13 +96,17 @@ cmake -S . -B build-ydlidar \
 cmake --build build-ydlidar --parallel 2
 ```
 
-The public class is `rozeta::lidar::YdLidarScanner`, guarded by `ROZETA_WITH_YDLIDAR`. It uses the M1 internal POSIX serial transport and keeps YDLIDAR protocol details out of obstacle detection and navigation.
+The public class is `rozeta::lidar::YdLidarScanner`, guarded by `ROZETA_WITH_YDLIDAR`. It is a reusable X4 implementation (not a wrapper around the vendor SDK), with platform-selected Windows/POSIX serial transport and protocol details isolated from obstacle detection and navigation.
 
 Default configuration:
 
-- device: `/dev/ttyUSB0`
-- baud: `128000` for X4-style devices when the host termios exposes `B128000`
+- device: `/dev/ttyUSB0` (or `COM4` / `\\.\COM10` on Windows)
+- baud: `128000` for the YDLIDAR X4
 - serial mode: raw 8N1, no flow control
+- DTR motor control enabled with a 700 ms spin-up delay
+- complete-revolution assembly with a 1500 ms deadline
+- X4 range validation: `0.12..10.0 m`
+- X4 triangular-head angle correction enabled
 - finite read/write timeouts
 
 If a platform does not expose `B128000`, opening at 128000 returns a clear `InvalidArgument` status. Use a supported baud such as 115200 for compatible devices or add platform-specific `termios2/BOTHER` support in a later backend hardening task.
@@ -115,7 +119,7 @@ If a platform does not expose `B128000`, opening at 128000 returns a clear `Inva
 - accepts fragmented byte chunks
 - discards garbage before valid frames
 - validates bounded sample counts
-- verifies a deterministic frame checksum used by the test fixtures
+- verifies the X4 protocol XOR checksum over little-endian 16-bit words
 - converts raw distances into meters
 - interpolates start/end angles, including 360° wraparound
 - marks zero or out-of-range samples invalid instead of crashing
@@ -128,10 +132,10 @@ The public helper `parseYdLidarPacketStream()` is available when `ROZETA_WITH_YD
 ./build-ydlidar/examples/ydlidar_scan_console --sample tests/fixtures/lidar/ydlidar_frame.bin
 ```
 
-Expected output includes point counts and a console scan line, for example:
+Expected output includes point counts and a console scan line. The bundled fixture is a parser regression fixture; use the live command below for an X4.
 
 ```text
-ydlidar sample bytes=18 points=4 valid=3
+ydlidar sample bytes=18 points=4 valid=4
 ```
 
 ## Hardware smoke test
@@ -139,6 +143,23 @@ ydlidar sample bytes=18 points=4 valid=3
 ```bash
 ./build-ydlidar/examples/ydlidar_scan_console --device /dev/ttyUSB0 --baud 128000
 ```
+
+```powershell
+# Windows PowerShell
+.\build-ydlidar\examples\ydlidar_scan_console.exe --device COM4 --baud 128000
+```
+
+On the verified X4/CP2102 setup the Windows command returned a complete 507-point revolution. An empty result is reported as a timeout through `YdLidarScanner::lastStatus()` rather than being mistaken for a partial scan.
+
+## C ABI / Python integration
+
+The shared library also exposes a small opaque-handle C ABI for non-C++ callers:
+
+- `rozeta_ydlidar_x4_default_config`
+- `rozeta_ydlidar_x4_create`, `..._initialize`, `..._start`, `..._read_scan`, `..._stop`, `..._destroy`
+- `rozeta_ydlidar_x4_last_error` and `..._last_scan_frequency_hz`
+
+`RozetaYdLidarX4Config` is declared in `include/rozeta/c_api.h`. `read_scan` only returns a completed revolution and outputs the ordinary `RozetaLidarScanPoint` values, so ctypes, C#, Rust FFI and other runtimes can use the same driver without depending on C++ object layout.
 
 Prefer stable Linux device paths when available:
 
@@ -158,7 +179,7 @@ Log out/in after changing group membership.
 
 - `HardwareUnavailable`: wrong device path, permissions, unplugged adapter, or busy serial device.
 - `InvalidArgument` for baud 128000: host libc/kernel does not expose `B128000`; try 115200 or add `termios2/BOTHER` support.
-- Empty scan: scanner not running, no complete packet yet, timeout, wrong baud, or unsupported device protocol.
+- Empty scan/timeout: scanner not running, a powered-but-not-spinning motor, wrong data USB/baud, a busy serial port, or unsupported device protocol. X4 requires its separate power USB as well as the CP2102 data USB.
 - Parser returns no points from a file: fixture may be truncated, have a checksum mismatch, or not match the X4-style packet layout.
 
 ## Future hardening
@@ -166,5 +187,4 @@ Log out/in after changing group membership.
 - Real captured golden frames from multiple YDLIDAR X4 firmware versions.
 - Device info/health query commands.
 - Scan-frequency reporting.
-- Optional angle correction constants per device model.
 - `termios2/BOTHER` non-standard baud fallback on Linux.

@@ -36,6 +36,7 @@ public:
 
     Status readSome(std::uint8_t* buffer, std::size_t capacity, std::size_t& bytes_read);
     Status writeAll(const std::uint8_t* data, std::size_t size);
+    Status setDtr(bool enabled);
 
 private:
     struct Impl;

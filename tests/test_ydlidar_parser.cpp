@@ -6,7 +6,6 @@
 
 #include <algorithm>
 #include <cstdint>
-#include <fstream>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -34,30 +33,24 @@ std::vector<std::uint8_t> makeFrame(bool start, double start_deg, double end_deg
     for (auto distance : raw_distances) {
         push16(distance);
     }
-    std::uint16_t checksum = rozeta::internal::ydlidarChecksum(frame.data() + 2, frame.size() - 2);
+    std::uint16_t checksum = 0;
+    for (std::size_t offset = 0; offset < 8; offset += 2) {
+        checksum ^= static_cast<std::uint16_t>(frame[offset]) |
+                    static_cast<std::uint16_t>(frame[offset + 1] << 8);
+    }
+    for (std::size_t offset = 10; offset < frame.size(); offset += 2) {
+        checksum ^= static_cast<std::uint16_t>(frame[offset]) |
+                    static_cast<std::uint16_t>(frame[offset + 1] << 8);
+    }
     frame[8] = static_cast<std::uint8_t>(checksum & 0xff);
     frame[9] = static_cast<std::uint8_t>((checksum >> 8) & 0xff);
     return frame;
 }
 
-std::vector<std::uint8_t> readBinary(const std::string& path) {
-    std::ifstream input(path, std::ios::binary);
-    if (!input) {
-        throw std::runtime_error("missing fixture: " + path);
-    }
-    return {std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>()};
-}
-
-std::string sourceRelative(const std::string& rel) {
-    std::string file = __FILE__;
-    auto slash = file.find_last_of('/');
-    return file.substr(0, slash + 1) + rel;
-}
-
 } // namespace
 
 void test_ydlidar_parser_parses_sample_frame() {
-    auto bytes = readBinary(sourceRelative("fixtures/lidar/ydlidar_frame.bin"));
+    auto bytes = makeFrame(true, 10.0, 40.0, {4000, 6000, 8000, 10000});
     rozeta::internal::YdLidarParser parser;
     auto points = parser.feed(bytes.data(), bytes.size());
 

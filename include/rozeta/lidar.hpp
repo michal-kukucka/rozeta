@@ -97,10 +97,17 @@ struct YdLidarConfig {
     int baud_rate{128000};
     std::chrono::milliseconds read_timeout{100};
     std::chrono::milliseconds write_timeout{100};
-    std::size_t read_buffer_size{256};
+    std::size_t read_buffer_size{1024};
+    // The X4 uses DTR to power/control its motor on common USB adapters.
+    bool use_dtr_motor_control{true};
+    std::chrono::milliseconds motor_start_delay{700};
+    std::chrono::milliseconds scan_timeout{1500};
+    double min_range_m{0.12};
+    double max_range_m{10.0};
+    bool apply_triangle_angle_correction{true};
 };
 
-class YdLidarScanner final : public LidarScanner {
+class ROZETA_API YdLidarScanner final : public LidarScanner {
 public:
     explicit YdLidarScanner(YdLidarConfig config = {});
     ~YdLidarScanner() override;
@@ -111,12 +118,17 @@ public:
     Scan readScan() override;
     void close() noexcept;
 
+    // The status of the most recent I/O operation.  This is especially useful
+    // for callers whose scan loop needs to distinguish a timeout from a valid
+    // empty scan.
+    Status lastStatus() const;
+
 private:
     struct Impl;
     std::unique_ptr<Impl> impl_;
 };
 
-std::vector<ScanPoint> parseYdLidarPacketStream(const std::uint8_t* data, std::size_t size);
+ROZETA_API std::vector<ScanPoint> parseYdLidarPacketStream(const std::uint8_t* data, std::size_t size);
 
 #endif
 

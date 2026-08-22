@@ -31,6 +31,20 @@ typedef struct RozetaLidarScanPoint {
     int valid;
 } RozetaLidarScanPoint;
 
+/** Configuration for the optional YDLIDAR X4 serial backend. */
+typedef struct RozetaYdLidarX4Config {
+    char device[260];
+    int baud_rate;
+    int read_timeout_ms;
+    int write_timeout_ms;
+    int motor_start_delay_ms;
+    int scan_timeout_ms;
+    double min_range_m;
+    double max_range_m;
+    int use_dtr_motor_control;
+    int apply_triangle_angle_correction;
+} RozetaYdLidarX4Config;
+
 typedef struct RozetaGpsFix {
     double latitude;
     double longitude;
@@ -100,6 +114,24 @@ ROZETA_C_API RozetaObstacleInfo rozeta_obstacles_from_lidar(
     const RozetaLidarScanPoint* points,
     size_t count,
     double threshold_m);
+
+/** Defaults verified with a YDLIDAR X4 at 128000 baud. */
+ROZETA_C_API RozetaYdLidarX4Config rozeta_ydlidar_x4_default_config(void);
+/** Returns NULL if the optional YDLIDAR backend was not compiled in or allocation fails. */
+ROZETA_C_API void* rozeta_ydlidar_x4_create(RozetaYdLidarX4Config config);
+ROZETA_C_API void rozeta_ydlidar_x4_destroy(void* scanner);
+ROZETA_C_API int rozeta_ydlidar_x4_initialize(void* scanner);
+ROZETA_C_API int rozeta_ydlidar_x4_start(void* scanner);
+ROZETA_C_API int rozeta_ydlidar_x4_stop(void* scanner);
+/**
+ * Writes one complete revolution. Returns 0 on success, 1 when the caller's
+ * buffer was too small (the returned points are truncated), or -1 on error.
+ */
+ROZETA_C_API int rozeta_ydlidar_x4_read_scan(
+    void* scanner, RozetaLidarScanPoint* points, size_t capacity, size_t* out_count);
+ROZETA_C_API double rozeta_ydlidar_x4_last_scan_frequency_hz(void* scanner);
+/** Pointer remains valid until the next call on the same scanner. */
+ROZETA_C_API const char* rozeta_ydlidar_x4_last_error(void* scanner);
 
 // ── M14 expanded C ABI ────────────────────────────────────────────
 

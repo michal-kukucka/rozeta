@@ -14,7 +14,7 @@ The initial milestone focuses on the foundation, not final hardware drivers:
 - differential-drive motor interface with mock implementation, calibration persistence, linear speed ramps (acceleration/deceleration), optional serial backend (TextLine, Buchlovice binary, Cytron MDDS30 bridge) and emergency stop
 - NMEA GPS parser/validator for GGA/RMC plus serial and M4 TCP/UDP network receivers with stream buffering
 - differential-drive odometry
-- LiDAR interface, filtering, console visualization, optional YDLIDAR-style packet parser/backend, and optional LDROBOT LD06/LD19-compatible parser/backend for AliExpress delta2/delta2g-style modules
+- LiDAR interface, filtering, console visualization, an optional native YDLIDAR X4 packet parser/backend (including a C ABI for Python/FFI), and optional LDROBOT LD06/LD19-compatible parser/backend for AliExpress delta2/delta2g-style modules
 - offline CSV maps/route loading with explicit status errors plus Buchlovice footway graph routing, Dijkstra shortest paths, route resampling, and M6 bearing/turn/wrong-direction route cues
 - obstacle sector calculation from LiDAR scans
 - simple waypoint navigator plus monotonic route follower
@@ -88,7 +88,7 @@ Useful options:
 cmake .. -DROZETA_BUILD_EXAMPLES=ON -DROZETA_BUILD_TESTS=ON -DROZETA_BUILD_SHARED=ON
 cmake .. -DROZETA_WITH_OPENCV=ON   # optional OpenCV camera backend
 cmake .. -DROZETA_WITH_SERIAL_MOTORS=ON   # optional POSIX serial motor backend
-cmake .. -DROZETA_WITH_YDLIDAR=ON   # optional YDLIDAR-style serial LiDAR backend
+cmake .. -DROZETA_WITH_YDLIDAR=ON   # optional native YDLIDAR X4 serial LiDAR backend
 cmake .. -DROZETA_WITH_LDROBOT_LIDAR=ON   # optional LDROBOT LD06/LD19-compatible LiDAR backend
 cmake .. -DROZETA_WITH_KINECT=ON   # optional libfreenect Kinect backend
 ```

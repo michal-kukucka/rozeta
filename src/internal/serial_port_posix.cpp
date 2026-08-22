@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <utility>
+#include <sys/ioctl.h>
 
 #if defined(__APPLE__)
 #include <IOKit/serial/ioss.h>
@@ -296,6 +297,25 @@ Status SerialPort::writeAll(const std::uint8_t* data, std::size_t size) {
             continue;
         }
         return errnoError(ErrorCode::IoError, "write", impl_->config.device);
+    }
+    return Status::okStatus();
+}
+
+Status SerialPort::setDtr(bool enabled) {
+    if (!isOpen()) {
+        return makeError(ErrorCode::HardwareUnavailable, "serial DTR", "serial port is not open");
+    }
+    int modem_bits = 0;
+    if (::ioctl(impl_->fd, TIOCMGET, &modem_bits) != 0) {
+        return errnoError(ErrorCode::IoError, "TIOCMGET", impl_->config.device);
+    }
+    if (enabled) {
+        modem_bits |= TIOCM_DTR;
+    } else {
+        modem_bits &= ~TIOCM_DTR;
+    }
+    if (::ioctl(impl_->fd, TIOCMSET, &modem_bits) != 0) {
+        return errnoError(ErrorCode::IoError, "TIOCMSET", impl_->config.device);
     }
     return Status::okStatus();
 }
