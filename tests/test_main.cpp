@@ -327,6 +327,46 @@ void test_ydlidar_parser_normalizes_wraparound_angles();
 void test_ydlidar_backend_invalid_device_reports_hardware_unavailable();
 #endif
 
+void test_health_ages_from_ok_through_stale_to_failed();
+void test_health_requires_consecutive_samples_to_recover();
+void test_health_invalid_samples_never_look_fresh();
+void test_health_unavailable_is_not_a_fault();
+void test_health_configured_but_silent_sensor_reports_failed();
+void test_health_registry_summarises_worst_critical_sensor();
+void test_health_confidence_falls_with_age();
+void test_simulated_clock_is_monotonic_and_deterministic();
+void test_gps_gate_rejects_structurally_impossible_fixes();
+void test_gps_gate_rejects_impossible_jump_without_teleporting();
+void test_gps_gate_releases_quarantine_after_repeated_rejects();
+void test_gps_gate_detects_frozen_receiver_only_while_moving();
+void test_gps_gate_notices_odometry_contradiction();
+void test_gps_gate_degrades_confidence_with_accuracy_and_satellites();
+void test_gps_gate_reports_jitter_while_stationary();
+void test_gps_gate_drives_sensor_health();
+void test_gps_gate_config_validation_rejects_nonsense();
+void test_safety_machine_runs_only_after_a_passed_preflight();
+void test_safety_machine_emergency_stop_latches_and_zeroes_output();
+void test_safety_machine_physical_estop_outranks_everything();
+void test_safety_machine_degrades_then_recovers_with_hysteresis();
+void test_safety_machine_bounds_dead_reckoning_by_time_and_distance();
+void test_safety_machine_stops_when_critical_sensor_fails();
+void test_safety_governor_never_raises_speed_when_two_faults_combine();
+void test_safety_governor_scales_with_pose_confidence();
+void test_safety_blind_robot_stops_instead_of_driving();
+void test_motor_command_limiter_enforces_the_invariants();
+void test_safety_limits_reject_inconsistent_configuration();
+void test_safety_history_records_reasons_and_stays_bounded();
+void test_fault_schedule_parses_the_scenario_format();
+void test_fault_schedule_rejects_typos_instead_of_ignoring_them();
+void test_fault_injector_gps_dropout_freeze_and_jump();
+void test_fault_injector_lidar_faults_are_visible_but_not_silent();
+void test_faulty_drive_reports_io_error_and_asymmetric_failure();
+void test_fault_injector_is_reproducible_for_a_given_seed();
+
+void test_pose_fusion_scales_the_gps_weight_by_confidence();
+void test_pose_fusion_scales_the_heading_weight_by_confidence();
+void test_pose_fusion_default_confidence_preserves_existing_behaviour();
+
 int main(){
     std::vector<std::pair<const char*, std::function<void()>>> tests = {
         {"gps_gga", test_gps_parses_gga_fix},
@@ -630,6 +670,44 @@ int main(){
         {"ui_text_dashboard", test_ui_text_dashboard_renders_mission_stream_and_marker_summary},
         {"ui_renderer_frames", test_ui_renderer_interface_receives_snapshots_at_mission_rate},
         {"ui_renderer_status", test_ui_renderer_interface_propagates_render_failures_to_event_sink},
+        {"imu_fusion_confidence_gps", test_pose_fusion_scales_the_gps_weight_by_confidence},
+        {"imu_fusion_confidence_heading", test_pose_fusion_scales_the_heading_weight_by_confidence},
+        {"imu_fusion_default_confidence", test_pose_fusion_default_confidence_preserves_existing_behaviour},
+        {"health_ageing", test_health_ages_from_ok_through_stale_to_failed},
+        {"health_hysteresis", test_health_requires_consecutive_samples_to_recover},
+        {"health_invalid_not_fresh", test_health_invalid_samples_never_look_fresh},
+        {"health_unavailable", test_health_unavailable_is_not_a_fault},
+        {"health_silent_sensor", test_health_configured_but_silent_sensor_reports_failed},
+        {"health_registry_summary", test_health_registry_summarises_worst_critical_sensor},
+        {"health_confidence", test_health_confidence_falls_with_age},
+        {"clock_simulated", test_simulated_clock_is_monotonic_and_deterministic},
+        {"gps_gate_structural", test_gps_gate_rejects_structurally_impossible_fixes},
+        {"gps_gate_jump", test_gps_gate_rejects_impossible_jump_without_teleporting},
+        {"gps_gate_quarantine", test_gps_gate_releases_quarantine_after_repeated_rejects},
+        {"gps_gate_frozen", test_gps_gate_detects_frozen_receiver_only_while_moving},
+        {"gps_gate_odometry", test_gps_gate_notices_odometry_contradiction},
+        {"gps_gate_accuracy", test_gps_gate_degrades_confidence_with_accuracy_and_satellites},
+        {"gps_gate_jitter", test_gps_gate_reports_jitter_while_stationary},
+        {"gps_gate_health", test_gps_gate_drives_sensor_health},
+        {"gps_gate_config", test_gps_gate_config_validation_rejects_nonsense},
+        {"safety_preflight", test_safety_machine_runs_only_after_a_passed_preflight},
+        {"safety_estop_latch", test_safety_machine_emergency_stop_latches_and_zeroes_output},
+        {"safety_physical_estop", test_safety_machine_physical_estop_outranks_everything},
+        {"safety_degraded_recovery", test_safety_machine_degrades_then_recovers_with_hysteresis},
+        {"safety_bounded_autonomy", test_safety_machine_bounds_dead_reckoning_by_time_and_distance},
+        {"safety_critical_failure", test_safety_machine_stops_when_critical_sensor_fails},
+        {"safety_governor_combines", test_safety_governor_never_raises_speed_when_two_faults_combine},
+        {"safety_governor_confidence", test_safety_governor_scales_with_pose_confidence},
+        {"safety_blind_stops", test_safety_blind_robot_stops_instead_of_driving},
+        {"safety_motor_limiter", test_motor_command_limiter_enforces_the_invariants},
+        {"safety_config_validation", test_safety_limits_reject_inconsistent_configuration},
+        {"safety_history", test_safety_history_records_reasons_and_stays_bounded},
+        {"faults_parse", test_fault_schedule_parses_the_scenario_format},
+        {"faults_parse_errors", test_fault_schedule_rejects_typos_instead_of_ignoring_them},
+        {"faults_gps", test_fault_injector_gps_dropout_freeze_and_jump},
+        {"faults_lidar", test_fault_injector_lidar_faults_are_visible_but_not_silent},
+        {"faults_drive", test_faulty_drive_reports_io_error_and_asymmetric_failure},
+        {"faults_reproducible", test_fault_injector_is_reproducible_for_a_given_seed},
 #ifdef ROZETA_WITH_SERIAL_MOTORS
         {"serial_motor_format", test_serial_motor_formats_normalized_speed_commands},
         {"serial_motor_invalid_speed", test_serial_motor_rejects_invalid_speed_without_writing},

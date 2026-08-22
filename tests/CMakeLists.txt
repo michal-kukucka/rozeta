@@ -38,6 +38,10 @@ add_executable(rozeta_tests
     test_safety.cpp
     test_field_runner.cpp
     test_robotour_config.cpp
+    test_health.cpp
+    test_gps_gate.cpp
+    test_safety_state.cpp
+    test_faults.cpp
 )
 if(ROZETA_PLATFORM_POSIX)
   target_sources(rozeta_tests PRIVATE test_serial_port.cpp)

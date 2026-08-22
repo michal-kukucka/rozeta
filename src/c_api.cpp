@@ -1,13 +1,20 @@
 #include <rozeta/c_api.h>
 
 #include <rozeta/core.hpp>
+#include <rozeta/faults.hpp>
 #include <rozeta/field_runner.hpp>
+#include <rozeta/gps_gate.hpp>
+#include <rozeta/health.hpp>
+#include <rozeta/imu.hpp>
 #include <rozeta/operator_io.hpp>
 #include <rozeta/runtime.hpp>
 #include <rozeta/safety.hpp>
+#include <rozeta/safety_state.hpp>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
+#include <new>
 #include <cstddef>
 #include <cstdio>
 #include <limits>
@@ -292,4 +299,464 @@ int rozeta_operator_dashboard_phase(
     const auto text = rozeta::operator_io::HeadlessDashboard{}.renderPhase(phase, leg, lat, lon);
     copyMessage(buffer, buffer_size, text);
     return static_cast<int>(std::min(text.size(), buffer_size - 1));
+}
+
+// ── Resilience bridge ────────────────────────────────────────────────
+//
+// Opaque handles rather than exposed C++ objects: the Python side needs the
+// behaviour, not the layout, and keeping the layout private is what lets the
+// C++ implementation change without breaking a running application.
+
+namespace {
+
+rozeta::health::SensorHealthConfig toHealthConfig(const RozetaSensorHealthConfig& config)
+{
+    rozeta::health::SensorHealthConfig out{};
+    out.degraded_after = std::chrono::milliseconds{config.degraded_after_ms};
+    out.stale_after = std::chrono::milliseconds{config.stale_after_ms};
+    out.failed_after = std::chrono::milliseconds{config.failed_after_ms};
+    out.invalid_samples_to_fail = config.invalid_samples_to_fail;
+    out.samples_to_recover = config.samples_to_recover;
+    out.critical = config.critical != 0;
+    return out;
+}
+
+void fillHealth(RozetaSensorHealth& out, const rozeta::health::SensorHealthStatus& status)
+{
+    out.state = static_cast<int>(status.state);
+    out.confidence = status.confidence;
+    out.age_ms = static_cast<long long>(status.age.count());
+    out.latency_ms = static_cast<long long>(status.latency.count());
+    out.valid_samples = static_cast<long long>(status.valid_samples);
+    out.invalid_samples = static_cast<long long>(status.invalid_samples);
+    out.failures = static_cast<long long>(status.failures);
+    out.consecutive_invalid = status.consecutive_invalid;
+    out.consecutive_valid = status.consecutive_valid;
+    out.critical = status.critical ? 1 : 0;
+    out.has_data = status.has_data ? 1 : 0;
+    out.usable = status.usable() ? 1 : 0;
+    copyMessage(out.name, sizeof(out.name), status.name);
+    copyMessage(out.reason, sizeof(out.reason), status.reason);
+}
+
+rozeta::gps::GpsGateConfig toGateConfig(const RozetaGpsGateConfig& config)
+{
+    rozeta::gps::GpsGateConfig out{};
+    out.max_speed_mps = config.max_speed_mps;
+    out.jump_grace_m = config.jump_grace_m;
+    out.max_consecutive_rejects = config.max_consecutive_rejects;
+    out.freeze_epsilon_m = config.freeze_epsilon_m;
+    out.freeze_window = std::chrono::milliseconds{config.freeze_window_ms};
+    out.freeze_motion_mps = config.freeze_motion_mps;
+    out.good_accuracy_m = config.good_accuracy_m;
+    out.max_accuracy_m = config.max_accuracy_m;
+    out.good_hdop = config.good_hdop;
+    out.max_hdop = config.max_hdop;
+    out.good_satellites = config.good_satellites;
+    out.odometry_disagreement_m = config.odometry_disagreement_m;
+    out.odometry_disagreement_fraction = config.odometry_disagreement_fraction;
+    out.min_disagreement_distance_m = config.min_disagreement_distance_m;
+    out.jitter_window = config.jitter_window > 0 ? static_cast<std::size_t>(config.jitter_window) : 0;
+    out.jitter_allowance_sigma = config.jitter_allowance_sigma;
+    return out;
+}
+
+rozeta::safety::SpeedLimits toSpeedLimits(const RozetaSpeedLimits& limits)
+{
+    rozeta::safety::SpeedLimits out{};
+    out.nominal = limits.nominal;
+    out.degraded = limits.degraded;
+    out.dead_reckoning = limits.dead_reckoning;
+    out.no_obstacle_sensing = limits.no_obstacle_sensing;
+    out.minimum_useful = limits.minimum_useful;
+    return out;
+}
+
+rozeta::safety::BoundedAutonomyConfig toBounds(const RozetaBoundedAutonomy& bounds)
+{
+    rozeta::safety::BoundedAutonomyConfig out{};
+    out.max_dead_reckoning = std::chrono::milliseconds{bounds.max_dead_reckoning_ms};
+    out.max_dead_reckoning_m = bounds.max_dead_reckoning_m;
+    out.recovery_ticks = bounds.recovery_ticks;
+    out.min_pose_confidence = bounds.min_pose_confidence;
+    return out;
+}
+
+rozeta::health::HealthState toHealthState(int value)
+{
+    if (value < 0 || value > static_cast<int>(rozeta::health::HealthState::Unavailable)) {
+        // An out-of-range state from the caller must fail closed, not silently
+        // read as OK.
+        return rozeta::health::HealthState::Failed;
+    }
+    return static_cast<rozeta::health::HealthState>(value);
+}
+
+} // namespace
+
+extern "C" void* rozeta_health_create(void) {
+    return new (std::nothrow) rozeta::health::HealthRegistry();
+}
+
+extern "C" void rozeta_health_destroy(void* registry) {
+    delete static_cast<rozeta::health::HealthRegistry*>(registry);
+}
+
+extern "C" int rozeta_health_add(void* registry, const char* name, RozetaSensorHealthConfig config) {
+    if (registry == nullptr || name == nullptr || *name == '\0') {
+        return -1;
+    }
+    static_cast<rozeta::health::HealthRegistry*>(registry)->add(name, toHealthConfig(config));
+    return 0;
+}
+
+extern "C" void rozeta_health_record_valid(
+    void* registry, const char* name, long long now_ms, double confidence) {
+    if (registry == nullptr || name == nullptr) {
+        return;
+    }
+    static_cast<rozeta::health::HealthRegistry*>(registry)
+        ->recordValid(name, std::chrono::milliseconds{now_ms}, confidence);
+}
+
+extern "C" void rozeta_health_record_invalid(
+    void* registry, const char* name, long long now_ms, const char* reason) {
+    if (registry == nullptr || name == nullptr) {
+        return;
+    }
+    static_cast<rozeta::health::HealthRegistry*>(registry)
+        ->recordInvalid(name, std::chrono::milliseconds{now_ms}, reason == nullptr ? "" : reason);
+}
+
+extern "C" void rozeta_health_mark_unavailable(void* registry, const char* name, const char* reason) {
+    if (registry == nullptr || name == nullptr) {
+        return;
+    }
+    static_cast<rozeta::health::HealthRegistry*>(registry)
+        ->markUnavailable(name, reason == nullptr ? "not configured" : reason);
+}
+
+extern "C" int rozeta_health_evaluate(
+    void* registry, const char* name, long long now_ms, RozetaSensorHealth* out) {
+    if (registry == nullptr || name == nullptr || out == nullptr) {
+        return -1;
+    }
+    auto* sensor = static_cast<rozeta::health::HealthRegistry*>(registry)->find(name);
+    if (sensor == nullptr) {
+        return -1;
+    }
+    *out = RozetaSensorHealth{};
+    fillHealth(*out, sensor->evaluate(std::chrono::milliseconds{now_ms}));
+    return 0;
+}
+
+extern "C" RozetaHealthSummary rozeta_health_summary(void* registry, long long now_ms) {
+    RozetaHealthSummary out{};
+    if (registry == nullptr) {
+        out.worst = static_cast<int>(rozeta::health::HealthState::Failed);
+        out.worst_critical = out.worst;
+        copyMessage(out.reason, sizeof(out.reason), "no health registry");
+        return out;
+    }
+    const auto summary = static_cast<rozeta::health::HealthRegistry*>(registry)
+                             ->summarize(std::chrono::milliseconds{now_ms});
+    out.worst = static_cast<int>(summary.worst);
+    out.worst_critical = static_cast<int>(summary.worst_critical);
+    out.critical_confidence = summary.critical_confidence;
+    out.all_critical_usable = summary.all_critical_usable ? 1 : 0;
+    out.degraded_count = static_cast<int>(summary.degraded.size());
+    out.failed_count = static_cast<int>(summary.failed.size());
+    copyMessage(out.reason, sizeof(out.reason), summary.reason);
+    return out;
+}
+
+extern "C" RozetaGpsGateConfig rozeta_gps_gate_default_config(void) {
+    const rozeta::gps::GpsGateConfig defaults{};
+    RozetaGpsGateConfig out{};
+    out.max_speed_mps = defaults.max_speed_mps;
+    out.jump_grace_m = defaults.jump_grace_m;
+    out.max_consecutive_rejects = defaults.max_consecutive_rejects;
+    out.freeze_epsilon_m = defaults.freeze_epsilon_m;
+    out.freeze_window_ms = static_cast<long long>(defaults.freeze_window.count());
+    out.freeze_motion_mps = defaults.freeze_motion_mps;
+    out.good_accuracy_m = defaults.good_accuracy_m;
+    out.max_accuracy_m = defaults.max_accuracy_m;
+    out.good_hdop = defaults.good_hdop;
+    out.max_hdop = defaults.max_hdop;
+    out.good_satellites = defaults.good_satellites;
+    out.odometry_disagreement_m = defaults.odometry_disagreement_m;
+    out.odometry_disagreement_fraction = defaults.odometry_disagreement_fraction;
+    out.min_disagreement_distance_m = defaults.min_disagreement_distance_m;
+    out.jitter_window = static_cast<int>(defaults.jitter_window);
+    out.jitter_allowance_sigma = defaults.jitter_allowance_sigma;
+    return out;
+}
+
+extern "C" void* rozeta_gps_gate_create(RozetaGpsGateConfig config) {
+    const auto native = toGateConfig(config);
+    if (!native.validate().ok()) {
+        return nullptr;
+    }
+    return new (std::nothrow) rozeta::gps::GpsGate(native);
+}
+
+extern "C" void rozeta_gps_gate_destroy(void* gate) {
+    delete static_cast<rozeta::gps::GpsGate*>(gate);
+}
+
+extern "C" void rozeta_gps_gate_reset(void* gate) {
+    if (gate != nullptr) {
+        static_cast<rozeta::gps::GpsGate*>(gate)->reset();
+    }
+}
+
+extern "C" RozetaGpsGateResult rozeta_gps_gate_accept(
+    void* gate, RozetaGpsGateSample sample, long long now_ms) {
+    RozetaGpsGateResult out{};
+    if (gate == nullptr) {
+        out.accepted = 0;
+        copyMessage(out.message, sizeof(out.message), "no gate");
+        return out;
+    }
+
+    rozeta::gps::GpsFix fix{};
+    fix.valid = sample.valid != 0;
+    fix.latitude = sample.latitude;
+    fix.longitude = sample.longitude;
+    fix.altitude_m = sample.altitude_m;
+    fix.speed_mps = sample.speed_mps;
+    fix.course_deg = sample.course_deg;
+    fix.fix_quality = sample.fix_quality;
+    fix.satellite_count = sample.satellite_count;
+    fix.hdop = sample.hdop;
+    fix.accuracy_m = sample.accuracy_m;
+
+    rozeta::gps::MotionEvidence evidence{};
+    evidence.has_speed = sample.has_speed_evidence != 0;
+    evidence.speed_mps = sample.evidence_speed_mps;
+    evidence.has_displacement = sample.has_displacement_evidence != 0;
+    evidence.displacement_m = sample.evidence_displacement_m;
+
+    const auto result = static_cast<rozeta::gps::GpsGate*>(gate)
+                            ->accept(fix, std::chrono::milliseconds{now_ms}, evidence);
+    out.accepted = result.accepted ? 1 : 0;
+    out.reason = static_cast<int>(result.reason);
+    out.latitude = result.fix.latitude;
+    out.longitude = result.fix.longitude;
+    out.confidence = result.confidence;
+    out.implied_speed_mps = result.implied_speed_mps;
+    out.step_m = result.step_m;
+    out.jitter_m = result.jitter_m;
+    out.frozen = result.frozen ? 1 : 0;
+    out.odometry_disagreement = result.odometry_disagreement ? 1 : 0;
+    out.quarantine_released = result.quarantine_released ? 1 : 0;
+    copyMessage(out.message, sizeof(out.message), result.message);
+    return out;
+}
+
+extern "C" RozetaSpeedLimits rozeta_safety_default_limits(void) {
+    const rozeta::safety::SpeedLimits defaults{};
+    RozetaSpeedLimits out{};
+    out.nominal = defaults.nominal;
+    out.degraded = defaults.degraded;
+    out.dead_reckoning = defaults.dead_reckoning;
+    out.no_obstacle_sensing = defaults.no_obstacle_sensing;
+    out.minimum_useful = defaults.minimum_useful;
+    return out;
+}
+
+extern "C" RozetaBoundedAutonomy rozeta_safety_default_bounds(void) {
+    const rozeta::safety::BoundedAutonomyConfig defaults{};
+    RozetaBoundedAutonomy out{};
+    out.max_dead_reckoning_ms = static_cast<long long>(defaults.max_dead_reckoning.count());
+    out.max_dead_reckoning_m = defaults.max_dead_reckoning_m;
+    out.recovery_ticks = defaults.recovery_ticks;
+    out.min_pose_confidence = defaults.min_pose_confidence;
+    return out;
+}
+
+extern "C" void* rozeta_safety_machine_create(
+    RozetaSpeedLimits limits, RozetaBoundedAutonomy bounds) {
+    auto* machine = new (std::nothrow) rozeta::safety::SafetyStateMachine();
+    if (machine == nullptr) {
+        return nullptr;
+    }
+    if (!machine->configure(toSpeedLimits(limits), toBounds(bounds)).ok()) {
+        // An inconsistent configuration must not produce a machine that runs
+        // with silently substituted defaults.
+        delete machine;
+        return nullptr;
+    }
+    return machine;
+}
+
+extern "C" void rozeta_safety_machine_destroy(void* machine) {
+    delete static_cast<rozeta::safety::SafetyStateMachine*>(machine);
+}
+
+extern "C" void rozeta_safety_machine_reset(void* machine) {
+    if (machine != nullptr) {
+        static_cast<rozeta::safety::SafetyStateMachine*>(machine)->reset();
+    }
+}
+
+extern "C" RozetaSafetyDecision rozeta_safety_machine_tick(
+    void* machine, RozetaSafetyInputs inputs, long long now_ms) {
+    RozetaSafetyDecision out{};
+    if (machine == nullptr) {
+        out.state = static_cast<int>(rozeta::safety::SafetyState::Fault);
+        out.speed_limit = 0.0;
+        copyMessage(out.reason, sizeof(out.reason), "no safety machine");
+        return out;
+    }
+
+    rozeta::safety::SafetyInputs native{};
+    native.start_requested = inputs.start_requested != 0;
+    native.stop_requested = inputs.stop_requested != 0;
+    native.stop_reason = inputs.stop_reason;
+    native.emergency_stop_requested = inputs.emergency_stop_requested != 0;
+    native.physical_estop_latched = inputs.physical_estop_latched != 0;
+    native.emergency_clear_requested = inputs.emergency_clear_requested != 0;
+    native.preflight_passed = inputs.preflight_passed != 0;
+    native.unrecoverable_fault = inputs.unrecoverable_fault != 0;
+    native.fault_reason = inputs.fault_reason;
+    native.health.worst = toHealthState(inputs.health_worst);
+    native.health.worst_critical = toHealthState(inputs.health_worst_critical);
+    native.health.all_critical_usable = inputs.health_all_critical_usable != 0;
+    native.health.critical_confidence = inputs.health_critical_confidence;
+    native.health.reason = inputs.health_reason;
+    native.localization_fresh = inputs.localization_fresh != 0;
+    native.localization_usable = inputs.localization_usable != 0;
+    native.pose_confidence = inputs.pose_confidence;
+    native.obstacle_sensing_usable = inputs.obstacle_sensing_usable != 0;
+    native.obstacle_blocking = inputs.obstacle_blocking != 0;
+    native.mission_complete = inputs.mission_complete != 0;
+    native.dead_reckoning_elapsed = std::chrono::milliseconds{inputs.dead_reckoning_elapsed_ms};
+    native.dead_reckoning_distance_m = inputs.dead_reckoning_distance_m;
+
+    const auto decision = static_cast<rozeta::safety::SafetyStateMachine*>(machine)
+                              ->tick(native, std::chrono::milliseconds{now_ms});
+    out.state = static_cast<int>(decision.state);
+    out.speed_limit = decision.speed_limit;
+    out.allow_motion = decision.allow_motion ? 1 : 0;
+    out.stop_requested = decision.stop_requested ? 1 : 0;
+    out.emergency_stop = decision.emergency_stop ? 1 : 0;
+    out.state_changed = decision.state_changed ? 1 : 0;
+    out.dead_reckoning_exhausted = decision.dead_reckoning_exhausted ? 1 : 0;
+    copyMessage(out.reason, sizeof(out.reason), decision.reason);
+    return out;
+}
+
+extern "C" int rozeta_limit_motor_command(
+    double* left,
+    double* right,
+    int allow_motion,
+    int emergency_stop,
+    double speed_limit) {
+    if (left == nullptr || right == nullptr) {
+        return 0;
+    }
+    rozeta::safety::SafetyDecision decision{};
+    decision.allow_motion = allow_motion != 0;
+    decision.emergency_stop = emergency_stop != 0;
+    decision.speed_limit = speed_limit;
+    decision.state = decision.allow_motion
+        ? rozeta::safety::SafetyState::Running
+        : rozeta::safety::SafetyState::Stopped;
+    rozeta::safety::MotorCommandLimiter::applySpeeds(*left, *right, decision);
+    return rozeta::safety::MotorCommandLimiter::withinLegalRange(*left, *right) ? 1 : 0;
+}
+
+extern "C" int rozeta_fault_schedule_validate(const char* text, char* error, size_t error_size) {
+    if (text == nullptr) {
+        if (error != nullptr && error_size > 0) {
+            copyMessage(error, error_size, "no scenario text");
+        }
+        return -1;
+    }
+    rozeta::faults::FaultSchedule schedule;
+    const auto status = rozeta::faults::FaultSchedule::parse(text, schedule);
+    if (!status.ok()) {
+        if (error != nullptr && error_size > 0) {
+            copyMessage(error, error_size, status.message);
+        }
+        return -1;
+    }
+    if (error != nullptr && error_size > 0) {
+        copyMessage(error, error_size, "");
+    }
+    return static_cast<int>(schedule.events().size());
+}
+
+// ── Confidence-aware pose fusion ─────────────────────────────────────
+
+extern "C" void* rozeta_pose_fusion_create(
+    double gps_position_weight, double imu_heading_weight) {
+    if (!(gps_position_weight >= 0.0 && gps_position_weight <= 1.0)
+        || !(imu_heading_weight >= 0.0 && imu_heading_weight <= 1.0)) {
+        // Refused rather than clamped: a caller that asked for a weight of two
+        // has a bug, and silently substituting one hides it.
+        return nullptr;
+    }
+    rozeta::imu::PoseFusionConfig config{};
+    config.gps_position_weight = gps_position_weight;
+    config.imu_heading_weight = imu_heading_weight;
+    return new (std::nothrow) rozeta::imu::PoseFusion(config);
+}
+
+extern "C" void rozeta_pose_fusion_destroy(void* fusion) {
+    delete static_cast<rozeta::imu::PoseFusion*>(fusion);
+}
+
+extern "C" void rozeta_pose_fusion_set_origin(
+    void* fusion, double latitude, double longitude) {
+    if (fusion == nullptr) {
+        return;
+    }
+    rozeta::GeoCoordinate origin{};
+    origin.latitude = latitude;
+    origin.longitude = longitude;
+    static_cast<rozeta::imu::PoseFusion*>(fusion)->setGpsOrigin(origin);
+}
+
+extern "C" void rozeta_pose_fusion_reset(
+    void* fusion, double x, double y, double heading) {
+    if (fusion == nullptr) {
+        return;
+    }
+    static_cast<rozeta::imu::PoseFusion*>(fusion)->reset(rozeta::Pose2D{x, y, heading});
+}
+
+extern "C" RozetaPoseFusionResult rozeta_pose_fusion_update(
+    void* fusion, RozetaPoseFusionInput input) {
+    RozetaPoseFusionResult out{};
+    if (fusion == nullptr) {
+        return out;
+    }
+
+    rozeta::imu::PoseFusionInput native{};
+    native.odometry_pose = rozeta::Pose2D{
+        input.odometry_x, input.odometry_y, input.odometry_heading};
+    if (input.has_gps != 0) {
+        rozeta::GeoCoordinate fix{};
+        fix.latitude = input.gps_latitude;
+        fix.longitude = input.gps_longitude;
+        native.gps_fix = fix;
+    }
+    native.gps_confidence = input.gps_confidence;
+    native.imu.heading_rad = input.heading_rad;
+    // No heading source this tick means a weight of zero, not a heading of
+    // zero -- which would rotate the robot to face east.
+    native.heading_confidence = input.has_heading != 0 ? input.heading_confidence : 0.0;
+
+    const auto result = static_cast<rozeta::imu::PoseFusion*>(fusion)->update(native);
+    out.x = result.pose.x;
+    out.y = result.pose.y;
+    out.heading = result.pose.heading;
+    out.used_gps = result.used_gps ? 1 : 0;
+    out.used_heading = result.used_imu_heading ? 1 : 0;
+    out.gps_weight_used = result.gps_weight_used;
+    out.heading_weight_used = result.heading_weight_used;
+    out.ok = result.status.ok() ? 1 : 0;
+    return out;
 }

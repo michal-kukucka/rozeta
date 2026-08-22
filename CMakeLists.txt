@@ -90,6 +90,11 @@ endif()
 set(ROZETA_SOURCES
     src/c_api.cpp
     src/core.cpp
+    src/clock.cpp
+    src/health.cpp
+    src/gps_gate.cpp
+    src/safety_state.cpp
+    src/faults.cpp
     src/geometry.cpp
     src/geodesy.cpp
     src/kinematics.cpp
