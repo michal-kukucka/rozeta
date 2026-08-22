@@ -31,6 +31,18 @@ struct PoseFusionInput {
     Pose2D odometry_pose{};
     std::optional<GeoCoordinate> gps_fix{};
     ImuSample imu{};
+    /// How much this particular fix is worth, in [0, 1].
+    ///
+    /// The effective weight is \c gps_position_weight scaled by this, so a
+    /// fix with poor accuracy, few satellites or a disagreement against
+    /// odometry nudges the pose instead of dictating it, and one with zero
+    /// confidence is ignored entirely. Without it a single bad sample that
+    /// passed the plausibility gate still drags the fused pose by the full
+    /// configured weight -- which is how a marginal fix poisons a pose that
+    /// every other input agreed on.
+    double gps_confidence{1.0};
+    /// The same, for the heading source.
+    double heading_confidence{1.0};
 };
 
 struct PoseFusionResult {
@@ -38,6 +50,10 @@ struct PoseFusionResult {
     Status status{Status::okStatus()};
     bool used_gps{false};
     bool used_imu_heading{false};
+    /// The weights actually applied after confidence scaling, so a caller can
+    /// see why the pose moved as little as it did.
+    double gps_weight_used{0.0};
+    double heading_weight_used{0.0};
 };
 
 class PoseFusion {

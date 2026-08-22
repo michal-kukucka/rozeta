@@ -17,6 +17,13 @@ bool weightValid(double value) {
     return value >= 0.0 && value <= 1.0;
 }
 
+double clampConfidence(double value) {
+    if (!std::isfinite(value) || value <= 0.0) {
+        return 0.0;
+    }
+    return value < 1.0 ? value : 1.0;
+}
+
 double blendAngle(double base, double measurement, double measurement_weight) {
     const double delta = normalizeAngle(measurement - base);
     return normalizeAngle(base + delta * measurement_weight);
@@ -49,16 +56,23 @@ PoseFusionResult PoseFusion::update(const PoseFusionInput& input) {
     PoseFusionResult result;
     result.pose = fused;
 
-    if (input.gps_fix.has_value() && gps_origin_.has_value()) {
+    const double gps_weight =
+        config_.gps_position_weight * clampConfidence(input.gps_confidence);
+    const double heading_weight =
+        config_.imu_heading_weight * clampConfidence(input.heading_confidence);
+
+    if (input.gps_fix.has_value() && gps_origin_.has_value() && gps_weight > 0.0) {
         const auto local = geoToLocal(*gps_origin_, *input.gps_fix);
-        const double odom_weight = 1.0 - config_.gps_position_weight;
-        fused.x = fused.x * odom_weight + local.x * config_.gps_position_weight;
-        fused.y = fused.y * odom_weight + local.y * config_.gps_position_weight;
+        const double odom_weight = 1.0 - gps_weight;
+        fused.x = fused.x * odom_weight + local.x * gps_weight;
+        fused.y = fused.y * odom_weight + local.y * gps_weight;
         result.used_gps = true;
     }
+    result.gps_weight_used = result.used_gps ? gps_weight : 0.0;
 
-    fused.heading = blendAngle(fused.heading, input.imu.heading_rad, config_.imu_heading_weight);
-    result.used_imu_heading = true;
+    fused.heading = blendAngle(fused.heading, input.imu.heading_rad, heading_weight);
+    result.used_imu_heading = heading_weight > 0.0;
+    result.heading_weight_used = heading_weight;
     result.pose = fused;
     pose_ = fused;
     have_pose_ = true;

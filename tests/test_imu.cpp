@@ -1,5 +1,6 @@
 #include "test_helpers.hpp"
 
+#include <rozeta/geodesy.hpp>
 #include <rozeta/imu.hpp>
 
 #include <fstream>
@@ -178,4 +179,93 @@ void test_imu_pose_fusion_replays_fixture_samples() {
     REQUIRE_NEAR(last.pose.x, 7.302067, 1e-5);
     REQUIRE_NEAR(last.pose.y, 0.075, 1e-12);
     REQUIRE_NEAR(last.pose.heading, 0.068, 1e-12);
+}
+
+void test_pose_fusion_scales_the_gps_weight_by_confidence()
+{
+    rozeta::imu::PoseFusionConfig config{};
+    config.gps_position_weight = 0.5;
+    config.imu_heading_weight = 0.5;
+    rozeta::imu::PoseFusion fusion(config);
+
+    rozeta::GeoCoordinate origin{};
+    origin.latitude = 50.1053;
+    origin.longitude = 14.4132;
+    fusion.setGpsOrigin(origin);
+
+    // The GPS says ten metres east of where odometry says we are.
+    const rozeta::GeoCoordinate measured = rozeta::geodesy::offsetMeters(origin, 10.0, 0.0);
+
+    rozeta::imu::PoseFusionInput input{};
+    input.odometry_pose = rozeta::Pose2D{0.0, 0.0, 0.0};
+    input.gps_fix = measured;
+
+    // Full confidence: the configured half-weight applies.
+    auto result = fusion.update(input);
+    REQUIRE_TRUE(result.status.ok());
+    REQUIRE_TRUE(result.used_gps);
+    REQUIRE_NEAR(result.gps_weight_used, 0.5, 1e-9);
+    REQUIRE_NEAR(result.pose.x, 5.0, 0.05);
+
+    // Half confidence: a marginal fix nudges the pose instead of dictating it.
+    fusion.reset(rozeta::Pose2D{0.0, 0.0, 0.0});
+    input.gps_confidence = 0.5;
+    result = fusion.update(input);
+    REQUIRE_NEAR(result.gps_weight_used, 0.25, 1e-9);
+    REQUIRE_NEAR(result.pose.x, 2.5, 0.05);
+
+    // Zero confidence: the fix is ignored entirely rather than half-believed.
+    fusion.reset(rozeta::Pose2D{0.0, 0.0, 0.0});
+    input.gps_confidence = 0.0;
+    result = fusion.update(input);
+    REQUIRE_TRUE(!result.used_gps);
+    REQUIRE_NEAR(result.gps_weight_used, 0.0, 1e-12);
+    REQUIRE_NEAR(result.pose.x, 0.0, 1e-9);
+}
+
+void test_pose_fusion_scales_the_heading_weight_by_confidence()
+{
+    rozeta::imu::PoseFusionConfig config{};
+    config.imu_heading_weight = 1.0;
+    rozeta::imu::PoseFusion fusion(config);
+
+    rozeta::imu::PoseFusionInput input{};
+    input.odometry_pose = rozeta::Pose2D{0.0, 0.0, 0.0};
+    input.imu.heading_rad = 1.0;
+
+    auto result = fusion.update(input);
+    REQUIRE_NEAR(result.pose.heading, 1.0, 1e-9);
+
+    fusion.reset(rozeta::Pose2D{0.0, 0.0, 0.0});
+    input.heading_confidence = 0.25;
+    result = fusion.update(input);
+    REQUIRE_NEAR(result.heading_weight_used, 0.25, 1e-9);
+    REQUIRE_NEAR(result.pose.heading, 0.25, 1e-9);
+
+    // A heading nobody believes must not rotate the pose at all.
+    fusion.reset(rozeta::Pose2D{0.0, 0.0, 0.0});
+    input.heading_confidence = 0.0;
+    result = fusion.update(input);
+    REQUIRE_TRUE(!result.used_imu_heading);
+    REQUIRE_NEAR(result.pose.heading, 0.0, 1e-12);
+}
+
+void test_pose_fusion_default_confidence_preserves_existing_behaviour()
+{
+    // Existing callers pass no confidence at all; they must be unaffected.
+    rozeta::imu::PoseFusionConfig config{};
+    config.gps_position_weight = 0.2;
+    rozeta::imu::PoseFusion fusion(config);
+
+    rozeta::GeoCoordinate origin{};
+    origin.latitude = 50.1053;
+    origin.longitude = 14.4132;
+    fusion.setGpsOrigin(origin);
+
+    rozeta::imu::PoseFusionInput input{};
+    input.odometry_pose = rozeta::Pose2D{0.0, 0.0, 0.0};
+    input.gps_fix = rozeta::geodesy::offsetMeters(origin, 10.0, 0.0);
+    const auto result = fusion.update(input);
+    REQUIRE_NEAR(result.gps_weight_used, 0.2, 1e-9);
+    REQUIRE_NEAR(result.pose.x, 2.0, 0.05);
 }
