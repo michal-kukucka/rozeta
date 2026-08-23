@@ -100,7 +100,7 @@ The public class is `rozeta::lidar::YdLidarScanner`, guarded by `ROZETA_WITH_YDL
 
 Default configuration:
 
-- device: `/dev/ttyUSB0` (or `COM4` / `\\.\COM10` on Windows)
+- device: `/dev/ttyUSB0` (or `/dev/cu.usbserial-*` on macOS, `COM4` / `\\.\COM10` on Windows)
 - baud: `128000` for the YDLIDAR X4
 - serial mode: raw 8N1, no flow control
 - DTR motor control enabled with a 700 ms spin-up delay
@@ -109,7 +109,27 @@ Default configuration:
 - X4 triangular-head angle correction enabled
 - finite read/write timeouts
 
-If a platform does not expose `B128000`, opening at 128000 returns a clear `InvalidArgument` status. Use a supported baud such as 115200 for compatible devices or add platform-specific `termios2/BOTHER` support in a later backend hardening task.
+If a platform does not expose `B128000`, opening at 128000 returns a clear `InvalidArgument` status. Use a supported baud such as 115200 for compatible devices or add platform-specific `termios2/BOTHER` support in a later backend hardening task. macOS is already handled: the POSIX backend requests the exact rate through the `IOSSIOSPEED` ioctl after `tcsetattr`, so 128000 works on `/dev/cu.*` with no extra configuration.
+
+### DTR motor control is edge-triggered
+
+The X4 adapter starts its motor on a DTR **low-to-high transition**, not on the
+level. That distinction is invisible on Windows, where a COM port opens with DTR
+deasserted and any `setDtr(true)` therefore produces the edge by itself. A POSIX
+tty opens with DTR already asserted (`TIOCMGET` returns `TIOCM_DTR | TIOCM_RTS`),
+so the same call used to be a no-op and the motor never spun.
+
+`initialize()` now leaves DTR deasserted after opening the port, and `start()`
+pulses the line low for 120 ms before asserting it, ahead of the configured
+motor spin-up delay. The sequence is platform-neutral and stays a no-op on
+Windows, where the line already starts low.
+
+Without that pulse the failure is easy to misread as dead hardware: the board
+still answers `0xA5 0x90` device-info and `0xA5 0x91` health queries at 128000
+baud, still acknowledges the scan command with `a5 5a 05 00 00 40 81`, and then
+streams zero sample bytes until `read_scan` reports a timeout. A powered X4 that
+answers queries but returns no samples is a motor that is not turning, not a
+parser or baud-rate problem.
 
 ## Packet parser
 
@@ -149,7 +169,12 @@ ydlidar sample bytes=18 points=4 valid=4
 .\build-ydlidar\examples\ydlidar_scan_console.exe --device COM4 --baud 128000
 ```
 
-On the verified X4/CP2102 setup the Windows command returned a complete 507-point revolution. An empty result is reported as a timeout through `YdLidarScanner::lastStatus()` rather than being mistaken for a partial scan.
+```bash
+# macOS: always the /dev/cu.* callout device, never /dev/tty.*
+./build-ydlidar/examples/ydlidar_scan_console --device /dev/cu.usbserial-0001 --baud 128000
+```
+
+On the verified X4/CP2102 setup the Windows command returned a complete 507-point revolution, and the same driver on macOS 12 (Apple clang, `/dev/cu.usbserial-0001`) returned complete ~628-point revolutions at 7.95 Hz. An empty result is reported as a timeout through `YdLidarScanner::lastStatus()` rather than being mistaken for a partial scan.
 
 ## C ABI / Python integration
 
@@ -179,7 +204,7 @@ Log out/in after changing group membership.
 
 - `HardwareUnavailable`: wrong device path, permissions, unplugged adapter, or busy serial device.
 - `InvalidArgument` for baud 128000: host libc/kernel does not expose `B128000`; try 115200 or add `termios2/BOTHER` support.
-- Empty scan/timeout: scanner not running, a powered-but-not-spinning motor, wrong data USB/baud, a busy serial port, or unsupported device protocol. X4 requires its separate power USB as well as the CP2102 data USB.
+- Empty scan/timeout: scanner not running, a powered-but-not-spinning motor, wrong data USB/baud, a busy serial port, or unsupported device protocol. X4 requires its separate power USB as well as the CP2102 data USB. If device-info queries answer but no samples arrive, the motor is not turning: check the 5 V power USB first, then that DTR motor control is enabled so `start()` can pulse the line.
 - Parser returns no points from a file: fixture may be truncated, have a checksum mismatch, or not match the X4-style packet layout.
 
 ## Future hardening

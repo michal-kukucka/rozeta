@@ -17,6 +17,10 @@
 namespace rozeta::lidar {
 namespace {
 
+// Held low long enough for the adapter to see the edge before the motor
+// spin-up delay starts.
+constexpr auto kMotorDtrSettleDelay = std::chrono::milliseconds(120);
+
 constexpr std::array<std::uint8_t, 2> kYdLidarStartCommand{0xA5, 0x60};
 constexpr std::array<std::uint8_t, 2> kYdLidarStopCommand{0xA5, 0x65};
 constexpr std::array<std::uint8_t, 2> kYdLidarForceStopCommand{0xA5, 0x00};
@@ -113,7 +117,10 @@ Status YdLidarScanner::initialize(const std::string& device) {
         return status;
     }
     if (impl_->config.use_dtr_motor_control) {
-        status = impl_->port.setDtr(true);
+        // Leave DTR deasserted here so start() produces a real low->high edge.
+        // POSIX ttys (macOS in particular) come up with DTR already asserted,
+        // and the X4 adapter only spins its motor on the transition.
+        status = impl_->port.setDtr(false);
         if (!status.ok()) {
             impl_->port.close();
             impl_->last_status = status;
@@ -129,7 +136,15 @@ Status YdLidarScanner::start() {
         return unavailable("YDLIDAR serial port is not open");
     }
     if (impl_->config.use_dtr_motor_control) {
-        auto status = impl_->port.setDtr(true);
+        // Pulse DTR low->high: the X4 adapter starts its motor on the edge, so
+        // a plain setDtr(true) is a no-op wherever the line is already high.
+        auto status = impl_->port.setDtr(false);
+        if (!status.ok()) {
+            impl_->last_status = status;
+            return status;
+        }
+        std::this_thread::sleep_for(kMotorDtrSettleDelay);
+        status = impl_->port.setDtr(true);
         if (!status.ok()) {
             impl_->last_status = status;
             return status;

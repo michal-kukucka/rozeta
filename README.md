@@ -72,9 +72,12 @@ ctest --test-dir build --output-on-failure
 ```
 
 macOS shares the POSIX serial and socket transports. Serial devices typically appear as
-`/dev/tty.usbserial-*` or `/dev/tty.usbmodem-*` instead of `/dev/ttyUSB0`, so set the `device` field of the
-serial configs accordingly. Baud rates that macOS termios has no constant for (such as 128000 for YDLIDAR)
-are requested through the Apple `IOSSIOSPEED` ioctl automatically.
+`/dev/cu.usbserial-*` or `/dev/cu.usbmodem-*` instead of `/dev/ttyUSB0`, so set the `device` field of the
+serial configs accordingly. Use the `/dev/cu.*` callout device rather than its `/dev/tty.*` twin: the `tty`
+node blocks on carrier detect and can hang the open call. Baud rates that macOS termios has no constant for
+(such as 128000 for YDLIDAR) are requested through the Apple `IOSSIOSPEED` ioctl automatically. The optional
+YDLIDAR X4 backend is verified on macOS against real hardware, including its edge-triggered DTR motor
+control; see [docs/lidar_module.md](docs/lidar_module.md).
 
 Universal support is split deliberately: the cross-platform core, package exports, C ABI, math/route/perception
 algorithms, mockable modules, GPS network transport and the Windows/macOS-supported core/transport stacks are
