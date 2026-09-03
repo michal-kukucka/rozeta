@@ -50,6 +50,13 @@ def main() -> None:
         "ROZETA_C_API RozetaSafetyLatchState rozeta_safety_latch_step",
         "ROZETA_C_API RozetaFieldRunnerPlan rozeta_plan_field_runner",
         "ROZETA_C_API int rozeta_operator_dashboard_phase",
+        "ROZETA_C_API RozetaRgbObstacleConfig rozeta_rgb_obstacle_default_config",
+        "ROZETA_C_API void* rozeta_rgb_obstacle_tracker_create",
+        "ROZETA_C_API void rozeta_rgb_obstacle_tracker_destroy",
+        "ROZETA_C_API void rozeta_rgb_obstacle_tracker_reset",
+        "ROZETA_C_API int rozeta_rgb_obstacle_tracker_update",
+        "ROZETA_C_API int rozeta_rgb_obstacle_tracker_update_ref",
+        "ROZETA_C_API RozetaRgbObstacleResult rozeta_rgb_obstacle_tracker_result",
     ):
         require(c_api, declaration, f"C ABI declaration should be exported: {declaration}")
 

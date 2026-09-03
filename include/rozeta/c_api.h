@@ -418,6 +418,63 @@ ROZETA_C_API RozetaPoseFusionResult rozeta_pose_fusion_update(
 ROZETA_C_API int rozeta_fault_schedule_validate(
     const char* text, char* error, size_t error_size);
 
+// -- M8 RGB obstacle detection --------------------------------------
+
+/** Mirrors rozeta::perception::RgbObstacleConfig. */
+typedef struct RozetaRgbObstacleConfig {
+    double roi_left_fraction;
+    double roi_right_fraction;
+    double roi_top_fraction;
+    double roi_bottom_fraction;
+    double dark_max_value;
+    double coverage_threshold;
+    double diff_threshold;
+    double diff_coverage_threshold;
+    double min_obstacle_area_fraction;
+    int max_obstacles;
+    int trigger_streak;
+    int clear_streak;
+} RozetaRgbObstacleConfig;
+
+/** Mirrors rozeta::perception::RgbObstacleResult. \p state is 0 Clear,
+ *  1 Pending, 2 Triggered. The bounding box comes from the dark-blob
+ *  detector; a frame that only trips the difference threshold reports
+ *  \p largest_obstacle_width 0. */
+typedef struct RozetaRgbObstacleResult {
+    int state;
+    double dark_coverage;
+    double diff_coverage;
+    int obstacle_count;
+    double largest_obstacle_area_fraction;
+    int largest_obstacle_x;
+    int largest_obstacle_y;
+    int largest_obstacle_width;
+    int largest_obstacle_height;
+    int streak_count;
+    int ok;
+    char source[16];
+} RozetaRgbObstacleResult;
+
+ROZETA_C_API RozetaRgbObstacleConfig rozeta_rgb_obstacle_default_config(void);
+/** Returns NULL when the configuration is out of bounds or allocation fails. */
+ROZETA_C_API void* rozeta_rgb_obstacle_tracker_create(RozetaRgbObstacleConfig config);
+ROZETA_C_API void rozeta_rgb_obstacle_tracker_destroy(void* tracker);
+ROZETA_C_API void rozeta_rgb_obstacle_tracker_reset(void* tracker);
+/** Feeds one packed rgb24 frame to the dark-obstacle detector.
+ *  Returns 0 on success and -1 on invalid arguments. */
+ROZETA_C_API int rozeta_rgb_obstacle_tracker_update(
+    void* tracker, const unsigned char* rgb, int width, int height);
+/** Feeds one packed rgb24 frame plus its reference background, so a new
+ *  object is detected by difference as well as by darkness.
+ *  Returns 0 on success and -1 on invalid arguments. */
+ROZETA_C_API int rozeta_rgb_obstacle_tracker_update_ref(
+    void* tracker,
+    const unsigned char* rgb,
+    const unsigned char* reference_rgb,
+    int width,
+    int height);
+ROZETA_C_API RozetaRgbObstacleResult rozeta_rgb_obstacle_tracker_result(void* tracker);
+
 /** @} */
 
 #ifdef __cplusplus
