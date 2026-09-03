@@ -49,7 +49,7 @@ Current public surface:
 - `include/rozeta/maps.hpp` — offline CSV route loader, `OfflineMap` paths, Buchlovice footway graph loader, M21 `OsmFootwayGraphLoader` for small OSM XML extracts, `scripts/import_osm_footways.py` for `.osm`/`.xml`/`.pbf` footway CSV conversion, Dijkstra `shortestPath`, route sampling/reuse helpers, M22 `RouteCorridorConfig` / `checkRouteCorridor` and `Geofence` / `checkGeofence` safety checks with `inside_corridor` and `violation` results, M23 `JunctionCueConfig`, `JunctionCueResult` and `junctionCue` for `distance_to_junction_m` prompts like `At junction turn left` / `Continue straight`, M6 route cues (`haversineDistance`, `initialBearing`, `bearingToAheadPoint`, `turnAhead`, `detectWrongDirection`), explicit load results and nearest-path/vertex lookup.
 - `include/rozeta/ui.hpp` — mission overlay and snapshot composition for map markers, camera/Kinect stream status, robot pose and dependency-free dashboards. M24 adds `OperatorHudConfig`, `OperatorHudInput`, `validateOperatorHudConfig` and `renderOperatorHud` for an ANSI-capable `ROZETA FIELD HUD` with route safety cards such as `CORRIDOR: VIOLATION` plus `JUNCTION:` prompts.
 - `include/rozeta/operator_io.hpp` — M12 operator input/beeper/headless dashboard abstractions plus M28 `OperatorWizardStep`, `OperatorWizardState`, `FieldOperatorWizard` and `renderOperatorWizard()` for deterministic E-STOP, lifted-wheel, field-preset and mission-arm preflight confirmations with fail-closed abort behavior and sanitized `ROZETA FIELD OPERATOR WIZARD` rendering.
-- `include/rozeta/c_api.h` — stable C ABI for value-type integrations: library version, angle normalization, 2D distance and LiDAR obstacle sector calculation.
+- `include/rozeta/c_api.h` — stable C ABI for value-type integrations: library version, angle normalization, 2D distance, LiDAR obstacle sector calculation and the M8 RGB obstacle tracker handle.
 - `include/rozeta/robotour_config.hpp` — M15/M18 field presets for Buchlovice and no-hardware Robotour runs. `FieldPreset` bundles runtime, obstacle behavior, mission targets and device settings; `loadPreset(path)` parses dependency-free key/value config files, rejects malformed keys/values, rejects non-finite numeric values, and runs final preset validation for `obstacle.wait_duration_ms`, `obstacle.max_bypass_attempts` and `mission.arrival_radius_m`.
 
 ## Stable C ABI
@@ -64,6 +64,14 @@ Available C entry points:
 - `rozeta_distance_2d(ax, ay, bx, by)` computes planar distance.
 - `rozeta_obstacles_from_lidar(points, count, threshold_m)` maps C scan points to
   ahead/left/right obstacle sectors and nearest valid distance.
+- `rozeta_rgb_obstacle_default_config()` returns `RgbObstacleConfig`'s defaults as a
+  `RozetaRgbObstacleConfig`, and `rozeta_rgb_obstacle_tracker_create/destroy/reset/update/update_ref/result`
+  drive an opaque `RgbObstacleTracker` from C. Frames are packed rgb24 with the width and
+  height passed alongside; `update_ref` takes the live frame and its reference background,
+  so a caller with no C++ can run M8 new-object detection. `create` returns NULL for a
+  configuration the detector would reject, and `RozetaRgbObstacleResult.state` is 0 Clear,
+  1 Pending, 2 Triggered. The bounding box comes from the dark-blob pass, so a detection
+  that only trips the difference threshold reports `largest_obstacle_width` 0.
 - M19 Python migration bridge helpers expose `rozeta_runtime_create`, `rozeta_runtime_tick`, `rozeta_safety_latch_step`, `rozeta_plan_field_runner`, and `rozeta_operator_dashboard_phase` so ctypes users can drive runtime, safety, field-runner and operator dashboard workflows without C++ ownership details.
 
 The smoke example is executable documentation:

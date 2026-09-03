@@ -8,6 +8,7 @@
 #include <rozeta/imu.hpp>
 #include <rozeta/lidar.hpp>
 #include <rozeta/operator_io.hpp>
+#include <rozeta/perception.hpp>
 #include <rozeta/runtime.hpp>
 #include <rozeta/safety.hpp>
 #include <rozeta/safety_state.hpp>
@@ -911,5 +912,155 @@ extern "C" RozetaPoseFusionResult rozeta_pose_fusion_update(
     out.gps_weight_used = result.gps_weight_used;
     out.heading_weight_used = result.heading_weight_used;
     out.ok = result.status.ok() ? 1 : 0;
+    return out;
+}
+
+// ── M8 RGB obstacle detection ─────────────────────────────────────
+
+namespace {
+
+rozeta::perception::RgbObstacleConfig toNativeObstacleConfig(
+    const RozetaRgbObstacleConfig& input) {
+    rozeta::perception::RgbObstacleConfig config;
+    config.roi_left_fraction = input.roi_left_fraction;
+    config.roi_right_fraction = input.roi_right_fraction;
+    config.roi_top_fraction = input.roi_top_fraction;
+    config.roi_bottom_fraction = input.roi_bottom_fraction;
+    config.dark_max_value = input.dark_max_value;
+    config.coverage_threshold = input.coverage_threshold;
+    config.diff_threshold = input.diff_threshold;
+    config.diff_coverage_threshold = input.diff_coverage_threshold;
+    config.min_obstacle_area_fraction = input.min_obstacle_area_fraction;
+    config.max_obstacles = input.max_obstacles;
+    config.trigger_streak = input.trigger_streak;
+    config.clear_streak = input.clear_streak;
+    return config;
+}
+
+// The caller owns packed rgb24 bytes; the tracker needs an owning Frame.
+bool fillFrame(
+    rozeta::camera::Frame& frame,
+    const unsigned char* rgb,
+    int width,
+    int height) {
+    if (rgb == nullptr || width <= 0 || height <= 0) {
+        return false;
+    }
+    const std::size_t count =
+        static_cast<std::size_t>(width) * static_cast<std::size_t>(height) * 3U;
+    frame.bytes.assign(rgb, rgb + count);
+    frame.metadata.width = width;
+    frame.metadata.height = height;
+    // The detectors never read the rate, but camera::validateFrame rejects a
+    // frame that claims zero frames per second.
+    frame.metadata.fps = 1.0;
+    return true;
+}
+
+// The tracker itself accepts any configuration and only reports the problem
+// once a frame arrives. Running one probe frame through the library's own
+// detector keeps that check here, at construction, without a second copy of
+// the bounds.
+bool configAccepted(const rozeta::perception::RgbObstacleConfig& config) {
+    rozeta::camera::Frame probe;
+    probe.bytes.assign(3U, 0U);
+    probe.metadata.width = 1;
+    probe.metadata.height = 1;
+    probe.metadata.fps = 1.0;
+    return rozeta::perception::detectRgbObstacleDark(probe, config).ok();
+}
+
+} // namespace
+
+extern "C" RozetaRgbObstacleConfig rozeta_rgb_obstacle_default_config(void) {
+    const rozeta::perception::RgbObstacleConfig defaults;
+    RozetaRgbObstacleConfig out{};
+    out.roi_left_fraction = defaults.roi_left_fraction;
+    out.roi_right_fraction = defaults.roi_right_fraction;
+    out.roi_top_fraction = defaults.roi_top_fraction;
+    out.roi_bottom_fraction = defaults.roi_bottom_fraction;
+    out.dark_max_value = defaults.dark_max_value;
+    out.coverage_threshold = defaults.coverage_threshold;
+    out.diff_threshold = defaults.diff_threshold;
+    out.diff_coverage_threshold = defaults.diff_coverage_threshold;
+    out.min_obstacle_area_fraction = defaults.min_obstacle_area_fraction;
+    out.max_obstacles = defaults.max_obstacles;
+    out.trigger_streak = defaults.trigger_streak;
+    out.clear_streak = defaults.clear_streak;
+    return out;
+}
+
+extern "C" void* rozeta_rgb_obstacle_tracker_create(RozetaRgbObstacleConfig config) {
+    const auto native = toNativeObstacleConfig(config);
+    if (!configAccepted(native)) {
+        return nullptr;
+    }
+    return new (std::nothrow) rozeta::perception::RgbObstacleTracker(native);
+}
+
+extern "C" void rozeta_rgb_obstacle_tracker_destroy(void* tracker) {
+    delete static_cast<rozeta::perception::RgbObstacleTracker*>(tracker);
+}
+
+extern "C" void rozeta_rgb_obstacle_tracker_reset(void* tracker) {
+    if (tracker == nullptr) {
+        return;
+    }
+    static_cast<rozeta::perception::RgbObstacleTracker*>(tracker)->reset();
+}
+
+extern "C" int rozeta_rgb_obstacle_tracker_update(
+    void* tracker, const unsigned char* rgb, int width, int height) {
+    if (tracker == nullptr) {
+        return -1;
+    }
+    rozeta::camera::Frame frame;
+    if (!fillFrame(frame, rgb, width, height)) {
+        return -1;
+    }
+    static_cast<rozeta::perception::RgbObstacleTracker*>(tracker)->update(frame);
+    return 0;
+}
+
+extern "C" int rozeta_rgb_obstacle_tracker_update_ref(
+    void* tracker,
+    const unsigned char* rgb,
+    const unsigned char* reference_rgb,
+    int width,
+    int height) {
+    if (tracker == nullptr) {
+        return -1;
+    }
+    rozeta::camera::Frame frame;
+    rozeta::camera::Frame reference;
+    if (!fillFrame(frame, rgb, width, height) ||
+        !fillFrame(reference, reference_rgb, width, height)) {
+        return -1;
+    }
+    static_cast<rozeta::perception::RgbObstacleTracker*>(tracker)->updateRef(
+        frame, reference);
+    return 0;
+}
+
+extern "C" RozetaRgbObstacleResult rozeta_rgb_obstacle_tracker_result(void* tracker) {
+    RozetaRgbObstacleResult out{};
+    out.diff_coverage = -1.0;
+    if (tracker == nullptr) {
+        return out;
+    }
+    const auto& result =
+        static_cast<rozeta::perception::RgbObstacleTracker*>(tracker)->result();
+    out.state = static_cast<int>(result.state);
+    out.dark_coverage = result.dark_coverage;
+    out.diff_coverage = result.diff_coverage;
+    out.obstacle_count = result.obstacle_count;
+    out.largest_obstacle_area_fraction = result.largest_obstacle_area_fraction;
+    out.largest_obstacle_x = result.largest_obstacle_x;
+    out.largest_obstacle_y = result.largest_obstacle_y;
+    out.largest_obstacle_width = result.largest_obstacle_width;
+    out.largest_obstacle_height = result.largest_obstacle_height;
+    out.streak_count = result.streak_count;
+    out.ok = result.ok() ? 1 : 0;
+    std::snprintf(out.source, sizeof(out.source), "%s", result.source.c_str());
     return out;
 }

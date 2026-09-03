@@ -56,6 +56,8 @@ Default obstacle ROI: center 40% of width (`roi_left_fraction=0.30`, `roi_right_
 
 Like the rest of perception, M8 stays dependency-free. The same packed RGB8 `camera::Frame` contract drives both path analysis and obstacle detection, so OpenCV remains a capture-only concern.
 
+M8 is also reachable from C: `rozeta_rgb_obstacle_tracker_create/destroy/reset/update/update_ref/result` in `rozeta/c_api.h` wrap `RgbObstacleTracker` as an opaque handle over packed rgb24 bytes, with `rozeta_rgb_obstacle_default_config()` supplying `RgbObstacleConfig`'s defaults. `create` returns NULL for a configuration the detector would reject, so a bad threshold is reported where it is set rather than on the first frame. Only the dark pass localizes anything, so a `RozetaRgbObstacleResult` from a difference-only detection carries coverage without a bounding box.
+
 
 ## Camera-scene path / obstacle / person processing
 
