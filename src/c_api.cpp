@@ -3,6 +3,7 @@
 #include <rozeta/core.hpp>
 #include <rozeta/faults.hpp>
 #include <rozeta/field_runner.hpp>
+#include <rozeta/gps.hpp>
 #include <rozeta/gps_gate.hpp>
 #include <rozeta/health.hpp>
 #include <rozeta/imu.hpp>
@@ -971,6 +972,187 @@ bool configAccepted(const rozeta::perception::RgbObstacleConfig& config) {
 }
 
 } // namespace
+
+// -- GPS receivers ---------------------------------------------------
+namespace {
+
+rozeta::gps::NetworkGpsReceiverConfig toNativeGpsConfig(
+    const RozetaNetworkGpsConfig& config) {
+    rozeta::gps::NetworkGpsReceiverConfig native;
+    native.protocol = config.protocol == ROZETA_GPS_TCP
+                          ? rozeta::gps::NetworkGpsProtocol::Tcp
+                          : rozeta::gps::NetworkGpsProtocol::Udp;
+    native.host = config.host;
+    native.port = config.port;
+    native.read_timeout = std::chrono::milliseconds(config.read_timeout_ms);
+    native.reconnect_backoff = std::chrono::milliseconds(config.reconnect_backoff_ms);
+    native.read_buffer_size = static_cast<std::size_t>(config.read_buffer_size);
+    native.max_packet_length = static_cast<std::size_t>(config.max_packet_length);
+    return native;
+}
+
+/// One receiver plus the last thing that went wrong with it. The C side has no
+/// exceptions to carry a reason, so it is kept beside the handle and fetched
+/// deliberately.
+struct GpsReceiverHandle {
+    explicit GpsReceiverHandle(rozeta::gps::NetworkGpsReceiverConfig config)
+        : receiver(std::move(config)) {}
+
+    rozeta::gps::NetworkGpsReceiver receiver;
+    std::string last_error;
+    std::uint64_t sentences_seen{0};
+    std::uint64_t sentences_rejected{0};
+    std::uint64_t fixes{0};
+};
+
+RozetaGpsSample toCSample(const rozeta::gps::GpsFix& fix) {
+    RozetaGpsSample out{};
+    out.has_fix = 1;
+    out.valid = fix.valid ? 1 : 0;
+    out.latitude = fix.latitude;
+    out.longitude = fix.longitude;
+    out.altitude_m = fix.altitude_m;
+    out.speed_mps = fix.speed_mps;
+    out.course_deg = fix.course_deg;
+    out.fix_quality = fix.fix_quality;
+    out.satellite_count = fix.satellite_count;
+    out.hdop = fix.hdop;
+    out.accuracy_m = fix.accuracy_m;
+    out.timestamp_ms = static_cast<long long>(
+        std::chrono::duration_cast<std::chrono::milliseconds>(
+            fix.timestamp.time_since_epoch())
+            .count());
+    out.utc_seconds = fix.utc_seconds;
+    return out;
+}
+
+}  // namespace
+
+extern "C" RozetaNetworkGpsConfig rozeta_gps_receiver_default_config(void) {
+    const rozeta::gps::NetworkGpsReceiverConfig native;
+    RozetaNetworkGpsConfig config{};
+    config.protocol = native.protocol == rozeta::gps::NetworkGpsProtocol::Tcp
+                          ? ROZETA_GPS_TCP
+                          : ROZETA_GPS_UDP;
+    std::snprintf(config.host, sizeof(config.host), "%s", native.host.c_str());
+    config.port = native.port;
+    config.read_timeout_ms = static_cast<int>(native.read_timeout.count());
+    config.reconnect_backoff_ms = static_cast<int>(native.reconnect_backoff.count());
+    config.read_buffer_size = static_cast<int>(native.read_buffer_size);
+    config.max_packet_length = static_cast<int>(native.max_packet_length);
+    return config;
+}
+
+extern "C" void* rozeta_gps_receiver_create(RozetaNetworkGpsConfig config) {
+    // Refused here rather than reported on every later read: a port outside
+    // the legal range or an empty host is a mistake at the call site.
+    if (config.port <= 0 || config.port > 65535) {
+        return nullptr;
+    }
+    if (config.host[0] == '\0') {
+        return nullptr;
+    }
+    if (config.read_timeout_ms < 0 || config.reconnect_backoff_ms < 0) {
+        return nullptr;
+    }
+    if (config.read_buffer_size <= 0 || config.max_packet_length <= 0) {
+        return nullptr;
+    }
+    return new (std::nothrow) GpsReceiverHandle(toNativeGpsConfig(config));
+}
+
+extern "C" void rozeta_gps_receiver_destroy(void* receiver) {
+    delete static_cast<GpsReceiverHandle*>(receiver);
+}
+
+extern "C" int rozeta_gps_receiver_open(void* receiver) {
+    auto* handle = static_cast<GpsReceiverHandle*>(receiver);
+    if (handle == nullptr) {
+        return -1;
+    }
+    const auto status = handle->receiver.open();
+    if (!status.ok()) {
+        handle->last_error = status.message;
+        return -1;
+    }
+    handle->last_error.clear();
+    return 0;
+}
+
+extern "C" void rozeta_gps_receiver_close(void* receiver) {
+    auto* handle = static_cast<GpsReceiverHandle*>(receiver);
+    if (handle != nullptr) {
+        handle->receiver.close();
+    }
+}
+
+extern "C" int rozeta_gps_receiver_is_open(void* receiver) {
+    auto* handle = static_cast<GpsReceiverHandle*>(receiver);
+    return handle != nullptr && handle->receiver.isOpen() ? 1 : 0;
+}
+
+extern "C" RozetaGpsSample rozeta_gps_receiver_read_fix(void* receiver) {
+    RozetaGpsSample out{};
+    auto* handle = static_cast<GpsReceiverHandle*>(receiver);
+    if (handle == nullptr) {
+        return out;
+    }
+    const auto fix = handle->receiver.readFix();
+    if (!fix.has_value()) {
+        // A read that times out between fixes is the ordinary case, not an
+        // error: the caller polls, and a source that reports nothing yet is
+        // exactly what a slow receiver looks like.
+        const auto status = handle->receiver.lastStatus();
+        if (!status.ok()) {
+            handle->last_error = status.message;
+        }
+        return out;
+    }
+    handle->fixes += 1;
+    return toCSample(*fix);
+}
+
+extern "C" RozetaGpsReceiverStats rozeta_gps_receiver_stats(void* receiver) {
+    RozetaGpsReceiverStats out{};
+    auto* handle = static_cast<GpsReceiverHandle*>(receiver);
+    if (handle == nullptr) {
+        return out;
+    }
+    const auto& stats = handle->receiver.stats();
+    out.bytes_read = static_cast<long long>(stats.bytes_read);
+    out.sentences_seen = static_cast<long long>(handle->sentences_seen);
+    out.sentences_rejected = static_cast<long long>(handle->sentences_rejected);
+    out.fixes = static_cast<long long>(handle->fixes);
+    out.open = handle->receiver.isOpen() ? 1 : 0;
+    return out;
+}
+
+extern "C" const char* rozeta_gps_receiver_last_error(void* receiver) {
+    auto* handle = static_cast<GpsReceiverHandle*>(receiver);
+    if (handle == nullptr) {
+        return "no receiver";
+    }
+    return handle->last_error.c_str();
+}
+
+extern "C" RozetaGpsSample rozeta_gps_parse_sample(const char* sentence) {
+    RozetaGpsSample out{};
+    if (sentence == nullptr) {
+        return out;
+    }
+    const auto parsed = rozeta::gps::parseGpsPayload(sentence);
+    if (!parsed.ok()) {
+        return out;
+    }
+    return toCSample(parsed.fix);
+}
+
+extern "C" int rozeta_gps_validate_sentence(const char* sentence) {
+    if (sentence == nullptr) {
+        return static_cast<int>(rozeta::gps::NmeaValidationCode::Empty);
+    }
+    return static_cast<int>(rozeta::gps::validateNmeaSentence(sentence).code);
+}
 
 extern "C" RozetaRgbObstacleConfig rozeta_rgb_obstacle_default_config(void) {
     const rozeta::perception::RgbObstacleConfig defaults;

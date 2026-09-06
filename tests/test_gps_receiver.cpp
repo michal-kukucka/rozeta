@@ -190,3 +190,46 @@ void test_gps_serial_receiver_rejects_invalid_config() {
     REQUIRE_TRUE(!status.ok());
     REQUIRE_EQ(static_cast<int>(status.code), static_cast<int>(rozeta::ErrorCode::InvalidArgument));
 }
+
+void test_gps_nmea_carries_the_sentence_time() {
+    // The field that tells a *new* fix from the *same* fix sent again. A phone
+    // streaming at 1 Hz while its receiver updates every fifteen seconds sends
+    // each fix about nine times, and a consumer with only an arrival time sees
+    // a healthy stream where there is one fix.
+    const auto gga = rozeta::gps::parseGpsPayload(
+        "$GPGGA,204041,4912.46173,N,01635.95963,E,1,8,0.9,233.1,M,43.6,M,0,2*78");
+    REQUIRE_TRUE(gga.ok());
+    REQUIRE_NEAR(gga.fix.utc_seconds, 20 * 3600.0 + 40 * 60.0 + 41.0, 1e-6);
+
+    // The same instant reported by the other sentence type. They must agree,
+    // or a consumer pairing them would pair two different moments.
+    const auto rmc = rozeta::gps::parseGpsPayload(
+        "$GPRMC,204041,A,4912.46173,N,01635.95963,E,0.00,0.00,060926,003.1,W*66");
+    REQUIRE_TRUE(rmc.ok());
+    REQUIRE_NEAR(rmc.fix.utc_seconds, gga.fix.utc_seconds, 1e-6);
+}
+
+void test_gps_nmea_time_handles_fractions_and_absence() {
+    const auto fractional = rozeta::gps::parseGpsPayload(
+        "$GPGGA,204140.50,4912.46203,N,01635.96208,E,1,8,0.9,233.1,M,43.6,M,0,2*52");
+    REQUIRE_TRUE(fractional.ok());
+    REQUIRE_NEAR(fractional.fix.utc_seconds, 20 * 3600.0 + 41 * 60.0 + 40.5, 1e-6);
+
+    // A receiver may leave the time empty while the fix is perfectly usable,
+    // so an absent time is negative rather than a parse failure -- it only
+    // costs the ability to tell this fix from the one before it.
+    const auto timeless = rozeta::gps::parseGpsPayload(
+        "$GPGGA,,4912.46203,N,01635.96208,E,1,8,0.9,233.1,M,43.6,M,0,2*7A");
+    REQUIRE_TRUE(timeless.ok());
+    REQUIRE_TRUE(timeless.fix.utc_seconds < 0.0);
+}
+
+void test_gps_network_receiver_rejects_invalid_config() {
+    rozeta::gps::NetworkGpsReceiverConfig config;
+    config.protocol = rozeta::gps::NetworkGpsProtocol::Tcp;
+    config.host = "";
+    config.port = 11123;
+    rozeta::gps::NetworkGpsReceiver receiver(config);
+    auto status = receiver.open();
+    REQUIRE_TRUE(!status.ok());
+}

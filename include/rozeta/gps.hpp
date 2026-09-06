@@ -28,6 +28,18 @@ struct GpsFix {
     /// Reported horizontal accuracy in meters, when the source provides one
     /// directly (phone GPS apps do; bare NMEA does not). Zero means unknown.
     double accuracy_m{0};
+    /// The sentence's own UTC time, in seconds since midnight. Negative means
+    /// the sentence did not carry one.
+    ///
+    /// This is what tells a *new* fix from the *same* fix sent again, which
+    /// `timestamp` cannot: that one is when this program parsed the sentence,
+    /// and a receiver repeating itself parses just as freshly as one that has
+    /// moved on. Sources that repeat are common — a phone streaming NMEA at
+    /// 1 Hz while its receiver updates every fifteen seconds sends each fix
+    /// about nine times — and a consumer that cannot tell the difference sees
+    /// a healthy stream where there is one fix, or a frozen receiver where
+    /// there is a slow one.
+    double utc_seconds{-1.0};
 };
 
 enum class NmeaValidationCode {

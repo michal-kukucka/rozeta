@@ -16,6 +16,9 @@ void test_gps_serial_receiver_skips_bad_checksum_then_returns_good_fix();
 void test_gps_serial_receiver_timeout_reports_status();
 #endif
 void test_gps_serial_receiver_rejects_invalid_config();
+void test_gps_nmea_carries_the_sentence_time();
+void test_gps_nmea_time_handles_fractions_and_absence();
+void test_gps_network_receiver_rejects_invalid_config();
 void test_network_gps_parser_accepts_plain_json_and_nmea_payloads();
 void test_network_gps_parser_rejects_malformed_json_payloads();
 void test_network_gps_udp_receiver_reads_single_packet_fix();
@@ -388,6 +391,9 @@ int main(){
         {"gps_serial_timeout", test_gps_serial_receiver_timeout_reports_status},
 #endif
         {"gps_serial_invalid_config", test_gps_serial_receiver_rejects_invalid_config},
+        {"gps_nmea_sentence_time", test_gps_nmea_carries_the_sentence_time},
+        {"gps_nmea_time_fractions", test_gps_nmea_time_handles_fractions_and_absence},
+        {"gps_network_invalid_config", test_gps_network_receiver_rejects_invalid_config},
         {"network_gps_payload_parse", test_network_gps_parser_accepts_plain_json_and_nmea_payloads},
         {"network_gps_json_rejects_malformed", test_network_gps_parser_rejects_malformed_json_payloads},
         {"network_gps_udp_packet", test_network_gps_udp_receiver_reads_single_packet_fix},

@@ -159,6 +159,38 @@ NmeaValidationResult validateNmeaSentence(const std::string& sentence) {
     return {NmeaValidationCode::Ok, expected, actual, {}};
 }
 
+/// NMEA time of day, "hhmmss" or "hhmmss.sss", as seconds since midnight UTC.
+/// Returns -1 for an absent or malformed field: a fix with no time is usable,
+/// it just cannot be told apart from the one before it.
+double parseNmeaUtcSeconds(const std::string& field) {
+    if (field.size() < 6) {
+        return -1.0;
+    }
+    for (std::size_t i = 0; i < 6; ++i) {
+        if (field[i] < '0' || field[i] > '9') {
+            return -1.0;
+        }
+    }
+    const int hours = (field[0] - '0') * 10 + (field[1] - '0');
+    const int minutes = (field[2] - '0') * 10 + (field[3] - '0');
+    const int seconds = (field[4] - '0') * 10 + (field[5] - '0');
+    if (hours > 23 || minutes > 59 || seconds > 60) {
+        return -1.0;
+    }
+    double fraction = 0.0;
+    if (field.size() > 7 && field[6] == '.') {
+        double scale = 0.1;
+        for (std::size_t i = 7; i < field.size(); ++i) {
+            if (field[i] < '0' || field[i] > '9') {
+                break;
+            }
+            fraction += (field[i] - '0') * scale;
+            scale *= 0.1;
+        }
+    }
+    return hours * 3600.0 + minutes * 60.0 + seconds + fraction;
+}
+
 NmeaParseResult parseGpsPayload(const std::string& payload) {
     std::string clean = trimLine(payload);
     NmeaParseResult result;
@@ -438,6 +470,7 @@ NmeaParseResult NmeaParser::parseLineDetailed(const std::string& line) const {
                 f.hdop = hdop;
             }
         }
+        f.utc_seconds = parseNmeaUtcSeconds(p[1]);
         f.valid = f.fix_quality > 0;
         result.fix = f;
         result.code = f.valid ? NmeaParseCode::Ok : NmeaParseCode::InvalidFix;
@@ -452,6 +485,7 @@ NmeaParseResult NmeaParser::parseLineDetailed(const std::string& line) const {
             result.message = "malformed RMC numeric field";
             return result;
         }
+        f.utc_seconds = parseNmeaUtcSeconds(p[1]);
         f.valid = (p[2] == "A");
         f.speed_mps *= 0.514444;
         f.fix_quality = f.valid ? 1 : 0;

@@ -418,6 +418,90 @@ ROZETA_C_API RozetaPoseFusionResult rozeta_pose_fusion_update(
 ROZETA_C_API int rozeta_fault_schedule_validate(
     const char* text, char* error, size_t error_size);
 
+// -- GPS receivers ---------------------------------------------------
+
+/** Protocol for rozeta_gps_receiver_create. 0 TCP, 1 UDP. */
+#define ROZETA_GPS_TCP 0
+#define ROZETA_GPS_UDP 1
+
+/** Mirrors rozeta::gps::NetworkGpsReceiverConfig.
+ *  \p protocol is ROZETA_GPS_TCP (a client connection to a device that
+ *  streams, such as a phone running GPS2IP) or ROZETA_GPS_UDP (a bound
+ *  socket receiving datagrams). */
+typedef struct RozetaNetworkGpsConfig {
+    int protocol;
+    char host[128];
+    int port;
+    int read_timeout_ms;
+    int reconnect_backoff_ms;
+    int read_buffer_size;
+    int max_packet_length;
+} RozetaNetworkGpsConfig;
+
+/** Every field rozeta::gps::GpsFix carries, plus \p has_fix saying whether
+ *  one was produced at all: a read that times out is not an error and not a
+ *  fix.
+ *
+ *  Distinct from RozetaGpsFix above, which predates this and carries only what
+ *  a bare GGA has. Widening that one would break every caller compiled against
+ *  it, so the fuller shape gets its own name.
+ *
+ *  \p speed_mps, \p hdop and \p accuracy_m are 0 when the sentence did not
+ *  carry them: a GGA has no speed and an RMC has no HDOP, and the two are not
+ *  merged, so alternating sentences alternate which fields are set. */
+typedef struct RozetaGpsSample {
+    int has_fix;
+    int valid;
+    double latitude;
+    double longitude;
+    double altitude_m;
+    double speed_mps;
+    double course_deg;
+    int fix_quality;
+    int satellite_count;
+    double hdop;
+    double accuracy_m;
+    long long timestamp_ms;
+    /** The sentence's own UTC time, seconds since midnight; negative when it
+     *  carried none. What tells a new fix from the same fix sent again. */
+    double utc_seconds;
+} RozetaGpsSample;
+
+typedef struct RozetaGpsReceiverStats {
+    long long bytes_read;
+    long long sentences_seen;
+    long long sentences_rejected;
+    long long fixes;
+    int open;
+} RozetaGpsReceiverStats;
+
+/** Default configuration, so callers need not restate every field. */
+ROZETA_C_API RozetaNetworkGpsConfig rozeta_gps_receiver_default_config(void);
+/** Returns NULL when the configuration is out of bounds or allocation fails. */
+ROZETA_C_API void* rozeta_gps_receiver_create(RozetaNetworkGpsConfig config);
+ROZETA_C_API void rozeta_gps_receiver_destroy(void* receiver);
+/** Opens the socket. Returns 0 on success, -1 otherwise; the reason is in
+ *  rozeta_gps_receiver_last_error. A TCP receiver reconnects on its own
+ *  inside read_fix, so a failure here is worth reporting and not fatal. */
+ROZETA_C_API int rozeta_gps_receiver_open(void* receiver);
+ROZETA_C_API void rozeta_gps_receiver_close(void* receiver);
+ROZETA_C_API int rozeta_gps_receiver_is_open(void* receiver);
+/** Reads until one fix is parsed or the read times out. \p has_fix is 0 on a
+ *  timeout, which is the ordinary case between fixes and not an error. */
+ROZETA_C_API RozetaGpsSample rozeta_gps_receiver_read_fix(void* receiver);
+ROZETA_C_API RozetaGpsReceiverStats rozeta_gps_receiver_stats(void* receiver);
+ROZETA_C_API const char* rozeta_gps_receiver_last_error(void* receiver);
+
+/** Parses one NMEA sentence or line payload without any transport, so a
+ *  recording can be replayed through exactly the parser the receiver uses.
+ *  Unlike rozeta_parse_nmea it reports speed, course, accuracy and the
+ *  timestamp. \p has_fix is 0 when the sentence was not a fix or failed its
+ *  checksum. */
+ROZETA_C_API RozetaGpsSample rozeta_gps_parse_sample(const char* sentence);
+/** Validates an NMEA sentence's framing and checksum. Returns the
+ *  rozeta::gps::NmeaValidationCode as an int; 0 is Ok. */
+ROZETA_C_API int rozeta_gps_validate_sentence(const char* sentence);
+
 // -- M8 RGB obstacle detection --------------------------------------
 
 /** Mirrors rozeta::perception::RgbObstacleConfig. */
