@@ -223,6 +223,146 @@ void test_safety_governor_scales_with_pose_confidence()
     REQUIRE_NEAR(governor.limitFor(inputs, safety::SafetyState::Running), 0.1, 1e-9);
 }
 
+void test_safety_covered_stretch_gets_the_longer_allowance()
+{
+    // A tunnel takes the sky away on purpose and the map knew it would. The
+    // robot that stops under it has stopped in the one place a person cannot
+    // easily reach it, and the trial ends there.
+    safety::SpeedLimits limits{};
+    safety::BoundedAutonomyConfig bounds{};
+    bounds.max_dead_reckoning = Millis{5000};
+    bounds.max_dead_reckoning_m = 6.0;
+    bounds.max_dead_reckoning_covered = Millis{30000};
+    bounds.max_dead_reckoning_covered_m = 40.0;
+    bounds.recovery_ticks = 1;
+
+    safety::SafetyStateMachine machine(limits, bounds);
+    auto inputs = healthyInputs();
+    inputs.start_requested = true;
+    machine.tick(inputs, Millis{0});
+    inputs.start_requested = false;
+
+    inputs.localization_expected_denied = true;
+    inputs.localization_fresh = false;
+    inputs.health.worst_critical = health::HealthState::Stale;
+    inputs.dead_reckoning_elapsed = Millis{9000};
+    inputs.dead_reckoning_distance_m = 12.0;
+
+    auto decision = machine.tick(inputs, Millis{9100});
+
+    // Well past the ordinary budget, well inside the covered one.
+    REQUIRE_EQ(decision.state, safety::SafetyState::Degraded);
+    REQUIRE_TRUE(!decision.dead_reckoning_exhausted);
+    REQUIRE_TRUE(decision.dead_reckoning_covered);
+    REQUIRE_TRUE(decision.dead_reckoning_budget_m > 39.0);
+    // Still bounded and still slowed: a longer allowance is not a free one.
+    REQUIRE_TRUE(decision.speed_limit <= limits.dead_reckoning + 1e-9);
+}
+
+void test_safety_covered_allowance_is_still_bounded()
+{
+    safety::SpeedLimits limits{};
+    safety::BoundedAutonomyConfig bounds{};
+    bounds.max_dead_reckoning = Millis{5000};
+    bounds.max_dead_reckoning_m = 6.0;
+    bounds.max_dead_reckoning_covered = Millis{30000};
+    bounds.max_dead_reckoning_covered_m = 40.0;
+    bounds.recovery_ticks = 1;
+
+    safety::SafetyStateMachine machine(limits, bounds);
+    auto inputs = healthyInputs();
+    inputs.start_requested = true;
+    machine.tick(inputs, Millis{0});
+    inputs.start_requested = false;
+
+    inputs.localization_expected_denied = true;
+    inputs.localization_fresh = false;
+    inputs.health.worst_critical = health::HealthState::Stale;
+    // Into DEGRADED first: the machine reaches STOPPING from there, not from
+    // RUNNING in a single tick.
+    machine.tick(inputs, Millis{100});
+
+    inputs.dead_reckoning_distance_m = 41.0;
+    auto decision = machine.tick(inputs, Millis{200});
+
+    REQUIRE_TRUE(decision.dead_reckoning_exhausted);
+    REQUIRE_EQ(decision.state, safety::SafetyState::Stopping);
+}
+
+void test_safety_an_unexpected_loss_never_gets_the_covered_allowance()
+{
+    // The allowance is granted by the map, never by the failure. A fix that
+    // vanished where the route did not expect it is exactly what the short
+    // budget exists to catch, and handing it the long one would be the whole
+    // mistake this feature could make.
+    safety::SpeedLimits limits{};
+    safety::BoundedAutonomyConfig bounds{};
+    bounds.max_dead_reckoning = Millis{5000};
+    bounds.max_dead_reckoning_m = 6.0;
+    bounds.max_dead_reckoning_covered = Millis{30000};
+    bounds.max_dead_reckoning_covered_m = 40.0;
+    bounds.recovery_ticks = 1;
+
+    safety::SafetyStateMachine machine(limits, bounds);
+    auto inputs = healthyInputs();
+    inputs.start_requested = true;
+    machine.tick(inputs, Millis{0});
+    inputs.start_requested = false;
+
+    inputs.localization_expected_denied = false;   // open sky, and the fix went
+    inputs.localization_fresh = false;
+    inputs.health.worst_critical = health::HealthState::Stale;
+    machine.tick(inputs, Millis{100});
+
+    inputs.dead_reckoning_elapsed = Millis{5000};
+    auto decision = machine.tick(inputs, Millis{5100});
+
+    REQUIRE_TRUE(decision.dead_reckoning_exhausted);
+    REQUIRE_TRUE(!decision.dead_reckoning_covered);
+    REQUIRE_EQ(decision.state, safety::SafetyState::Stopping);
+}
+
+void test_safety_without_a_covered_budget_nothing_changes()
+{
+    // The default. An existing configuration must behave exactly as it did
+    // even where the route says the sky is gone.
+    safety::SpeedLimits limits{};
+    safety::BoundedAutonomyConfig bounds{};
+    bounds.max_dead_reckoning = Millis{5000};
+    bounds.max_dead_reckoning_m = 6.0;
+    bounds.recovery_ticks = 1;
+
+    safety::SafetyStateMachine machine(limits, bounds);
+    auto inputs = healthyInputs();
+    inputs.start_requested = true;
+    machine.tick(inputs, Millis{0});
+    inputs.start_requested = false;
+
+    inputs.localization_expected_denied = true;
+    inputs.localization_fresh = false;
+    inputs.health.worst_critical = health::HealthState::Stale;
+    machine.tick(inputs, Millis{100});
+
+    inputs.dead_reckoning_elapsed = Millis{5000};
+    auto decision = machine.tick(inputs, Millis{5100});
+
+    REQUIRE_TRUE(decision.dead_reckoning_exhausted);
+    REQUIRE_TRUE(!decision.dead_reckoning_covered);
+}
+
+void test_safety_rejects_a_covered_allowance_shorter_than_the_ordinary_one()
+{
+    safety::BoundedAutonomyConfig bounds{};
+    bounds.max_dead_reckoning = Millis{12000};
+    bounds.max_dead_reckoning_m = 10.0;
+    bounds.max_dead_reckoning_covered = Millis{5000};
+    REQUIRE_TRUE(!bounds.validate().ok());
+
+    safety::BoundedAutonomyConfig shorter{};
+    shorter.max_dead_reckoning_covered_m = 1.0;
+    REQUIRE_TRUE(!shorter.validate().ok());
+}
+
 void test_safety_blind_robot_stops_instead_of_driving()
 {
     safety::SpeedLimits limits{};

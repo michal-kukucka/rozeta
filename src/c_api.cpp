@@ -533,6 +533,9 @@ rozeta::safety::BoundedAutonomyConfig toBounds(const RozetaBoundedAutonomy& boun
     rozeta::safety::BoundedAutonomyConfig out{};
     out.max_dead_reckoning = std::chrono::milliseconds{bounds.max_dead_reckoning_ms};
     out.max_dead_reckoning_m = bounds.max_dead_reckoning_m;
+    out.max_dead_reckoning_covered =
+        std::chrono::milliseconds{bounds.max_dead_reckoning_covered_ms};
+    out.max_dead_reckoning_covered_m = bounds.max_dead_reckoning_covered_m;
     out.recovery_ticks = bounds.recovery_ticks;
     out.min_pose_confidence = bounds.min_pose_confidence;
     return out;
@@ -781,6 +784,9 @@ extern "C" RozetaBoundedAutonomy rozeta_safety_default_bounds(void) {
     RozetaBoundedAutonomy out{};
     out.max_dead_reckoning_ms = static_cast<long long>(defaults.max_dead_reckoning.count());
     out.max_dead_reckoning_m = defaults.max_dead_reckoning_m;
+    out.max_dead_reckoning_covered_ms =
+        static_cast<long long>(defaults.max_dead_reckoning_covered.count());
+    out.max_dead_reckoning_covered_m = defaults.max_dead_reckoning_covered_m;
     out.recovery_ticks = defaults.recovery_ticks;
     out.min_pose_confidence = defaults.min_pose_confidence;
     return out;
@@ -837,6 +843,7 @@ extern "C" RozetaSafetyDecision rozeta_safety_machine_tick(
     native.health.critical_confidence = inputs.health_critical_confidence;
     native.health.reason = inputs.health_reason;
     native.localization_fresh = inputs.localization_fresh != 0;
+    native.localization_expected_denied = inputs.localization_expected_denied != 0;
     native.localization_usable = inputs.localization_usable != 0;
     native.pose_confidence = inputs.pose_confidence;
     native.obstacle_sensing_usable = inputs.obstacle_sensing_usable != 0;
@@ -854,6 +861,7 @@ extern "C" RozetaSafetyDecision rozeta_safety_machine_tick(
     out.emergency_stop = decision.emergency_stop ? 1 : 0;
     out.state_changed = decision.state_changed ? 1 : 0;
     out.dead_reckoning_exhausted = decision.dead_reckoning_exhausted ? 1 : 0;
+    out.dead_reckoning_covered = decision.dead_reckoning_covered ? 1 : 0;
     copyMessage(out.reason, sizeof(out.reason), decision.reason);
     return out;
 }

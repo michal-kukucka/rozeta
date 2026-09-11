@@ -82,6 +82,23 @@ struct SpeedLimits {
 struct BoundedAutonomyConfig {
     Millis max_dead_reckoning{Millis{12000}};
     double max_dead_reckoning_m{10.0};
+    /// The budget to use instead while the route says localization is expected
+    /// to be unavailable — under a tunnel, a bridge, a covered way.
+    ///
+    /// Zero means "no separate allowance", which is the default and leaves the
+    /// ordinary budget in force everywhere, so an existing configuration
+    /// behaves exactly as it did.
+    ///
+    /// This exists because the two situations are not the same fault. The
+    /// ordinary budget answers "the fix stopped arriving and nobody knows
+    /// why", where stopping quickly is right. A tunnel takes the sky away on
+    /// purpose, the map knew it would, and the robot that stops under it has
+    /// stopped in the one place a person cannot easily reach it. The allowance
+    /// is granted by the *map*, never by the failure: a fix lost outside a
+    /// declared stretch still gets the ordinary budget, which is the whole
+    /// point of keeping them separate.
+    Millis max_dead_reckoning_covered{Millis{0}};
+    double max_dead_reckoning_covered_m{0.0};
     /// Consecutive healthy ticks before leaving DEGRADED for RUNNING.
     int recovery_ticks{5};
     /// Pose confidence below which localization counts as unusable.
@@ -112,6 +129,12 @@ struct SafetyInputs {
     std::string fault_reason{};
 
     health::SystemHealthSummary health{};
+    /// The route says the sky is expected to be gone here — a tunnel, a
+    /// covered way. Switches the dead-reckoning budget to the covered one, if
+    /// a separate one was configured. Declared by the map ahead of time, never
+    /// inferred from the fix disappearing: inferring it would hand the longer
+    /// budget to exactly the failure the shorter one exists to catch.
+    bool localization_expected_denied{false};
     /// Pose is being corrected by an absolute source (GPS accepted recently).
     bool localization_fresh{true};
     /// Pose is good enough to steer by at all.
@@ -142,6 +165,11 @@ struct SafetyDecision {
     bool state_changed{false};
     /// The bounded-autonomy allowance ran out this tick.
     bool dead_reckoning_exhausted{false};
+    /// The covered allowance was the one in force. Recorded so a black box
+    /// says which budget the robot was spending, not only that it ran out.
+    bool dead_reckoning_covered{false};
+    /// The distance budget that applied, in metres. Zero when unlimited.
+    double dead_reckoning_budget_m{0.0};
 };
 
 /// The state machine itself.

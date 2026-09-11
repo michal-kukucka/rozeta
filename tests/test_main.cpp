@@ -366,6 +366,11 @@ void test_safety_machine_stops_when_critical_sensor_fails();
 void test_safety_governor_never_raises_speed_when_two_faults_combine();
 void test_safety_governor_scales_with_pose_confidence();
 void test_safety_blind_robot_stops_instead_of_driving();
+void test_safety_covered_stretch_gets_the_longer_allowance();
+void test_safety_covered_allowance_is_still_bounded();
+void test_safety_an_unexpected_loss_never_gets_the_covered_allowance();
+void test_safety_without_a_covered_budget_nothing_changes();
+void test_safety_rejects_a_covered_allowance_shorter_than_the_ordinary_one();
 void test_motor_command_limiter_enforces_the_invariants();
 void test_safety_limits_reject_inconsistent_configuration();
 void test_safety_history_records_reasons_and_stays_bounded();
@@ -725,6 +730,11 @@ int main(){
         {"safety_governor_combines", test_safety_governor_never_raises_speed_when_two_faults_combine},
         {"safety_governor_confidence", test_safety_governor_scales_with_pose_confidence},
         {"safety_blind_stops", test_safety_blind_robot_stops_instead_of_driving},
+        {"safety_covered_allowance", test_safety_covered_stretch_gets_the_longer_allowance},
+        {"safety_covered_still_bounded", test_safety_covered_allowance_is_still_bounded},
+        {"safety_unexpected_loss_short_budget", test_safety_an_unexpected_loss_never_gets_the_covered_allowance},
+        {"safety_no_covered_budget_unchanged", test_safety_without_a_covered_budget_nothing_changes},
+        {"safety_covered_budget_validation", test_safety_rejects_a_covered_allowance_shorter_than_the_ordinary_one},
         {"safety_motor_limiter", test_motor_command_limiter_enforces_the_invariants},
         {"safety_config_validation", test_safety_limits_reject_inconsistent_configuration},
         {"safety_history", test_safety_history_records_reasons_and_stays_bounded},

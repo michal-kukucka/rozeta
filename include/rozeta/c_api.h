@@ -361,6 +361,12 @@ typedef struct RozetaBoundedAutonomy {
     double max_dead_reckoning_m;
     int recovery_ticks;
     double min_pose_confidence;
+    /** Budget while the route says localization is expected to be gone — a
+     *  tunnel, a covered way. Zero leaves the ordinary budget in force
+     *  everywhere, which is the default. Appended rather than inserted so the
+     *  rest of the layout is untouched. */
+    long long max_dead_reckoning_covered_ms;
+    double max_dead_reckoning_covered_m;
 } RozetaBoundedAutonomy;
 
 typedef struct RozetaSafetyInputs {
@@ -386,6 +392,9 @@ typedef struct RozetaSafetyInputs {
     char health_reason[192];
     char fault_reason[192];
     char stop_reason[192];
+    /** The route says the sky is expected to be gone here. Declared by the
+     *  map ahead of time, never inferred from the fix disappearing. */
+    int localization_expected_denied;
 } RozetaSafetyInputs;
 
 typedef struct RozetaSafetyDecision {
@@ -397,6 +406,8 @@ typedef struct RozetaSafetyDecision {
     int state_changed;
     int dead_reckoning_exhausted;
     char reason[256];
+    /** The covered allowance was the budget in force this tick. */
+    int dead_reckoning_covered;
 } RozetaSafetyDecision;
 
 ROZETA_C_API RozetaSpeedLimits rozeta_safety_default_limits(void);

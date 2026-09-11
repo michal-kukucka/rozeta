@@ -67,6 +67,28 @@ Status BoundedAutonomyConfig::validate() const
     if (!std::isfinite(max_dead_reckoning_m) || max_dead_reckoning_m < 0.0) {
         return Status::error(ErrorCode::InvalidArgument, "max_dead_reckoning_m must be finite and non-negative");
     }
+    if (max_dead_reckoning_covered.count() < 0) {
+        return Status::error(ErrorCode::InvalidArgument,
+                             "max_dead_reckoning_covered must not be negative");
+    }
+    if (!std::isfinite(max_dead_reckoning_covered_m) || max_dead_reckoning_covered_m < 0.0) {
+        return Status::error(ErrorCode::InvalidArgument,
+                             "max_dead_reckoning_covered_m must be finite and non-negative");
+    }
+    // A covered allowance shorter than the ordinary one would be a typo with
+    // no reading that makes sense: the point of declaring a stretch covered is
+    // that the fix is expected to go, so the budget there cannot be tighter
+    // than where it was not expected to.
+    if (max_dead_reckoning_covered.count() > 0
+        && max_dead_reckoning_covered < max_dead_reckoning) {
+        return Status::error(ErrorCode::InvalidArgument,
+                             "max_dead_reckoning_covered must not be shorter than max_dead_reckoning");
+    }
+    if (max_dead_reckoning_covered_m > 0.0
+        && max_dead_reckoning_covered_m < max_dead_reckoning_m) {
+        return Status::error(ErrorCode::InvalidArgument,
+                             "max_dead_reckoning_covered_m must not be shorter than max_dead_reckoning_m");
+    }
     if (recovery_ticks < 0) {
         return Status::error(ErrorCode::InvalidArgument, "recovery_ticks must not be negative");
     }
@@ -252,13 +274,31 @@ SafetyDecision SafetyStateMachine::tick(const SafetyInputs& inputs, Millis now)
         const bool localization_gone = !inputs.localization_usable
             || inputs.pose_confidence < bounds_.min_pose_confidence;
 
-        const bool dr_time_out = bounds_.max_dead_reckoning.count() > 0
-            && inputs.dead_reckoning_elapsed >= bounds_.max_dead_reckoning;
-        const bool dr_distance_out = bounds_.max_dead_reckoning_m > 0.0
-            && inputs.dead_reckoning_distance_m >= bounds_.max_dead_reckoning_m;
+        // Which budget is being spent. The covered one applies only where the
+        // route said the sky would be gone, and only if one was configured --
+        // a zero covered budget leaves the ordinary limits in force, which is
+        // the default and is what every existing configuration gets.
+        const bool covered = inputs.localization_expected_denied;
+        const Millis dr_time_budget =
+            (covered && bounds_.max_dead_reckoning_covered.count() > 0)
+                ? bounds_.max_dead_reckoning_covered
+                : bounds_.max_dead_reckoning;
+        const double dr_distance_budget =
+            (covered && bounds_.max_dead_reckoning_covered_m > 0.0)
+                ? bounds_.max_dead_reckoning_covered_m
+                : bounds_.max_dead_reckoning_m;
+
+        const bool dr_time_out = dr_time_budget.count() > 0
+            && inputs.dead_reckoning_elapsed >= dr_time_budget;
+        const bool dr_distance_out = dr_distance_budget > 0.0
+            && inputs.dead_reckoning_distance_m >= dr_distance_budget;
         const bool dead_reckoning_exhausted = !inputs.localization_fresh
             && (dr_time_out || dr_distance_out);
         decision.dead_reckoning_exhausted = dead_reckoning_exhausted;
+        decision.dead_reckoning_covered = covered
+            && (bounds_.max_dead_reckoning_covered.count() > 0
+                || bounds_.max_dead_reckoning_covered_m > 0.0);
+        decision.dead_reckoning_budget_m = dr_distance_budget;
 
         switch (state_) {
         case SafetyState::Ready:
