@@ -8,6 +8,7 @@
 #include <rozeta/health.hpp>
 #include <rozeta/imu.hpp>
 #include <rozeta/lidar.hpp>
+#include <rozeta/maps.hpp>
 #include <rozeta/operator_io.hpp>
 #include <rozeta/perception.hpp>
 #include <rozeta/runtime.hpp>
@@ -663,6 +664,61 @@ extern "C" void rozeta_gps_gate_reset(void* gate) {
     if (gate != nullptr) {
         static_cast<rozeta::gps::GpsGate*>(gate)->reset();
     }
+}
+
+extern "C" RozetaRouteCorridorResult rozeta_maps_check_route_corridor(
+    const double* route_lat,
+    const double* route_lon,
+    int route_count,
+    const double* half_widths_m,
+    double latitude,
+    double longitude,
+    double max_distance_m,
+    double warning_distance_m,
+    double warning_fraction) {
+    RozetaRouteCorridorResult out{};
+    if (route_lat == nullptr || route_lon == nullptr || route_count <= 0) {
+        out.ok = 0;
+        out.violation = 1;
+        copyMessage(out.message, sizeof(out.message), "route corridor needs a route");
+        return out;
+    }
+
+    std::vector<rozeta::GeoCoordinate> route;
+    route.reserve(static_cast<std::size_t>(route_count));
+    for (int index = 0; index < route_count; ++index) {
+        rozeta::GeoCoordinate point{};
+        point.latitude = route_lat[index];
+        point.longitude = route_lon[index];
+        point.altitude_m = 0.0;
+        route.push_back(point);
+    }
+
+    std::vector<double> widths;
+    if (half_widths_m != nullptr) {
+        widths.assign(half_widths_m, half_widths_m + route_count);
+    }
+
+    rozeta::maps::RouteCorridorConfig config{};
+    config.max_distance_m = max_distance_m;
+    config.warning_distance_m = warning_distance_m;
+    config.warning_fraction = warning_fraction;
+
+    rozeta::GeoCoordinate position{};
+    position.latitude = latitude;
+    position.longitude = longitude;
+    position.altitude_m = 0.0;
+
+    const auto result = rozeta::maps::checkRouteCorridor(route, widths, position, config);
+    out.inside_corridor = result.inside_corridor ? 1 : 0;
+    out.warning = result.warning ? 1 : 0;
+    out.violation = result.violation ? 1 : 0;
+    out.distance_from_route_m = result.distance_from_route_m;
+    out.limit_m = result.limit_m;
+    out.segment_index = static_cast<int>(result.segment_index);
+    out.ok = result.ok() ? 1 : 0;
+    copyMessage(out.message, sizeof(out.message), result.status.message);
+    return out;
 }
 
 extern "C" RozetaGpsGateResult rozeta_gps_gate_accept(

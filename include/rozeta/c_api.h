@@ -307,6 +307,47 @@ ROZETA_C_API void rozeta_gps_gate_reset(void* gate);
 ROZETA_C_API RozetaGpsGateResult rozeta_gps_gate_accept(
     void* gate, RozetaGpsGateSample sample, long long now_ms);
 
+/**
+ * How far off the planned route the robot is, judged against the width of the
+ * road it is on rather than against one number for the whole route.
+ */
+typedef struct RozetaRouteCorridorResult {
+    int inside_corridor;
+    int warning;
+    int violation;
+    double distance_from_route_m;
+    /** The half-width that applied where the robot is. */
+    double limit_m;
+    /** Index of the first point of the segment it was judged against. */
+    int segment_index;
+    int ok;
+    char message[160];
+} RozetaRouteCorridorResult;
+
+/**
+ * Checks a position against a route corridor.
+ *
+ * `route_lat` and `route_lon` hold `route_count` points. `half_widths_m` holds
+ * one half-width per point, or may be NULL for a uniform corridor of
+ * `max_distance_m` — which is the same thing the C++ overload without widths
+ * does.
+ *
+ * A route is a centre line, so what counts as off the road is half the width of
+ * the segment underneath the robot. One number cannot say that for a route
+ * crossing both a wide avenue and a footbridge: it is either too loose to
+ * protect the bridge or too tight to be quiet on the avenue.
+ */
+ROZETA_C_API RozetaRouteCorridorResult rozeta_maps_check_route_corridor(
+    const double* route_lat,
+    const double* route_lon,
+    int route_count,
+    const double* half_widths_m,
+    double latitude,
+    double longitude,
+    double max_distance_m,
+    double warning_distance_m,
+    double warning_fraction);
+
 typedef struct RozetaSpeedLimits {
     double nominal;
     double degraded;

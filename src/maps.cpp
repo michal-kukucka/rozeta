@@ -963,9 +963,104 @@ RouteCorridorResult checkRouteCorridor(
     }
 
     result.distance_from_route_m = distanceToRouteHorizontalMeters(route, current_position);
+    result.limit_m = config.max_distance_m;
     result.inside_corridor = result.distance_from_route_m <= config.max_distance_m;
     result.violation = !result.inside_corridor;
     result.warning = result.inside_corridor && result.distance_from_route_m >= config.warning_distance_m;
+    return result;
+}
+
+RouteCorridorResult checkRouteCorridor(
+    const std::vector<GeoCoordinate>& route,
+    const std::vector<double>& half_widths_m,
+    const GeoCoordinate& current_position,
+    const RouteCorridorConfig& config) {
+    if (half_widths_m.empty()) {
+        return checkRouteCorridor(route, current_position, config);
+    }
+
+    RouteCorridorResult result;
+    result.status = Status::okStatus();
+
+    if (route.empty() || !isFiniteCoordinate(current_position) || !routeHasFiniteCoordinates(route)) {
+        result.status = Status::error(
+            ErrorCode::InvalidArgument,
+            "route corridor requires finite current position and route");
+        result.violation = true;
+        return result;
+    }
+    if (half_widths_m.size() != route.size()) {
+        result.status = Status::error(
+            ErrorCode::InvalidArgument,
+            "route corridor needs one half-width per route point");
+        result.violation = true;
+        return result;
+    }
+    for (const double width : half_widths_m) {
+        if (!std::isfinite(width) || width <= 0.0) {
+            result.status = Status::error(
+                ErrorCode::InvalidArgument,
+                "route corridor half-widths must be finite and positive");
+            result.violation = true;
+            return result;
+        }
+    }
+    if (!std::isfinite(config.warning_fraction) ||
+        config.warning_fraction < 0.0 || config.warning_fraction > 1.0) {
+        result.status = Status::error(
+            ErrorCode::InvalidArgument,
+            "route corridor warning fraction must be a fraction in [0, 1]");
+        result.violation = true;
+        return result;
+    }
+
+    // Judged against the nearest segment rather than the nearest point: a
+    // robot beside the middle of a long straight is closest to a line, and the
+    // width that applies to it is that line's, not that of whichever endpoint
+    // happens to be nearer.
+    const GeoCoordinate origin = current_position;
+    const auto point = geoToLocal(origin, current_position);
+
+    if (route.size() == 1) {
+        const auto vertex = geoToLocal(origin, route.front());
+        result.distance_from_route_m =
+            distanceToLocalSegmentHorizontalMeters(point, vertex, vertex);
+        result.limit_m = half_widths_m.front();
+        result.segment_index = 0;
+    } else {
+        double best = std::numeric_limits<double>::infinity();
+        for (std::size_t index = 1; index < route.size(); ++index) {
+            const auto from = geoToLocal(origin, route[index - 1]);
+            const auto to = geoToLocal(origin, route[index]);
+            const double distance =
+                distanceToLocalSegmentHorizontalMeters(point, from, to);
+            if (distance >= best) {
+                continue;
+            }
+            best = distance;
+            result.segment_index = index - 1;
+
+            // Interpolated along the segment, so a path that narrows towards a
+            // bridge narrows smoothly instead of in a step at the vertex.
+            const double segment_x = to.x - from.x;
+            const double segment_y = to.y - from.y;
+            const double length_squared = segment_x * segment_x + segment_y * segment_y;
+            double t = 0.0;
+            if (length_squared > 0.0) {
+                t = ((point.x - from.x) * segment_x + (point.y - from.y) * segment_y) /
+                    length_squared;
+                t = std::max(0.0, std::min(1.0, t));
+            }
+            result.limit_m = half_widths_m[index - 1] +
+                (half_widths_m[index] - half_widths_m[index - 1]) * t;
+        }
+        result.distance_from_route_m = best;
+    }
+
+    result.inside_corridor = result.distance_from_route_m <= result.limit_m;
+    result.violation = !result.inside_corridor;
+    result.warning = result.inside_corridor &&
+        result.distance_from_route_m >= result.limit_m * config.warning_fraction;
     return result;
 }
 

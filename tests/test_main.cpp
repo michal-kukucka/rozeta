@@ -156,6 +156,11 @@ void test_maps_graph_nearest_vertex_and_shortest_path();
 void test_maps_graph_sample_route_adds_spacing_points();
 void test_maps_route_reuse_decision_uses_distance_from_current_route();
 void test_maps_route_corridor_reports_inside_warning_and_violation();
+void test_maps_route_corridor_varies_with_the_width_of_the_road();
+void test_maps_route_corridor_interpolates_the_width_along_a_segment();
+void test_maps_route_corridor_warns_as_a_fraction_of_the_width();
+void test_maps_route_corridor_rejects_bad_widths();
+void test_maps_route_corridor_without_widths_matches_the_uniform_check();
 void test_maps_route_corridor_rejects_invalid_inputs();
 void test_maps_geofence_contains_points_and_enforces_boundary();
 void test_maps_geofence_rejects_invalid_polygons_and_non_finite_points();
@@ -531,6 +536,11 @@ int main(){
         {"maps_graph_sample_route", test_maps_graph_sample_route_adds_spacing_points},
         {"maps_graph_route_reuse", test_maps_route_reuse_decision_uses_distance_from_current_route},
         {"maps_route_corridor", test_maps_route_corridor_reports_inside_warning_and_violation},
+        {"maps_route_corridor_varies_with_width", test_maps_route_corridor_varies_with_the_width_of_the_road},
+        {"maps_route_corridor_interpolates_width", test_maps_route_corridor_interpolates_the_width_along_a_segment},
+        {"maps_route_corridor_warning_fraction", test_maps_route_corridor_warns_as_a_fraction_of_the_width},
+        {"maps_route_corridor_bad_widths", test_maps_route_corridor_rejects_bad_widths},
+        {"maps_route_corridor_empty_widths", test_maps_route_corridor_without_widths_matches_the_uniform_check},
         {"maps_route_corridor_invalid", test_maps_route_corridor_rejects_invalid_inputs},
         {"maps_geofence", test_maps_geofence_contains_points_and_enforces_boundary},
         {"maps_geofence_invalid", test_maps_geofence_rejects_invalid_polygons_and_non_finite_points},

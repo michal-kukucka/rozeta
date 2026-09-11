@@ -62,6 +62,12 @@ struct RouteReuseDecision {
 struct RouteCorridorConfig {
     double max_distance_m{5.0};
     double warning_distance_m{3.0};
+    /// Fraction of the corridor half-width at which to warn, used only when
+    /// per-point widths are supplied. With a single distance the absolute
+    /// `warning_distance_m` above says where to warn; with widths that vary
+    /// along the route an absolute margin cannot: three metres is a gentle
+    /// warning on a wide avenue and is already off a two-metre footbridge.
+    double warning_fraction{0.6};
 };
 
 struct RouteCorridorResult {
@@ -69,6 +75,12 @@ struct RouteCorridorResult {
     bool warning{false};
     bool violation{false};
     double distance_from_route_m{0.0};
+    /// The half-width that applied where the robot is. Equal to
+    /// `max_distance_m` when no per-point widths were given.
+    double limit_m{0.0};
+    /// Which segment of the route the position was judged against — the index
+    /// of its first point. Lets a caller say *where* rather than only *that*.
+    std::size_t segment_index{0};
     Status status{Status::okStatus()};
 
     bool ok() const { return status.ok(); }
@@ -371,6 +383,24 @@ RouteReuseDecision shouldReuseRoute(
     double max_distance_from_route_m);
 RouteCorridorResult checkRouteCorridor(
     const std::vector<GeoCoordinate>& route,
+    const GeoCoordinate& current_position,
+    const RouteCorridorConfig& config);
+/// The same check where the drivable width varies along the route.
+///
+/// `half_widths_m` holds one half-width per route point; the limit at the
+/// robot is interpolated along the nearest segment, so a path that narrows
+/// towards a bridge narrows smoothly rather than in a step. An empty vector
+/// falls back to `config.max_distance_m`, which is what the overload above
+/// does, so a caller with a uniform route need not build one.
+///
+/// A route is a centre line, and how far from it counts as "off the road" is
+/// half the width of whatever the robot is standing on. One number cannot say
+/// that for a route which crosses a twenty-five metre avenue and a two metre
+/// footbridge over water: it is either too loose to protect the bridge or too
+/// tight to be quiet on the avenue.
+RouteCorridorResult checkRouteCorridor(
+    const std::vector<GeoCoordinate>& route,
+    const std::vector<double>& half_widths_m,
     const GeoCoordinate& current_position,
     const RouteCorridorConfig& config);
 GeofenceResult checkGeofence(

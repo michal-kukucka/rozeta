@@ -2,8 +2,10 @@
 
 #include <rozeta/maps.hpp>
 
+#include <cmath>
 #include <cstddef>
 #include <string>
+#include <vector>
 
 namespace {
 
@@ -218,6 +220,127 @@ void test_maps_route_corridor_reports_inside_warning_and_violation() {
     REQUIRE_TRUE(!violation.inside_corridor);
     REQUIRE_TRUE(violation.violation);
     REQUIRE_TRUE(violation.distance_from_route_m > warning.distance_from_route_m);
+}
+
+void test_maps_route_corridor_varies_with_the_width_of_the_road() {
+    // A route that leaves a wide avenue and crosses a narrow footbridge. The
+    // same distance from the centre line is comfortably on the road at one end
+    // and off it at the other, so one threshold cannot judge both: this is the
+    // whole reason the per-point form exists.
+    std::vector<rozeta::GeoCoordinate> route = {
+        {49.1000000, 17.3900000, 100.0},
+        {49.1000000, 17.3902000, 100.0},
+        {49.1000000, 17.3904000, 100.0},
+    };
+    // Twelve metres of half-width on the avenue, one on the bridge.
+    std::vector<double> half_widths = {12.0, 12.0, 1.0};
+    rozeta::maps::RouteCorridorConfig config;
+
+    // About 5.5 m north of the line, on the avenue half and on the bridge half.
+    const rozeta::GeoCoordinate on_the_avenue{49.1000500, 17.3900500, 100.0};
+    const rozeta::GeoCoordinate on_the_bridge{49.1000500, 17.3903800, 100.0};
+
+    auto wide = rozeta::maps::checkRouteCorridor(route, half_widths, on_the_avenue, config);
+    auto narrow = rozeta::maps::checkRouteCorridor(route, half_widths, on_the_bridge, config);
+
+    REQUIRE_TRUE(wide.ok());
+    REQUIRE_TRUE(wide.inside_corridor);
+    REQUIRE_TRUE(!wide.violation);
+    REQUIRE_TRUE(narrow.ok());
+    REQUIRE_TRUE(!narrow.inside_corridor);
+    REQUIRE_TRUE(narrow.violation);
+    // Same distance from the line, different verdict, because the road is a
+    // different width there.
+    REQUIRE_TRUE(std::fabs(wide.distance_from_route_m - narrow.distance_from_route_m) < 1.0);
+    REQUIRE_TRUE(wide.limit_m > narrow.limit_m);
+}
+
+void test_maps_route_corridor_interpolates_the_width_along_a_segment() {
+    // A path narrowing towards a bridge narrows smoothly. A step at the vertex
+    // would put the edge of the road in a place the map does not claim it is.
+    std::vector<rozeta::GeoCoordinate> route = {
+        {49.1000000, 17.3900000, 100.0},
+        {49.1000000, 17.3904000, 100.0},
+    };
+    std::vector<double> half_widths = {10.0, 2.0};
+    rozeta::maps::RouteCorridorConfig config;
+
+    auto near_start = rozeta::maps::checkRouteCorridor(
+        route, half_widths, {49.1000010, 17.3900400, 100.0}, config);
+    auto middle = rozeta::maps::checkRouteCorridor(
+        route, half_widths, {49.1000010, 17.3902000, 100.0}, config);
+    auto near_end = rozeta::maps::checkRouteCorridor(
+        route, half_widths, {49.1000010, 17.3903600, 100.0}, config);
+
+    REQUIRE_TRUE(near_start.limit_m > middle.limit_m);
+    REQUIRE_TRUE(middle.limit_m > near_end.limit_m);
+    REQUIRE_TRUE(std::fabs(middle.limit_m - 6.0) < 0.5);
+}
+
+void test_maps_route_corridor_warns_as_a_fraction_of_the_width() {
+    // With widths that vary, an absolute warning margin cannot mean anything:
+    // three metres is a gentle nudge on an avenue and is already off a
+    // two-metre bridge. The warning is a fraction of the width instead.
+    std::vector<rozeta::GeoCoordinate> route = {
+        {49.1000000, 17.3900000, 100.0},
+        {49.1000000, 17.3902000, 100.0},
+    };
+    std::vector<double> half_widths = {2.0, 2.0};
+    rozeta::maps::RouteCorridorConfig config;
+    config.warning_fraction = 0.5;
+
+    auto clear = rozeta::maps::checkRouteCorridor(
+        route, half_widths, {49.1000020, 17.3901000, 100.0}, config);
+    auto warned = rozeta::maps::checkRouteCorridor(
+        route, half_widths, {49.1000135, 17.3901000, 100.0}, config);
+
+    REQUIRE_TRUE(clear.inside_corridor);
+    REQUIRE_TRUE(!clear.warning);
+    REQUIRE_TRUE(warned.inside_corridor);
+    REQUIRE_TRUE(warned.warning);
+}
+
+void test_maps_route_corridor_rejects_bad_widths() {
+    std::vector<rozeta::GeoCoordinate> route = {
+        {49.1000000, 17.3900000, 100.0},
+        {49.1000000, 17.3902000, 100.0},
+    };
+    rozeta::maps::RouteCorridorConfig config;
+    const rozeta::GeoCoordinate position{49.1000010, 17.3901000, 100.0};
+
+    // One width per point, or the caller and the library disagree about which
+    // width belongs to which stretch of road — silently, and in the direction
+    // that matters.
+    auto wrong_count = rozeta::maps::checkRouteCorridor(
+        route, std::vector<double>{2.0}, position, config);
+    auto negative = rozeta::maps::checkRouteCorridor(
+        route, std::vector<double>{2.0, -1.0}, position, config);
+
+    REQUIRE_TRUE(!wrong_count.ok());
+    REQUIRE_TRUE(wrong_count.violation);
+    REQUIRE_TRUE(!negative.ok());
+    REQUIRE_TRUE(negative.violation);
+}
+
+void test_maps_route_corridor_without_widths_matches_the_uniform_check() {
+    // An empty width list is the old behaviour exactly, so a caller with a
+    // uniform route need not build one.
+    std::vector<rozeta::GeoCoordinate> route = {
+        {49.1000000, 17.3900000, 100.0},
+        {49.1000000, 17.3902000, 100.0},
+    };
+    rozeta::maps::RouteCorridorConfig config;
+    const rozeta::GeoCoordinate position{49.1000300, 17.3901000, 100.0};
+
+    auto uniform = rozeta::maps::checkRouteCorridor(route, position, config);
+    auto empty_widths = rozeta::maps::checkRouteCorridor(
+        route, std::vector<double>{}, position, config);
+
+    REQUIRE_TRUE(uniform.inside_corridor == empty_widths.inside_corridor);
+    REQUIRE_TRUE(uniform.warning == empty_widths.warning);
+    REQUIRE_TRUE(std::fabs(uniform.distance_from_route_m -
+                           empty_widths.distance_from_route_m) < 1e-9);
+    REQUIRE_TRUE(std::fabs(empty_widths.limit_m - config.max_distance_m) < 1e-9);
 }
 
 void test_maps_route_corridor_rejects_invalid_inputs() {
