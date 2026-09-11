@@ -544,6 +544,19 @@ ROZETA_C_API RozetaGpsSample rozeta_gps_receiver_read_fix(void* receiver);
 ROZETA_C_API RozetaGpsReceiverStats rozeta_gps_receiver_stats(void* receiver);
 ROZETA_C_API const char* rozeta_gps_receiver_last_error(void* receiver);
 
+/** The newest compass heading the receiver has seen, from HDT/HDM/HDG.
+ *
+ *  Heading sentences carry no position, so they never come back from
+ *  read_fix; this is how they reach a caller. Writes degrees clockwise from
+ *  north into \p out_heading_deg and 1/0 into \p out_is_true (true north
+ *  versus magnetic), and returns the age of the reading in seconds.
+ *
+ *  Returns a negative age when no heading has ever arrived, which is the case
+ *  a caller must handle: an iPad without a magnetometer, or GPS2IP with the
+ *  heading sentences switched off, looks exactly like this. */
+ROZETA_C_API double rozeta_gps_receiver_heading(
+    void* receiver, double* out_heading_deg, int* out_is_true);
+
 /** Parses one NMEA sentence or line payload without any transport, so a
  *  recording can be replayed through exactly the parser the receiver uses.
  *  Unlike rozeta_parse_nmea it reports speed, course, accuracy and the

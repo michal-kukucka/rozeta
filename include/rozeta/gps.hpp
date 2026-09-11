@@ -40,6 +40,23 @@ struct GpsFix {
     /// a healthy stream where there is one fix, or a frozen receiver where
     /// there is a slow one.
     double utc_seconds{-1.0};
+
+    /// Heading from the device's own compass, in degrees clockwise from north.
+    /// Negative means the sentence carried none — zero is a legitimate heading
+    /// and cannot be the sentinel.
+    ///
+    /// This is *not* `course_deg`. Course over ground is the direction the
+    /// receiver has been travelling, derived from position, and it exists only
+    /// while the robot is moving; a compass heading is where the robot is
+    /// pointing, and it exists standing still and under a tunnel. The two
+    /// disagree whenever the robot is pushed sideways, and the difference
+    /// between them is how a magnetic heading gets validated.
+    double heading_deg{-1.0};
+    /// True when the heading is referenced to true north — HDT, or HDG with a
+    /// variation to correct by. False means magnetic, which differs from true
+    /// north by the local variation and must not be used as a bearing without
+    /// it.
+    bool heading_true{false};
 };
 
 enum class NmeaValidationCode {
@@ -67,7 +84,12 @@ enum class NmeaParseCode {
     MalformedSentence,
     MissingChecksum,
     InvalidChecksum,
-    InvalidFix
+    InvalidFix,
+    /// A valid heading sentence, which carries no position at all. Its own
+    /// code rather than `Ok`, because a consumer that treated it as a fix
+    /// would read latitude zero, longitude zero — a real place in the Gulf of
+    /// Guinea — as the robot's position.
+    HeadingOnly
 };
 
 struct NmeaParseResult {
@@ -167,6 +189,23 @@ public:
     bool isOpen() const;
     Status lastStatus() const;
     const GpsReceiverStats& stats() const;
+
+    /// The most recent compass heading, or nothing if none has arrived.
+    ///
+    /// Kept apart from `readFix` deliberately. A heading sentence carries no
+    /// position, so it can never be returned as a fix — but it still has to
+    /// reach the caller, and a device that sends HDT at 1 Hz alongside a
+    /// receiver that updates every fifteen seconds would otherwise have its
+    /// heading thrown away between fixes.
+    ///
+    /// The reading survives until a newer one replaces it; `headingAgeSeconds`
+    /// is what tells a live compass from one that stopped.
+    std::optional<double> lastHeading() const;
+    /// True when the kept heading is referenced to true north rather than
+    /// magnetic. Meaningless when `lastHeading` is empty.
+    bool lastHeadingIsTrue() const;
+    /// Seconds since the kept heading arrived. Negative when none has.
+    double headingAgeSeconds() const;
 
 private:
     struct Impl;

@@ -1191,6 +1191,25 @@ extern "C" RozetaGpsReceiverStats rozeta_gps_receiver_stats(void* receiver) {
     return out;
 }
 
+extern "C" double rozeta_gps_receiver_heading(
+    void* receiver, double* out_heading_deg, int* out_is_true) {
+    auto* self = static_cast<rozeta::gps::NetworkGpsReceiver*>(receiver);
+    if (self == nullptr) {
+        return -1.0;
+    }
+    const auto heading = self->lastHeading();
+    if (!heading.has_value()) {
+        return -1.0;
+    }
+    if (out_heading_deg != nullptr) {
+        *out_heading_deg = *heading;
+    }
+    if (out_is_true != nullptr) {
+        *out_is_true = self->lastHeadingIsTrue() ? 1 : 0;
+    }
+    return self->headingAgeSeconds();
+}
+
 extern "C" const char* rozeta_gps_receiver_last_error(void* receiver) {
     auto* handle = static_cast<GpsReceiverHandle*>(receiver);
     if (handle == nullptr) {

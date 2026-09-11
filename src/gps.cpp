@@ -430,6 +430,32 @@ GpsFix NmeaParser::parseLine(const std::string& line) const {
     return parseLineDetailed(line).fix;
 }
 
+namespace {
+
+/// Normalises a parsed heading and reports it as heading-only.
+///
+/// Wrapped into [0, 360) because the corrections in HDG can push it either
+/// side, and a bearing of -3 degrees is the same direction as 357 but compares
+/// differently against everything downstream.
+NmeaParseResult& finishHeading(NmeaParseResult& result, GpsFix& f) {
+    if (!std::isfinite(f.heading_deg)) {
+        result.code = NmeaParseCode::MalformedSentence;
+        result.message = "heading is not a finite number";
+        return result;
+    }
+    f.heading_deg = std::fmod(f.heading_deg, 360.0);
+    if (f.heading_deg < 0.0) {
+        f.heading_deg += 360.0;
+    }
+    f.valid = false;            // a heading is not a position
+    f.fix_quality = 0;
+    result.fix = f;
+    result.code = NmeaParseCode::HeadingOnly;
+    return result;
+}
+
+}  // namespace
+
 NmeaParseResult NmeaParser::parseLineDetailed(const std::string& line) const {
     NmeaParseResult result;
     std::string clean = trimLine(line);
@@ -492,6 +518,69 @@ NmeaParseResult NmeaParser::parseLineDetailed(const std::string& line) const {
         result.fix = f;
         result.code = f.valid ? NmeaParseCode::Ok : NmeaParseCode::InvalidFix;
         return result;
+    }
+
+    // Heading sentences. GPS2IP sends these from the device's compass
+    // alongside GGA and RMC, on the same socket, gated on the hardware having
+    // a magnetometer. They carry a heading and nothing else — no position, no
+    // time — so they return their own code and `valid` stays false.
+    if (type.size() >= 6 && type.substr(type.size() - 3) == "HDT" && p.size() > 1) {
+        if (!parseDouble(p[1], f.heading_deg)) {
+            result.code = NmeaParseCode::MalformedSentence;
+            result.message = "malformed HDT heading";
+            return result;
+        }
+        f.heading_true = true;
+        return finishHeading(result, f);
+    }
+    if (type.size() >= 6 && type.substr(type.size() - 3) == "HDM" && p.size() > 1) {
+        if (!parseDouble(p[1], f.heading_deg)) {
+            result.code = NmeaParseCode::MalformedSentence;
+            result.message = "malformed HDM heading";
+            return result;
+        }
+        f.heading_true = false;   // magnetic; the caller owes it a variation
+        return finishHeading(result, f);
+    }
+    if (type.size() >= 6 && type.substr(type.size() - 3) == "HDG" && p.size() > 1) {
+        // $--HDG,heading,deviation,dev_dir,variation,var_dir
+        if (!parseDouble(p[1], f.heading_deg)) {
+            result.code = NmeaParseCode::MalformedSentence;
+            result.message = "malformed HDG heading";
+            return result;
+        }
+        // Deviation and variation are each optional and each signed by a
+        // letter in the following field. Applying them turns the magnetic
+        // reading into a true one; without them it stays magnetic, which is
+        // the honest answer rather than a true heading quietly wrong by the
+        // local variation — about four degrees east in Prague.
+        double correction = 0.0;
+        bool corrected = false;
+        if (p.size() > 3 && !p[2].empty() && !p[3].empty()) {
+            double deviation = 0.0;
+            if (!parseDouble(p[2], deviation)) {
+                result.code = NmeaParseCode::MalformedSentence;
+                result.message = "malformed HDG deviation";
+                return result;
+            }
+            correction += (p[3] == "W" || p[3] == "w") ? -deviation : deviation;
+            corrected = true;
+        }
+        if (p.size() > 5 && !p[4].empty() && !p[5].empty()) {
+            double variation = 0.0;
+            if (!parseDouble(p[4], variation)) {
+                result.code = NmeaParseCode::MalformedSentence;
+                result.message = "malformed HDG variation";
+                return result;
+            }
+            correction += (p[5] == "W" || p[5] == "w") ? -variation : variation;
+            corrected = true;
+        }
+        if (corrected) {
+            f.heading_deg += correction;
+            f.heading_true = true;
+        }
+        return finishHeading(result, f);
     }
 
     result.code = NmeaParseCode::UnsupportedSentence;
@@ -593,6 +682,17 @@ struct NetworkGpsReceiver::Impl {
     Status last_status{Status::okStatus()};
     GpsReceiverStats stats{};
     Timestamp last_disconnect{};
+    /// The newest compass heading, kept because it arrives on sentences that
+    /// carry no position and so can never be returned as a fix.
+    std::optional<double> heading{};
+    bool heading_true{false};
+    Timestamp heading_at{};
+
+    void noteHeading(const GpsFix& f) {
+        heading = f.heading_deg;
+        heading_true = f.heading_true;
+        heading_at = rozeta::now();
+    }
 
     internal::SocketEndpoint endpoint() const {
         internal::SocketEndpoint out;
@@ -696,6 +796,14 @@ std::optional<GpsFix> NetworkGpsReceiver::readFix() {
                 impl_->last_status = Status::okStatus();
                 return parsed.fix;
             }
+            if (parsed.code == NmeaParseCode::HeadingOnly) {
+                // A heading, not a position. Kept and not returned: this is a
+                // well-formed sentence, so it is not a parse failure either.
+                ++impl_->stats.valid_sentences;
+                impl_->noteHeading(parsed.fix);
+                impl_->last_status = Status::okStatus();
+                return std::nullopt;
+            }
             ++impl_->stats.parse_failures;
             impl_->last_status = Status::error(ErrorCode::ParseError, parsed.message);
             return std::nullopt;
@@ -723,6 +831,16 @@ std::optional<GpsFix> NetworkGpsReceiver::readFix() {
                 impl_->last_status = Status::okStatus();
                 return parsed.fix;
             }
+            if (parsed.code == NmeaParseCode::HeadingOnly) {
+                // Kept rather than returned, and counted as valid rather than
+                // as a parse failure: a device sending HDT at 1 Hz beside a
+                // receiver that updates every fifteen seconds would otherwise
+                // look like a stream of errors.
+                ++impl_->stats.valid_sentences;
+                impl_->noteHeading(parsed.fix);
+                impl_->last_status = Status::okStatus();
+                continue;
+            }
             ++impl_->stats.parse_failures;
             impl_->last_status = Status::error(ErrorCode::ParseError, parsed.message);
         }
@@ -734,6 +852,17 @@ void NetworkGpsReceiver::close() noexcept { impl_->closeSocket(); }
 bool NetworkGpsReceiver::isOpen() const { return impl_->socket.isOpen(); }
 
 Status NetworkGpsReceiver::lastStatus() const { return impl_->last_status; }
+
+std::optional<double> NetworkGpsReceiver::lastHeading() const { return impl_->heading; }
+
+bool NetworkGpsReceiver::lastHeadingIsTrue() const { return impl_->heading_true; }
+
+double NetworkGpsReceiver::headingAgeSeconds() const {
+    if (!impl_->heading.has_value()) {
+        return -1.0;
+    }
+    return std::chrono::duration<double>(rozeta::now() - impl_->heading_at).count();
+}
 
 const GpsReceiverStats& NetworkGpsReceiver::stats() const { return impl_->stats; }
 

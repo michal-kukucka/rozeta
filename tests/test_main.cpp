@@ -3,6 +3,10 @@
 #include <functional>
 
 void test_gps_parses_gga_fix();
+void test_gps_parses_the_compass_heading_sentences();
+void test_gps_a_heading_is_never_a_position();
+void test_gps_hdg_applies_deviation_and_variation();
+void test_gps_position_sentences_carry_no_heading();
 void test_gps_parses_rmc_course_and_speed();
 void test_gps_validates_good_and_bad_checksums();
 void test_gps_rejects_missing_and_malformed_checksums();
@@ -388,6 +392,10 @@ void test_pose_fusion_default_confidence_preserves_existing_behaviour();
 int main(){
     std::vector<std::pair<const char*, std::function<void()>>> tests = {
         {"gps_gga", test_gps_parses_gga_fix},
+        {"gps_heading_sentences", test_gps_parses_the_compass_heading_sentences},
+        {"gps_heading_is_not_a_position", test_gps_a_heading_is_never_a_position},
+        {"gps_hdg_variation", test_gps_hdg_applies_deviation_and_variation},
+        {"gps_fix_without_heading", test_gps_position_sentences_carry_no_heading},
         {"gps_rmc", test_gps_parses_rmc_course_and_speed},
         {"gps_checksum", test_gps_validates_good_and_bad_checksums},
         {"gps_checksum_malformed", test_gps_rejects_missing_and_malformed_checksums},
