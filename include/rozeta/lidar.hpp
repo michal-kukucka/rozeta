@@ -7,6 +7,10 @@
 #include <vector>
 #include <rozeta/core.hpp>
 
+#include <array>
+
+#include <cmath>
+
 namespace rozeta::lidar {
 
 struct ScanPoint { double angle_deg{0}; double distance_m{0}; bool valid{false}; };
@@ -131,5 +135,67 @@ private:
 ROZETA_API std::vector<ScanPoint> parseYdLidarPacketStream(const std::uint8_t* data, std::size_t size);
 
 #endif
+
+/// How fast a scanner is completing revolutions, smoothed.
+///
+/// The figure is the reciprocal of an interval, so taken one at a time a
+/// single late read halves it. On a loaded machine one scheduling hiccup
+/// reported a healthy 10.6 Hz X4 as 5.5 Hz — a number an operator reads as a
+/// motor running at half speed, and which flapped between the two from run to
+/// run with nothing about the scanner changing.
+///
+/// Averaging the *intervals* and inverting once is what fixes it. Averaging
+/// the reciprocals would not: one improbably short interval dominates a mean
+/// of reciprocals, which is the same fault in the other direction.
+///
+/// What it measures is the rate complete scans are *delivered*, which equals
+/// the rotation rate only while the caller keeps up. That is the honest
+/// reading — nothing here can see the rotor — and it is why a consumer that
+/// stalls makes this fall.
+class ScanRateMeter {
+public:
+    /// Intervals kept. About a second of a spinning X4: long enough that one
+    /// stall cannot dominate, short enough to follow a rotor that is really
+    /// slowing down.
+    static constexpr std::size_t kWindow = 10;
+
+    /// Records one completed scan. Non-positive and non-finite intervals are
+    /// ignored: a clock that did not advance says nothing about the rotor.
+    void record(double seconds) {
+        if (!(seconds > 0.0) || !std::isfinite(seconds)) {
+            return;
+        }
+        intervals_[next_] = seconds;
+        next_ = (next_ + 1) % kWindow;
+        if (count_ < kWindow) {
+            ++count_;
+        }
+    }
+
+    /// Scans per second, or zero before anything has been recorded.
+    double hz() const {
+        if (count_ == 0) {
+            return 0.0;
+        }
+        double total = 0.0;
+        for (std::size_t i = 0; i < count_; ++i) {
+            total += intervals_[i];
+        }
+        const double mean = total / static_cast<double>(count_);
+        return mean > 0.0 ? 1.0 / mean : 0.0;
+    }
+
+    std::size_t samples() const { return count_; }
+
+    void reset() {
+        count_ = 0;
+        next_ = 0;
+    }
+
+private:
+    std::array<double, kWindow> intervals_{};
+    std::size_t count_{0};
+    std::size_t next_{0};
+};
 
 } // namespace rozeta::lidar

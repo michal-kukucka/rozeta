@@ -337,6 +337,10 @@ void test_ldrobot_lidar_backend_invalid_device_reports_hardware_unavailable();
 #endif
 #ifdef ROZETA_WITH_YDLIDAR
 void test_ydlidar_parser_parses_sample_frame();
+void test_ydlidar_scan_rate_is_smoothed_against_a_late_read();
+void test_ydlidar_scan_rate_follows_a_rotor_that_really_slows();
+void test_ydlidar_scan_rate_averages_intervals_not_reciprocals();
+void test_ydlidar_scan_rate_ignores_impossible_intervals();
 void test_ydlidar_parser_accepts_fragmented_frame();
 void test_ydlidar_parser_discards_garbage_before_frame();
 void test_ydlidar_parser_rejects_invalid_packets_without_throwing();
@@ -781,6 +785,10 @@ int main(){
 #endif
 #ifdef ROZETA_WITH_YDLIDAR
         {"ydlidar_parse_fixture", test_ydlidar_parser_parses_sample_frame},
+        {"ydlidar_rate_smoothed", test_ydlidar_scan_rate_is_smoothed_against_a_late_read},
+        {"ydlidar_rate_follows_slowdown", test_ydlidar_scan_rate_follows_a_rotor_that_really_slows},
+        {"ydlidar_rate_mean_interval", test_ydlidar_scan_rate_averages_intervals_not_reciprocals},
+        {"ydlidar_rate_rejects_bad", test_ydlidar_scan_rate_ignores_impossible_intervals},
         {"ydlidar_fragmented", test_ydlidar_parser_accepts_fragmented_frame},
         {"ydlidar_garbage", test_ydlidar_parser_discards_garbage_before_frame},
         {"ydlidar_invalid_safe", test_ydlidar_parser_rejects_invalid_packets_without_throwing},

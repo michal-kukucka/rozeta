@@ -127,3 +127,66 @@ void test_ydlidar_backend_invalid_device_reports_hardware_unavailable() {
     REQUIRE_EQ(static_cast<int>(status.code), static_cast<int>(rozeta::ErrorCode::HardwareUnavailable));
 #endif
 }
+
+
+void test_ydlidar_scan_rate_is_smoothed_against_a_late_read()
+{
+    // The figure is the reciprocal of an interval, so taken one at a time a
+    // single late read halves it. On a loaded machine that reported a healthy
+    // 10.6 Hz scanner as 5.5 Hz — which preflight prints, and an operator
+    // reads as a motor running at half speed.
+    rozeta::lidar::ScanRateMeter meter;
+    for (int i = 0; i < 9; ++i) {
+        meter.record(0.10);          // a steady 10 Hz
+    }
+    meter.record(0.20);              // one read arrives late
+
+    // Unsmoothed this would read 5 Hz. The mean interval is 0.11 s.
+    REQUIRE_TRUE(meter.hz() > 8.5);
+    REQUIRE_TRUE(meter.hz() < 9.5);
+}
+
+void test_ydlidar_scan_rate_follows_a_rotor_that_really_slows()
+{
+    // Smoothing must not hide a scanner that is genuinely winding down, which
+    // is the failure the number exists to show.
+    rozeta::lidar::ScanRateMeter meter;
+    for (int i = 0; i < 10; ++i) {
+        meter.record(0.10);
+    }
+    REQUIRE_TRUE(meter.hz() > 9.5);
+
+    for (int i = 0; i < 10; ++i) {
+        meter.record(0.50);          // the window fills with the new rate
+    }
+    REQUIRE_TRUE(meter.hz() > 1.8);
+    REQUIRE_TRUE(meter.hz() < 2.2);
+}
+
+void test_ydlidar_scan_rate_averages_intervals_not_reciprocals()
+{
+    // Averaging the reciprocals is the same fault in the other direction: one
+    // improbably short interval would dominate and report a rotor far faster
+    // than it is.
+    rozeta::lidar::ScanRateMeter meter;
+    meter.record(0.001);             // one absurdly short gap
+    for (int i = 0; i < 9; ++i) {
+        meter.record(0.10);
+    }
+    // Mean of the reciprocals would be about 190 Hz. The mean interval is
+    // 0.0901 s, so about 11 Hz.
+    REQUIRE_TRUE(meter.hz() < 20.0);
+}
+
+void test_ydlidar_scan_rate_ignores_impossible_intervals()
+{
+    rozeta::lidar::ScanRateMeter meter;
+    meter.record(0.0);
+    meter.record(-1.0);
+    REQUIRE_TRUE(meter.samples() == 0);
+    REQUIRE_TRUE(meter.hz() == 0.0);
+
+    meter.record(0.10);
+    REQUIRE_TRUE(meter.samples() == 1);
+    REQUIRE_TRUE(meter.hz() > 9.5);
+}

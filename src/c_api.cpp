@@ -16,6 +16,7 @@
 #include <rozeta/safety_state.hpp>
 
 #include <algorithm>
+#include <array>
 #include <chrono>
 #include <cmath>
 #include <new>
@@ -91,6 +92,8 @@ struct YdLidarX4Handle {
     std::string last_error{};
     std::chrono::steady_clock::time_point last_scan_at{};
     double scan_frequency_hz{0.0};
+    /// How fast scans are arriving, smoothed — see `lidar::ScanRateMeter`.
+    rozeta::lidar::ScanRateMeter scan_rate{};
 };
 
 void recordYdLidarStatus(YdLidarX4Handle& handle, const rozeta::Status& status) {
@@ -202,7 +205,8 @@ extern "C" int rozeta_ydlidar_x4_read_scan(
     const auto finished = std::chrono::steady_clock::now();
     if (handle.last_scan_at.time_since_epoch().count() != 0) {
         const double seconds = std::chrono::duration<double>(finished - handle.last_scan_at).count();
-        handle.scan_frequency_hz = seconds > 0.0 ? 1.0 / seconds : 0.0;
+        handle.scan_rate.record(seconds);
+        handle.scan_frequency_hz = handle.scan_rate.hz();
     }
     handle.last_scan_at = finished;
     return scan.points.size() > capacity ? 1 : 0;
