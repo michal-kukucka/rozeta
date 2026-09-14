@@ -130,6 +130,44 @@ between two arbitrary points can be genuinely impossible.
 `largestComponentVertices` gives a set of vertices that are mutually routable,
 which is how the demos pick endpoints for any dataset.
 
+## Closed sections: routing around a path that must not be used
+
+A route planner that can only find the shortest path is not enough outdoors. A
+footbridge is closed for repairs, the organizers rope off a stretch, an operator
+walks the course and finds a path under water. The robot must still reach its
+destination, by the shortest way that avoids that path.
+
+- `RoutePlanConfig::closed_edges` lists edges the plan must not use, as
+  `GraphEdgeKey` vertex pairs in either order. `planRoute` (both overloads)
+  leaves them out of snapping as well as routing: an endpoint on a closed path
+  is placed on the nearest open one, or rejected when none is within
+  `snap_max_distance_m`. A route that begins by driving along the closed path
+  has not avoided it. Pairs that are not edges are ignored.
+- `graphSectionAround(graph, from, to)` returns the `GraphSection` an edge
+  belongs to: extended both ways through two-way vertices until a junction or a
+  dead end. This is the unit a person means by "that path" — a map edge often
+  runs between survey points a few metres apart, and closing one closes the
+  whole stretch for routing anyway. A stretch that comes back round without
+  meeting a junction (a ring, or a loop leaving one junction and returning to
+  it) is reported with `loop = true`.
+- `graphSectionAt(graph, point, max_distance_m)` finds the section under a
+  clicked or surveyed point, with `snap_distance_m` saying how far off it was.
+- `GraphSection::edges()` hands back the section's edges ready for
+  `closed_edges`, including a loop's closing edge.
+- `graphWithoutEdges(graph, closed_edges)` is the copy the planner routes on.
+
+The same capability is available over the C ABI for applications that keep
+their map in another language: `rozeta_graph_create` builds a graph from vertex
+coordinate arrays and edge index pairs (weighted by great-circle length, both
+directions), `rozeta_graph_section_at` returns a section's vertex indices, and
+`rozeta_graph_plan_route` plans with closed edges and writes the route into
+caller buffers. Both report the full count even when it exceeds the buffer, so
+a caller can retry with a larger one. `rozeta_graph_destroy` frees the handle.
+
+Covered by `map_graph_section_*`, `map_graph_plan_closed_sections`,
+`map_graph_closed_not_snapped` and `map_graph_without_edges` in `rozeta_tests`,
+and end to end through the C ABI in `rozeta_c_api_smoke`.
+
 ## Map catalog
 
 `loadMapCatalog` reads a JSON list of datasets with bounds, attribution and

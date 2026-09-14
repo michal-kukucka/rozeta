@@ -57,6 +57,10 @@ def main() -> None:
         "ROZETA_C_API int rozeta_rgb_obstacle_tracker_update",
         "ROZETA_C_API int rozeta_rgb_obstacle_tracker_update_ref",
         "ROZETA_C_API RozetaRgbObstacleResult rozeta_rgb_obstacle_tracker_result",
+        "ROZETA_C_API void* rozeta_graph_create",
+        "ROZETA_C_API void rozeta_graph_destroy",
+        "ROZETA_C_API RozetaGraphSectionResult rozeta_graph_section_at",
+        "ROZETA_C_API RozetaGraphRouteResult rozeta_graph_plan_route",
     ):
         require(c_api, declaration, f"C ABI declaration should be exported: {declaration}")
 

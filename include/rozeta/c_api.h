@@ -348,6 +348,85 @@ ROZETA_C_API RozetaRouteCorridorResult rozeta_maps_check_route_corridor(
     double warning_distance_m,
     double warning_fraction);
 
+/**
+ * A path network held by the library, for planning around closed sections.
+ *
+ * `vertex_lat`/`vertex_lon` hold `vertex_count` coordinates; `edge_from` and
+ * `edge_to` hold `edge_count` undirected edges as pairs of vertex indices,
+ * weighted by their great-circle length. Edges naming a vertex out of range are
+ * skipped. Returns NULL when there are no vertices or an array is missing.
+ * Built once per map and shared between calls; not thread-safe to destroy while
+ * another call is using it.
+ */
+ROZETA_C_API void* rozeta_graph_create(
+    const double* vertex_lat,
+    const double* vertex_lon,
+    int vertex_count,
+    const int* edge_from,
+    const int* edge_to,
+    int edge_count);
+ROZETA_C_API void rozeta_graph_destroy(void* graph);
+
+/** The stretch of path between the junctions either side of a point. */
+typedef struct RozetaGraphSectionResult {
+    int ok;
+    /** Vertices in the section. May exceed the capacity passed in, in which
+     *  case only that many were written: call again with a larger buffer. */
+    int vertex_count;
+    /** True when the section closes on itself; its last vertex then joins its
+     *  first by one more edge. */
+    int loop;
+    double length_m;
+    /** How far the query point was from the section. */
+    double snap_distance_m;
+    char message[160];
+} RozetaGraphSectionResult;
+
+/**
+ * The section under a point: snapped onto the nearest edge within
+ * `max_distance_m`, then extended both ways to the nearest junction or dead
+ * end. Vertex indices are written to `out_vertices`, in order along the path.
+ */
+ROZETA_C_API RozetaGraphSectionResult rozeta_graph_section_at(
+    void* graph,
+    double latitude,
+    double longitude,
+    double max_distance_m,
+    int* out_vertices,
+    int capacity);
+
+typedef struct RozetaGraphRouteResult {
+    int ok;
+    /** Route points. May exceed the capacity passed in; see the section result. */
+    int point_count;
+    double distance_m;
+    char message[160];
+} RozetaGraphRouteResult;
+
+/**
+ * Shortest route between two points that uses none of the closed edges.
+ *
+ * `closed_from`/`closed_to` hold `closed_count` edges as vertex index pairs in
+ * either order, and may be NULL when `closed_count` is 0. Both endpoints are
+ * snapped onto open edges within `snap_max_distance_m`. The route is written to
+ * `out_lat`/`out_lon`, resampled at `sample_spacing_m`, or as the raw graph
+ * points when that is 0 or less.
+ */
+ROZETA_C_API RozetaGraphRouteResult rozeta_graph_plan_route(
+    void* graph,
+    double start_lat,
+    double start_lon,
+    double goal_lat,
+    double goal_lon,
+    const int* closed_from,
+    const int* closed_to,
+    int closed_count,
+    double snap_max_distance_m,
+    double sample_spacing_m,
+    double* out_lat,
+    double* out_lon,
+    int capacity);
+
 typedef struct RozetaSpeedLimits {
     double nominal;
     double degraded;

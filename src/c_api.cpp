@@ -728,6 +728,150 @@ extern "C" RozetaRouteCorridorResult rozeta_maps_check_route_corridor(
     return out;
 }
 
+extern "C" void* rozeta_graph_create(
+    const double* vertex_lat,
+    const double* vertex_lon,
+    int vertex_count,
+    const int* edge_from,
+    const int* edge_to,
+    int edge_count) {
+    if (vertex_lat == nullptr || vertex_lon == nullptr || vertex_count <= 0) {
+        return nullptr;
+    }
+    if (edge_count > 0 && (edge_from == nullptr || edge_to == nullptr)) {
+        return nullptr;
+    }
+    auto* graph = new (std::nothrow) rozeta::maps::FootwayGraph();
+    if (graph == nullptr) {
+        return nullptr;
+    }
+    graph->vertices.reserve(static_cast<std::size_t>(vertex_count));
+    for (int index = 0; index < vertex_count; ++index) {
+        rozeta::maps::GraphVertex vertex{};
+        vertex.id = std::to_string(index);
+        vertex.coordinate.latitude = vertex_lat[index];
+        vertex.coordinate.longitude = vertex_lon[index];
+        vertex.coordinate.altitude_m = 0.0;
+        graph->vertices.push_back(vertex);
+    }
+    graph->edges.reserve(static_cast<std::size_t>(std::max(0, edge_count)) * 2);
+    for (int index = 0; index < edge_count; ++index) {
+        const int from = edge_from[index];
+        const int to = edge_to[index];
+        if (from < 0 || to < 0 || from >= vertex_count || to >= vertex_count || from == to) {
+            continue;
+        }
+        const auto a = static_cast<std::size_t>(from);
+        const auto b = static_cast<std::size_t>(to);
+        const double length = rozeta::geodesy::haversineDistance(
+            graph->vertices[a].coordinate, graph->vertices[b].coordinate);
+        // Both directions, the way the map loaders build a footway graph.
+        graph->edges.push_back({a, b, length, ""});
+        graph->edges.push_back({b, a, length, ""});
+    }
+    return graph;
+}
+
+extern "C" void rozeta_graph_destroy(void* graph) {
+    delete static_cast<rozeta::maps::FootwayGraph*>(graph);
+}
+
+extern "C" RozetaGraphSectionResult rozeta_graph_section_at(
+    void* graph,
+    double latitude,
+    double longitude,
+    double max_distance_m,
+    int* out_vertices,
+    int capacity) {
+    RozetaGraphSectionResult out{};
+    if (graph == nullptr) {
+        copyMessage(out.message, sizeof(out.message), "no graph");
+        return out;
+    }
+    rozeta::GeoCoordinate point{};
+    point.latitude = latitude;
+    point.longitude = longitude;
+    const auto section = rozeta::maps::graphSectionAt(
+        *static_cast<rozeta::maps::FootwayGraph*>(graph), point, max_distance_m);
+    out.ok = section.ok() ? 1 : 0;
+    copyMessage(out.message, sizeof(out.message), section.status.message);
+    if (!section.ok()) {
+        return out;
+    }
+    out.vertex_count = static_cast<int>(section.vertices.size());
+    out.loop = section.loop ? 1 : 0;
+    out.length_m = section.length_m;
+    out.snap_distance_m = section.snap_distance_m;
+    if (out_vertices != nullptr) {
+        const int written = std::min(out.vertex_count, std::max(0, capacity));
+        for (int index = 0; index < written; ++index) {
+            out_vertices[index] = static_cast<int>(section.vertices[static_cast<std::size_t>(index)]);
+        }
+    }
+    return out;
+}
+
+extern "C" RozetaGraphRouteResult rozeta_graph_plan_route(
+    void* graph,
+    double start_lat,
+    double start_lon,
+    double goal_lat,
+    double goal_lon,
+    const int* closed_from,
+    const int* closed_to,
+    int closed_count,
+    double snap_max_distance_m,
+    double sample_spacing_m,
+    double* out_lat,
+    double* out_lon,
+    int capacity) {
+    RozetaGraphRouteResult out{};
+    if (graph == nullptr) {
+        copyMessage(out.message, sizeof(out.message), "no graph");
+        return out;
+    }
+    if (closed_count > 0 && (closed_from == nullptr || closed_to == nullptr)) {
+        copyMessage(out.message, sizeof(out.message), "closed edges given without their arrays");
+        return out;
+    }
+
+    rozeta::maps::RoutePlanConfig config{};
+    config.snap_max_distance_m = snap_max_distance_m;
+    config.sample_spacing_m = sample_spacing_m;
+    for (int index = 0; index < closed_count; ++index) {
+        if (closed_from[index] < 0 || closed_to[index] < 0) {
+            continue;
+        }
+        config.closed_edges.push_back({static_cast<std::size_t>(closed_from[index]),
+                                       static_cast<std::size_t>(closed_to[index])});
+    }
+
+    rozeta::GeoCoordinate start{};
+    start.latitude = start_lat;
+    start.longitude = start_lon;
+    rozeta::GeoCoordinate goal{};
+    goal.latitude = goal_lat;
+    goal.longitude = goal_lon;
+    const auto plan = rozeta::maps::planRoute(
+        *static_cast<rozeta::maps::FootwayGraph*>(graph), start, goal, config);
+    out.ok = plan.ok() ? 1 : 0;
+    copyMessage(out.message, sizeof(out.message), plan.status.message);
+    if (!plan.ok()) {
+        return out;
+    }
+    const auto& points = sample_spacing_m > 0.0 ? plan.sampled : plan.points;
+    out.point_count = static_cast<int>(points.size());
+    out.distance_m = plan.distance_m;
+    if (out_lat != nullptr && out_lon != nullptr) {
+        const int written = std::min(out.point_count, std::max(0, capacity));
+        for (int index = 0; index < written; ++index) {
+            out_lat[index] = points[static_cast<std::size_t>(index)].latitude;
+            out_lon[index] = points[static_cast<std::size_t>(index)].longitude;
+        }
+    }
+    return out;
+}
+
 extern "C" RozetaGpsGateResult rozeta_gps_gate_accept(
     void* gate, RozetaGpsGateSample sample, long long now_ms) {
     RozetaGpsGateResult out{};

@@ -71,6 +71,41 @@ std::string dataPath(const std::string& name) {
     return testDirectory() + "../data/maps/" + name;
 }
 
+/// Two ways between junctions A and B, with a tail beyond each:
+///
+///   S --- A ------- m ------- B --- G     (straight, 100 m between A and B)
+///         |                   |
+///         n1 --------------- n2           (detour, 40 + 100 + 40 m)
+///
+/// Vertex ids: S=0, A=1, m=2, B=3, G=4, n1=5, n2=6.
+FootwayGraph twoWayGraph() {
+    FootwayGraph graph;
+    const std::vector<GeoCoordinate> points{
+        at(-30.0, 0.0), at(0.0, 0.0), at(50.0, 0.0), at(100.0, 0.0), at(130.0, 0.0),
+        at(0.0, 40.0), at(100.0, 40.0)};
+    for (std::size_t index = 0; index < points.size(); ++index) {
+        graph.vertices.push_back({"v" + std::to_string(index), points[index]});
+    }
+    connect(graph, 0, 1, "tail_west");
+    connect(graph, 1, 2, "straight");
+    connect(graph, 2, 3, "straight");
+    connect(graph, 3, 4, "tail_east");
+    connect(graph, 1, 5, "detour");
+    connect(graph, 5, 6, "detour");
+    connect(graph, 6, 3, "detour");
+    return graph;
+}
+
+bool usesVertex(const RoutePlan& plan, const GeoCoordinate& vertex) {
+    for (const auto& point : plan.points) {
+        if (geodesy::haversineDistance(point, vertex) < 0.01) {
+            return true;
+        }
+    }
+    return false;
+}
+
+
 } // namespace
 
 void test_map_graph_snaps_onto_segment_not_only_vertices() {
@@ -362,4 +397,141 @@ void test_map_catalog_reports_bad_input() {
     REQUIRE_TRUE(!definition.defaults.has_start);
     REQUIRE_NEAR(definition.defaults.sample_spacing_m, 2.0, 1e-12);
     REQUIRE_NEAR(definition.bounds.min.latitude, 49.0, 1e-12);
+}
+
+void test_map_graph_section_runs_between_junctions() {
+    const auto graph = twoWayGraph();
+
+    // The middle of the straight way reaches both junctions, in path order.
+    const auto straight = graphSectionAround(graph, 2, 3);
+    REQUIRE_TRUE(straight.ok());
+    REQUIRE_TRUE((straight.vertices == std::vector<std::size_t>{1, 2, 3}));
+    REQUIRE_TRUE(!straight.loop);
+    REQUIRE_NEAR(straight.length_m, 100.0, 0.2);
+    REQUIRE_EQ(straight.edges().size(), std::size_t{2});
+    REQUIRE_EQ(straight.points.size(), straight.vertices.size());
+
+    // Direction does not matter; the detour runs through both of its bends.
+    const auto detour = graphSectionAround(graph, 6, 5);
+    REQUIRE_TRUE(detour.ok());
+    REQUIRE_EQ(detour.vertices.size(), std::size_t{4});
+    REQUIRE_NEAR(detour.length_m, 180.0, 0.3);
+
+    // A tail ends at its dead end.
+    const auto tail = graphSectionAround(graph, 0, 1);
+    REQUIRE_TRUE(tail.ok());
+    REQUIRE_EQ(tail.vertices.size(), std::size_t{2});
+    REQUIRE_NEAR(tail.length_m, 30.0, 0.1);
+
+    // Two vertices that are not neighbours are not a section.
+    REQUIRE_TRUE(!graphSectionAround(graph, 0, 3).ok());
+    REQUIRE_TRUE(!graphSectionAround(graph, 1, 1).ok());
+    REQUIRE_TRUE(!graphSectionAround(graph, 1, 99).ok());
+}
+
+void test_map_graph_section_of_a_loop_does_not_run_for_ever() {
+    // The ladder is one ring of two-way vertices: nothing ends the walk but
+    // coming back round.
+    const auto ring = graphSectionAround(gridGraph(), 0, 1);
+    REQUIRE_TRUE(ring.ok());
+    REQUIRE_TRUE(ring.loop);
+    REQUIRE_EQ(ring.vertices.size(), std::size_t{6});
+    REQUIRE_EQ(ring.edges().size(), std::size_t{6});
+    REQUIRE_NEAR(ring.length_m, 400.0, 0.5);
+
+    // A lollipop: a loop that leaves one junction and returns to it. Closing
+    // it must close every edge of the loop, including the one back into the
+    // junction, whichever end of the clicked edge the junction is.
+    auto lollipop = gridGraph();
+    lollipop.vertices.push_back({"stick", at(-50.0, 100.0)});
+    connect(lollipop, 6, 0, "stick");
+    const std::vector<std::pair<std::size_t, std::size_t>> clicks{{0, 1}, {1, 0}, {3, 0}};
+    for (const auto& click : clicks) {
+        const auto section = graphSectionAround(lollipop, click.first, click.second);
+        REQUIRE_TRUE(section.ok());
+        REQUIRE_TRUE(section.loop);
+        REQUIRE_EQ(section.vertices.size(), std::size_t{6});
+        REQUIRE_EQ(section.edges().size(), std::size_t{6});
+        REQUIRE_NEAR(section.length_m, 400.0, 0.5);
+    }
+}
+
+void test_map_graph_section_at_a_point() {
+    const auto graph = twoWayGraph();
+    const auto clicked = graphSectionAt(graph, at(70.0, 3.0), 10.0);
+    REQUIRE_TRUE(clicked.ok());
+    REQUIRE_TRUE((clicked.vertices == std::vector<std::size_t>{1, 2, 3}));
+    REQUIRE_NEAR(clicked.snap_distance_m, 3.0, 0.1);
+
+    const auto nowhere = graphSectionAt(graph, at(50.0, 20.0), 5.0);
+    REQUIRE_TRUE(!nowhere.ok());
+}
+
+void test_map_graph_plan_route_avoids_closed_sections() {
+    const auto graph = twoWayGraph();
+    RoutePlanConfig config;
+    config.sample_spacing_m = 0.0;
+
+    const auto open = planRoute(graph, at(-30.0, 0.0), at(130.0, 0.0), config);
+    REQUIRE_TRUE(open.ok());
+    REQUIRE_NEAR(open.distance_m, 160.0, 0.3);
+    REQUIRE_TRUE(usesVertex(open, at(50.0, 0.0)));
+
+    // Close the straight way: the route takes the detour, 80 m longer.
+    config.closed_edges = graphSectionAround(graph, 1, 2).edges();
+    const auto around = planRoute(graph, at(-30.0, 0.0), at(130.0, 0.0), config);
+    REQUIRE_TRUE(around.ok());
+    REQUIRE_NEAR(around.distance_m, 240.0, 0.4);
+    REQUIRE_TRUE(!usesVertex(around, at(50.0, 0.0)));
+    REQUIRE_TRUE(usesVertex(around, at(0.0, 40.0)));
+
+    // Pairs in the other order close the same edges.
+    config.closed_edges = {{2, 1}, {3, 2}};
+    REQUIRE_NEAR(planRoute(graph, at(-30.0, 0.0), at(130.0, 0.0), config).distance_m, 240.0, 0.4);
+
+    // The index overload honours closures too.
+    FootwayGraphIndex index(twoWayGraph());
+    const auto indexed = planRoute(index, at(-30.0, 0.0), at(130.0, 0.0), config);
+    REQUIRE_TRUE(indexed.ok());
+    REQUIRE_NEAR(indexed.distance_m, around.distance_m, 1e-6);
+
+    // Both ways closed: nothing connects the two tails any more.
+    auto both = graphSectionAround(graph, 1, 2).edges();
+    const auto detour = graphSectionAround(graph, 5, 6).edges();
+    both.insert(both.end(), detour.begin(), detour.end());
+    config.closed_edges = both;
+    REQUIRE_TRUE(!planRoute(graph, at(-30.0, 0.0), at(130.0, 0.0), config).ok());
+
+    // A pair that is not an edge closes nothing.
+    config.closed_edges = {{0, 4}, {99, 100}};
+    REQUIRE_NEAR(planRoute(graph, at(-30.0, 0.0), at(130.0, 0.0), config).distance_m, 160.0, 0.3);
+}
+
+void test_map_graph_closed_edges_are_not_snapped_onto() {
+    const auto graph = twoWayGraph();
+    RoutePlanConfig config;
+    config.snap_max_distance_m = 25.0;
+    config.closed_edges = graphSectionAround(graph, 1, 2).edges();
+
+    // The destination is on the closed way. The nearest open path is the
+    // detour, 39 m away -- beyond the snap limit, so the plan is refused
+    // rather than started by driving along the closed way.
+    const auto refused = planRoute(graph, at(-30.0, 0.0), at(50.0, 1.0), config);
+    REQUIRE_TRUE(!refused.ok());
+    REQUIRE_TRUE(refused.status.message.find("destination") != std::string::npos);
+
+    // With a wider limit it is placed on the detour instead.
+    config.snap_max_distance_m = 50.0;
+    config.sample_spacing_m = 0.0;
+    const auto moved = planRoute(graph, at(-30.0, 0.0), at(50.0, 1.0), config);
+    REQUIRE_TRUE(moved.ok());
+    REQUIRE_NEAR(moved.goal_snap.distance_m, 39.0, 0.2);
+    REQUIRE_TRUE(!usesVertex(moved, at(50.0, 0.0)));
+}
+
+void test_map_graph_without_edges_keeps_vertices() {
+    const auto graph = twoWayGraph();
+    const auto open = graphWithoutEdges(graph, {{1, 2}});
+    REQUIRE_EQ(open.vertices.size(), graph.vertices.size());
+    REQUIRE_EQ(open.edges.size(), graph.edges.size() - 2);
 }

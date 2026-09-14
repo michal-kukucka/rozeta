@@ -104,6 +104,12 @@ void test_map_graph_plan_route_snaps_both_endpoints();
 void test_map_graph_plan_route_on_one_edge_stays_on_it();
 void test_map_graph_plan_route_reports_unreachable_and_invalid_input();
 void test_map_graph_loads_shipped_openstreetmap_dataset();
+void test_map_graph_section_runs_between_junctions();
+void test_map_graph_section_of_a_loop_does_not_run_for_ever();
+void test_map_graph_section_at_a_point();
+void test_map_graph_plan_route_avoids_closed_sections();
+void test_map_graph_closed_edges_are_not_snapped_onto();
+void test_map_graph_without_edges_keeps_vertices();
 void test_map_catalog_loads_shipped_catalog();
 void test_map_catalog_reports_bad_input();
 void test_simulation_noise_is_deterministic_for_a_seed();
@@ -497,6 +503,12 @@ int main(){
         {"map_graph_plan_same_edge", test_map_graph_plan_route_on_one_edge_stays_on_it},
         {"map_graph_plan_invalid", test_map_graph_plan_route_reports_unreachable_and_invalid_input},
         {"map_graph_shipped_dataset", test_map_graph_loads_shipped_openstreetmap_dataset},
+        {"map_graph_section_junctions", test_map_graph_section_runs_between_junctions},
+        {"map_graph_section_loop", test_map_graph_section_of_a_loop_does_not_run_for_ever},
+        {"map_graph_section_at_point", test_map_graph_section_at_a_point},
+        {"map_graph_plan_closed_sections", test_map_graph_plan_route_avoids_closed_sections},
+        {"map_graph_closed_not_snapped", test_map_graph_closed_edges_are_not_snapped_onto},
+        {"map_graph_without_edges", test_map_graph_without_edges_keeps_vertices},
         {"map_catalog_shipped", test_map_catalog_loads_shipped_catalog},
         {"map_catalog_bad_input", test_map_catalog_reports_bad_input},
         {"simulation_noise_determinism", test_simulation_noise_is_deterministic_for_a_seed},

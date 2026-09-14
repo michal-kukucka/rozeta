@@ -13,6 +13,7 @@
 #include <limits>
 #include <map>
 #include <queue>
+#include <set>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -48,6 +49,20 @@ std::vector<UndirectedEdge> uniqueEdges(const FootwayGraph& graph) {
         }
     }
     return edges;
+}
+
+GraphEdgeKey edgeKey(std::size_t a, std::size_t b) {
+    return a < b ? GraphEdgeKey{a, b} : GraphEdgeKey{b, a};
+}
+
+/// Distinct neighbours of every vertex, ignoring direction and self-loops.
+std::vector<std::vector<std::size_t>> neighbourLists(const FootwayGraph& graph) {
+    std::vector<std::vector<std::size_t>> neighbours(graph.vertices.size());
+    for (const auto& edge : uniqueEdges(graph)) {
+        neighbours[edge.first].push_back(edge.second);
+        neighbours[edge.second].push_back(edge.first);
+    }
+    return neighbours;
 }
 
 std::vector<std::vector<GraphEdge>> buildAdjacency(const FootwayGraph& graph) {
@@ -434,6 +449,118 @@ std::vector<std::size_t> largestComponentVertices(const FootwayGraph& graph) {
     return best;
 }
 
+std::vector<GraphEdgeKey> GraphSection::edges() const {
+    std::vector<GraphEdgeKey> out;
+    if (vertices.size() < 2) {
+        return out;
+    }
+    out.reserve(vertices.size());
+    for (std::size_t index = 1; index < vertices.size(); ++index) {
+        out.push_back(edgeKey(vertices[index - 1], vertices[index]));
+    }
+    if (loop) {
+        out.push_back(edgeKey(vertices.back(), vertices.front()));
+    }
+    return out;
+}
+
+GraphSection graphSectionAround(const FootwayGraph& graph, std::size_t from, std::size_t to) {
+    GraphSection section;
+    const auto neighbours = neighbourLists(graph);
+    const auto joined = [&](std::size_t a, std::size_t b) {
+        return a < neighbours.size() && b < neighbours.size() &&
+            std::find(neighbours[a].begin(), neighbours[a].end(), b) != neighbours[a].end();
+    };
+    if (from == to || !joined(from, to)) {
+        section.status = Status::error(
+            ErrorCode::InvalidArgument, "the two vertices are not joined by an edge");
+        return section;
+    }
+
+    // Walk away from the edge in one direction while the path runs straight
+    // through two-way vertices. A vertex with any other number of neighbours is
+    // a junction or a dead end, and ends the section.
+    // Returns the vertices passed, and whether the walk came back round to
+    // \p stop_at -- the other end of the starting edge -- which makes the
+    // section a loop: a ring with no junction on it, or one that leaves a
+    // junction and returns to it.
+    const auto walk = [&](std::size_t previous, std::size_t at, std::size_t stop_at) {
+        std::vector<std::size_t> reached;
+        while (neighbours[at].size() == 2) {
+            const std::size_t next =
+                neighbours[at][0] == previous ? neighbours[at][1] : neighbours[at][0];
+            if (next == stop_at) {
+                return std::make_pair(reached, true);
+            }
+            reached.push_back(next);
+            previous = at;
+            at = next;
+        }
+        return std::make_pair(reached, false);
+    };
+
+    auto [behind, loop] = walk(to, from, to);
+
+    // For a loop the chain ends at `to` and the closing edge runs from there
+    // back to the first vertex, which `edges()` adds.
+    std::vector<std::size_t> chain(behind.rbegin(), behind.rend());
+    chain.push_back(from);
+    chain.push_back(to);
+    if (!loop) {
+        // The other way. It can come round too, when the junction is `from`.
+        const auto [ahead, ahead_loop] = walk(from, to, from);
+        chain.insert(chain.end(), ahead.begin(), ahead.end());
+        loop = ahead_loop;
+    }
+
+    section.vertices = std::move(chain);
+    section.loop = loop;
+    section.points.reserve(section.vertices.size());
+    for (const auto vertex : section.vertices) {
+        section.points.push_back(graph.vertices[vertex].coordinate);
+    }
+    for (std::size_t index = 1; index < section.points.size(); ++index) {
+        section.length_m += geodesy::haversineDistance(section.points[index - 1], section.points[index]);
+    }
+    if (loop) {
+        section.length_m += geodesy::haversineDistance(section.points.back(), section.points.front());
+    }
+    return section;
+}
+
+GraphSection graphSectionAt(
+    const FootwayGraph& graph,
+    const GeoCoordinate& point,
+    double max_distance_m) {
+    const auto snap = snapToGraph(graph, point, max_distance_m);
+    if (!snap.valid || snap.edge_from == kInvalidPathIndex || snap.edge_to == kInvalidPathIndex) {
+        GraphSection none;
+        none.status = Status::error(
+            ErrorCode::InvalidArgument,
+            "no path within " + std::to_string(static_cast<long long>(max_distance_m)) + " m");
+        return none;
+    }
+    auto section = graphSectionAround(graph, snap.edge_from, snap.edge_to);
+    section.snap_distance_m = snap.distance_m;
+    return section;
+}
+
+FootwayGraph graphWithoutEdges(const FootwayGraph& graph, const std::vector<GraphEdgeKey>& closed_edges) {
+    std::set<GraphEdgeKey> closed;
+    for (const auto& edge : closed_edges) {
+        closed.insert(edgeKey(edge.first, edge.second));
+    }
+    FootwayGraph open;
+    open.vertices = graph.vertices;
+    open.edges.reserve(graph.edges.size());
+    for (const auto& edge : graph.edges) {
+        if (closed.find(edgeKey(edge.from, edge.to)) == closed.end()) {
+            open.edges.push_back(edge);
+        }
+    }
+    return open;
+}
+
 GraphRouteResult shortestPathAStar(
     const FootwayGraph& graph,
     std::size_t start_vertex,
@@ -696,6 +823,13 @@ RoutePlan planRoute(
     if (graph.vertices.empty()) {
         return rejectPlan(Status::error(ErrorCode::InvalidArgument, "map graph has no data"));
     }
+    if (!config.closed_edges.empty()) {
+        // Plan on a copy with the closures taken out, so snapping and routing
+        // both see the network the robot is actually allowed to use.
+        RoutePlanConfig open_config = config;
+        open_config.closed_edges.clear();
+        return planRoute(graphWithoutEdges(graph, config.closed_edges), start, goal, open_config);
+    }
     const Status endpoints = validatePlanEndpoints(start, goal, config);
     if (!endpoints.ok()) {
         return rejectPlan(endpoints);
@@ -719,6 +853,9 @@ RoutePlan planRoute(
     const RoutePlanConfig& config) {
     if (index.empty()) {
         return rejectPlan(Status::error(ErrorCode::InvalidArgument, "map graph has no data"));
+    }
+    if (!config.closed_edges.empty()) {
+        return planRoute(index.graph(), start, goal, config);
     }
     const Status endpoints = validatePlanEndpoints(start, goal, config);
     if (!endpoints.ok()) {

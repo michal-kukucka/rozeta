@@ -7,6 +7,7 @@
 #include <cstddef>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace rozeta::maps {
@@ -243,6 +244,9 @@ struct GraphStats {
     }
 };
 
+/// An undirected graph edge named by its two vertex ids, in either order.
+using GraphEdgeKey = std::pair<std::size_t, std::size_t>;
+
 struct RoutePlanConfig {
     /// A start/goal farther than this from any path is rejected instead of
     /// silently routed from somewhere else.
@@ -250,6 +254,15 @@ struct RoutePlanConfig {
     /// Spacing of the sampled route handed to a follower. <= 0 keeps the raw
     /// graph nodes.
     double sample_spacing_m{2.0};
+    /// Edges the route must not use: a bridge that is closed, a stretch the
+    /// organizers put off limits, a path an operator has seen flooded. Named by
+    /// their vertex pairs in either order; pairs that are not edges are ignored.
+    ///
+    /// Closed edges are left out of snapping as well as routing, so an endpoint
+    /// that lies on one is placed on the nearest open path, or rejected when
+    /// none is within `snap_max_distance_m` -- a route that begins by driving
+    /// along a closed path has not avoided it.
+    std::vector<GraphEdgeKey> closed_edges{};
 };
 
 /// Route between two geographic points, snapped onto the network.
@@ -263,6 +276,48 @@ struct RoutePlan {
 
     bool ok() const { return status.ok(); }
 };
+
+/// The stretch of path an edge belongs to: from the junction (or dead end) on
+/// one side of it to the junction on the other.
+///
+/// This is the unit a person means by "that path". A map edge runs between two
+/// consecutive survey points, often a few metres apart, and closing one of them
+/// closes the whole stretch for routing anyway -- nothing can pass through the
+/// middle of a chain of two-way vertices without using every edge of it. So the
+/// section is what gets shown, stored and closed.
+struct GraphSection {
+    /// Vertex ids in order along the path. For a loop with no junction on it
+    /// the first vertex is not repeated at the end; see `loop`.
+    std::vector<std::size_t> vertices{};
+    std::vector<GeoCoordinate> points{};
+    double length_m{0.0};
+    /// True when the stretch closes on itself without meeting a junction.
+    bool loop{false};
+    /// How far the query point was from the section, for `graphSectionAt`.
+    double snap_distance_m{0.0};
+    Status status{Status::okStatus()};
+
+    bool ok() const { return status.ok(); }
+    /// The section's edges, ready for `RoutePlanConfig::closed_edges`.
+    std::vector<GraphEdgeKey> edges() const;
+};
+
+/// The section containing the edge between \p from and \p to. An error when
+/// the two are not joined by an edge.
+ROZETA_API GraphSection graphSectionAround(
+    const FootwayGraph& graph,
+    std::size_t from,
+    std::size_t to);
+/// The section under a point, found by snapping it onto the network. An error
+/// when nothing is within \p max_distance_m.
+ROZETA_API GraphSection graphSectionAt(
+    const FootwayGraph& graph,
+    const GeoCoordinate& point,
+    double max_distance_m);
+/// A copy of \p graph without the given edges, in both directions.
+ROZETA_API FootwayGraph graphWithoutEdges(
+    const FootwayGraph& graph,
+    const std::vector<GraphEdgeKey>& closed_edges);
 
 /// Uniform grid over the graph edges, so snapping does not scan every edge.
 /// Build it once per map; snap() is const and safe to share between readers.
@@ -306,6 +361,10 @@ ROZETA_API GraphRouteResult shortestPathAStar(
 /// Plans between arbitrary geographic points: both ends are projected onto the
 /// network and joined as temporary vertices, so the route starts and ends where
 /// the caller asked rather than at the nearest junction.
+///
+/// `config.closed_edges` are avoided. The index overload cannot leave edges out
+/// of its grid, so with closures it snaps against the open edges directly --
+/// linear in the edge count, which for a park-sized map is still microseconds.
 ROZETA_API RoutePlan planRoute(
     const FootwayGraph& graph,
     const GeoCoordinate& start,
