@@ -69,9 +69,30 @@ as zero-based on the first `updateTicks()` call; call `seedTicks(left, right)` f
 hardware whose counters do not start at zero, otherwise the first update would integrate the whole absolute
 count as movement.
 
+`DifferentialDriveConfig` also carries a measured per-side `left_scale`/`right_scale` and an optional
+`discontinuity_ticks` guard: a jump beyond it on either counter is a reset or a wrap, so the counters are
+re-baselined and the pose does not move (`discontinuities()` counts them; 0, the default, disables the
+guard). `updateTicksAt(left, right, seconds)` also measures `speedMps()` and `yawRateRadps()`.
+`odometry::SlipDetector` compares a window of wheel travel against the command and, when one is known,
+against absolute travel, and names four faults separately because each has a different remedy: a dead
+wheel, asymmetry the command did not ask for, wheels turning while the robot is not moving, and a
+consistent scale error that is a calibration fault rather than a slip.
+
 ## LiDAR
 
 `lidar::LidarScanner` defines lifecycle and scan acquisition. The first real target is YDLIDAR X4 or similar serial 2D scanner. Current milestone includes filtering, mock scanner and console scan visualization.
+
+## Scan mask
+
+`rozeta/scan_mask.hpp` decides which LiDAR returns an installation may be believed in, by direction
+rather than by a minimum range (a real obstacle 20 cm ahead is the one that matters most).
+`lidar::ApertureMask` is the window a scanner in an enclosure can see out of, derived from the opening's
+width and distance; `lidar::MaskedSector` is verified self-geometry blocked at every range;
+`lidar::BlindSector` is an obstruction measured at a known range that suppresses returns only out to that
+range plus a margin. `findPersistentReturns` finds candidate self-geometry (same bearing, same distance,
+nearly every scan), `mergeBlindSectors` joins blocked bins across the +-180 seam, and `wrapDegrees180`,
+`angularDifferenceDegrees` and `circularMeanDegrees` are the circle arithmetic they share. See
+`docs/lidar_module.md`.
 
 ## Depth
 
@@ -137,6 +158,15 @@ See `docs/hardware_smoke_module.md` for the `hardware_smoke_matrix` example and 
 
 See `docs/perception_module.md` for M7 RGB perception usage.
 
+## Camera LiDAR
+
+`rozeta/camera_lidar.hpp` holds `perception::CameraLidarMapping`, the measured relation
+`bearing = axis + degrees_per_pixel * (column - width / 2)` between a camera's columns and a scanner's
+bearings, with its blind sectors and an idempotent `toRobotFrame`. `perception::fitCameraLidar` measures it
+from a walk across the field of view: per-cell and per-bin median backgrounds, a RANSAC-style vote over
+candidate mappings, and a least-squares fit on angles unwrapped about their circular mean. See
+`docs/perception_module.md`.
+
 ## Kinect
 
 `kinect::DepthFrame` stores normalized metric depth samples with image metadata. `kinect::loadDepthCsv` loads no-hardware fixtures, `kinect::depthFrameToPointCloud` projects valid pixels into a point cloud, and `obstacle_detection::fromDepthFrame` converts depth images into ahead/left/right obstacle sectors. Optional libfreenect probing is isolated behind `ROZETA_WITH_KINECT=ON`; the default build has no Kinect dependency.
@@ -166,6 +196,13 @@ M15 — Configuration schema and field presets for robotour_config. `robotour_co
 `ui::renderSceneSvg` renders a `NavigationScene` - map graph, planned route, start and destination, robot pose and heading, trajectory, GPS measurement, LiDAR rays, navigation state and left/right drive values - as a standalone SVG document. SVG is text, so graphical output is never a build dependency: a headless build and CI produce the same picture a desktop viewer opens.
 
 See `docs/ui_module.md` for realtime mission visualization usage and `docs/simulator.md` for the simulator view.
+
+## Monitors
+
+`rozeta/monitors.hpp` holds conditions judged over time: `monitors::BoundaryWatch` (a `GeoRect` geofence
+with a signed margin, leaving reported once and each approach warned once), `monitors::HeldCondition`
+(true for long enough, said once per episode) and `monitors::StallWatch` (trying to drive and not leaving a
+circle). They report; they never command motion. See `docs/monitors_module.md`.
 
 ## Clock
 

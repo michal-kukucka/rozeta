@@ -89,6 +89,7 @@ endif()
 
 set(ROZETA_SOURCES
     src/c_api.cpp
+    src/c_api_sensing.cpp
     src/core.cpp
     src/clock.cpp
     src/health.cpp
@@ -103,6 +104,9 @@ set(ROZETA_SOURCES
     src/motors.cpp
     src/gps.cpp
     src/odometry.cpp
+    src/scan_mask.cpp
+    src/camera_lidar.cpp
+    src/monitors.cpp
     src/lidar.cpp
     src/imu.cpp
     src/camera.cpp

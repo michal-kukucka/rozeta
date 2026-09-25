@@ -104,6 +104,30 @@ belong in optional adapters. The checked-in fallback uses classic CV-style masks
 so tests can validate the payload contract without camera hardware.
 
 
+## Camera/LiDAR mapping and its fit (`rozeta/camera_lidar.hpp`)
+
+The camera and the scanner share nothing but the direction they look in. `perception::CameraLidarMapping`
+states it as `bearing = camera_axis_deg + degrees_per_pixel * (column - width / 2)`; the sign of the
+scale carries the handedness, so a camera mounted backwards or an image the driver flips needs no flag.
+`pixelToAngle`, `angleToPixel`, `sees` and `isBlind` use it; `toRobotFrame` rotates every bearing (and
+the blind sectors) from the scanner's frame into the robot's, and is idempotent so a mapping cannot be
+rotated twice.
+
+`perception::fitCameraLidar` measures a mapping from samples of a walk across the field of view:
+
+1. per-cell median luma and per-bin median range are the static scene;
+2. per sample, the image says which column changed and the scan offers every cluster that came closer
+   than its background (`nearestPerBin`, `approachingClusters`, joined across the +-180 seam);
+3. a vote over candidate mappings (axis every 2 degrees, scale every 0.0025 degrees per pixel) picks, per
+   sample, the cluster the most consistent mapping explains, because the thing being walked is often not
+   the nearest return;
+4. least squares on angles unwrapped about their circular mean, a refit without outliers beyond
+   `outlier_deg`, and blind sectors from bins that stayed near in most samples.
+
+The report says why a session could not be fitted (too few samples, no pairs, no spread across the frame)
+rather than returning a confident wrong mapping. From C the fit is a session handle:
+`rozeta_camera_lidar_fit_create`, `..._add_sample` (a row-major luma grid and a scan), `..._run`.
+
 ## M29 — Native C++ PyTorch / LibTorch local AI models
 
 M29 adds a native C++ PyTorch backend seam for local camera AI models while keeping

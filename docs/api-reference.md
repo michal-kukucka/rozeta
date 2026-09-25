@@ -72,6 +72,23 @@ Available C entry points:
   configuration the detector would reject, and `RozetaRgbObstacleResult.state` is 0 Clear,
   1 Pending, 2 Triggered. The bounding box comes from the dark-blob pass, so a detection
   that only trips the difference threshold reports `largest_obstacle_width` 0.
+- Maps: `rozeta_maps_check_route_corridor` judges a position against per-segment half-widths, and
+  `rozeta_graph_create/destroy/section_at/plan_route` hold a path network for finding the section under a
+  point and routing round closed edges. Results larger than the buffer passed report their full size, so
+  the caller retries with a larger one.
+- Odometry: `rozeta_wheel_odometry_create/destroy/reset/seed/update/reading` wrap
+  `odometry::DifferentialOdometry` (per-side scale, discontinuity guard, speed and yaw rate; pass NaN as
+  the time for an untimed sample), and `rozeta_slip_detector_*` wraps `odometry::SlipDetector`.
+- Scan masks: `rozeta_scan_mask_classify` judges a whole scan against an aperture, masked sectors and
+  blind sectors in one call; `rozeta_find_persistent_returns`, `rozeta_merge_blind_sectors`,
+  `rozeta_plane_clears_opening`, `rozeta_aperture_half_angle_deg`, `rozeta_blind_sector_rotated`,
+  `rozeta_wrap_degrees_180`, `rozeta_angular_difference_degrees` and `rozeta_circular_mean_degrees`
+  expose the rest of `rozeta/scan_mask.hpp`.
+- Camera/LiDAR: `rozeta_camera_lidar_pixel_to_angle/angle_to_pixel/sees/to_robot_frame` use a
+  `RozetaCameraLidarMapping`, and `rozeta_camera_lidar_fit_create/add_sample/sample_count/run/destroy`
+  run `perception::fitCameraLidar` over a session.
+- Monitors: `rozeta_geo_rect_valid/margin_m`, `rozeta_boundary_watch_*`, `rozeta_held_condition_*` and
+  `rozeta_stall_watch_*` wrap `rozeta/monitors.hpp`.
 - M19 Python migration bridge helpers expose `rozeta_runtime_create`, `rozeta_runtime_tick`, `rozeta_safety_latch_step`, `rozeta_plan_field_runner`, and `rozeta_operator_dashboard_phase` so ctypes users can drive runtime, safety, field-runner and operator dashboard workflows without C++ ownership details.
 
 The smoke example is executable documentation:

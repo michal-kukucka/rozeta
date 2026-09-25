@@ -200,6 +200,31 @@ sudo usermod -aG dialout "$USER"
 
 Log out/in after changing group membership.
 
+## Scan masks (`rozeta/scan_mask.hpp`)
+
+A scanner mounted on a robot sees the robot. `rozeta/scan_mask.hpp` removes those returns by
+**direction**, never by a bare minimum range, because a real obstacle 20 cm ahead is the one that matters
+most:
+
+| type | blocks | range |
+|------|--------|-------|
+| `lidar::ApertureMask` | everything outside the window an enclosure leaves: `atan((width/2)/distance)` either side | unbounded |
+| `lidar::MaskedSector` | verified self-geometry (a bracket, a camera above the scanner) | unbounded |
+| `lidar::BlindSector` | an obstruction measured at `median_m` | only out to `median_m` plus a margin |
+
+An unmeasured opening (non-positive width or distance) is unrestricted: an invented aperture hides
+obstacles. `findPersistentReturns` proposes self-geometry only when a bearing is present in nearly every
+scan *and* its distance barely varies, so a person who stood still for a while is never masked.
+`planeClearsOpening` is the one-off installation check that the laser plane passes through the opening at
+all. `BlindSector::rotated` converts a sector from the scanner's bearings to the robot's, swapping the ends
+when mirrored.
+
+From C, `rozeta_scan_mask_classify` judges a whole scan in one call (aperture, masked sectors, blind
+sectors, in that order) and writes one `ROZETA_SCAN_*` code per point, so a ctypes caller pays one
+crossing per revolution rather than one per return. `rozeta_find_persistent_returns`,
+`rozeta_merge_blind_sectors`, `rozeta_plane_clears_opening`, `rozeta_aperture_half_angle_deg`,
+`rozeta_blind_sector_rotated` and the angle helpers complete it.
+
 ## Troubleshooting
 
 - `HardwareUnavailable`: wrong device path, permissions, unplugged adapter, or busy serial device.

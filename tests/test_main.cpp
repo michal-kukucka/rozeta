@@ -399,9 +399,28 @@ void test_pose_fusion_scales_the_gps_weight_by_confidence();
 void test_pose_fusion_scales_the_heading_weight_by_confidence();
 void test_pose_fusion_default_confidence_preserves_existing_behaviour();
 
+void test_odometry_scales_rates_and_discontinuities();
+void test_slip_detector_names_each_fault();
+void test_scan_mask_filters_by_direction_not_range();
+void test_scan_mask_finds_only_steady_self_geometry();
+void test_camera_lidar_mapping_round_trips_and_rotates();
+void test_camera_lidar_fit_recovers_a_known_mapping();
+void test_boundary_watch_reports_each_episode_once();
+void test_held_condition_and_stall_watch_fire_once();
+void test_sensing_c_abi_round_trip();
+
 int main(){
     std::vector<std::pair<const char*, std::function<void()>>> tests = {
         {"gps_gga", test_gps_parses_gga_fix},
+        {"odometry_scales_rates_and_discontinuities", test_odometry_scales_rates_and_discontinuities},
+        {"slip_detector_names_each_fault", test_slip_detector_names_each_fault},
+        {"scan_mask_filters_by_direction_not_range", test_scan_mask_filters_by_direction_not_range},
+        {"scan_mask_finds_only_steady_self_geometry", test_scan_mask_finds_only_steady_self_geometry},
+        {"camera_lidar_mapping_round_trips_and_rotates", test_camera_lidar_mapping_round_trips_and_rotates},
+        {"camera_lidar_fit_recovers_a_known_mapping", test_camera_lidar_fit_recovers_a_known_mapping},
+        {"boundary_watch_reports_each_episode_once", test_boundary_watch_reports_each_episode_once},
+        {"held_condition_and_stall_watch_fire_once", test_held_condition_and_stall_watch_fire_once},
+        {"sensing_c_abi_round_trip", test_sensing_c_abi_round_trip},
         {"gps_heading_sentences", test_gps_parses_the_compass_heading_sentences},
         {"gps_heading_is_not_a_position", test_gps_a_heading_is_never_a_position},
         {"gps_hdg_variation", test_gps_hdg_applies_deviation_and_variation},

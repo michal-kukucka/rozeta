@@ -703,6 +703,308 @@ ROZETA_C_API int rozeta_rgb_obstacle_tracker_update_ref(
     int height);
 ROZETA_C_API RozetaRgbObstacleResult rozeta_rgb_obstacle_tracker_result(void* tracker);
 
+/* ── Wheel odometry and slip detection (rozeta/odometry.hpp) ─────────── */
+
+/** Mirrors rozeta::odometry::DifferentialDriveConfig. */
+typedef struct RozetaWheelOdometryConfig {
+    double wheel_base_m;
+    double wheel_radius_m;
+    double ticks_per_revolution;
+    double left_scale;
+    double right_scale;
+    /** A per-update jump beyond this many ticks is a counter discontinuity; 0 disables. */
+    long long discontinuity_ticks;
+} RozetaWheelOdometryConfig;
+
+typedef struct RozetaWheelOdometryReading {
+    double x_m;
+    double y_m;
+    double heading_rad;
+    double distance_m;
+    double left_distance_m;
+    double right_distance_m;
+    double speed_mps;
+    double yaw_rate_radps;
+    long long discontinuities;
+} RozetaWheelOdometryReading;
+
+/** Returns NULL when the geometry is not physical (non-positive ticks, radius,
+ *  wheel base or scale). */
+ROZETA_C_API void* rozeta_wheel_odometry_create(RozetaWheelOdometryConfig config);
+ROZETA_C_API void rozeta_wheel_odometry_destroy(void* odometry);
+ROZETA_C_API void rozeta_wheel_odometry_reset(void* odometry, double x_m, double y_m, double heading_rad);
+ROZETA_C_API void rozeta_wheel_odometry_seed(void* odometry, long long left_ticks, long long right_ticks);
+/** Folds in cumulative counts. \p at_seconds is monotonic time, or NaN for an
+ *  untimed sample, which leaves speed and yaw rate unchanged. */
+ROZETA_C_API RozetaWheelOdometryReading rozeta_wheel_odometry_update(
+    void* odometry, long long left_ticks, long long right_ticks, double at_seconds);
+ROZETA_C_API RozetaWheelOdometryReading rozeta_wheel_odometry_reading(void* odometry);
+
+/** Mirrors rozeta::odometry::SlipDetectorConfig. */
+typedef struct RozetaSlipDetectorConfig {
+    int window;
+    double stopped_threshold_m;
+    double asymmetry_fraction;
+    double calibration_fraction;
+    double min_distance_m;
+} RozetaSlipDetectorConfig;
+
+typedef struct RozetaSlipVerdict {
+    int one_wheel_stopped;
+    int asymmetric;
+    int slipping;
+    int calibration_suspect;
+    int any;
+    char reason[160];
+} RozetaSlipVerdict;
+
+ROZETA_C_API RozetaSlipDetectorConfig rozeta_slip_detector_default_config(void);
+ROZETA_C_API void* rozeta_slip_detector_create(RozetaSlipDetectorConfig config);
+ROZETA_C_API void rozeta_slip_detector_destroy(void* detector);
+ROZETA_C_API void rozeta_slip_detector_reset(void* detector);
+/** One sample; \p has_ground says whether \p ground_delta_m (how far the robot
+ *  really moved, from an absolute source) is known this tick. */
+ROZETA_C_API RozetaSlipVerdict rozeta_slip_detector_update(
+    void* detector,
+    double left_delta_m,
+    double right_delta_m,
+    double commanded_left,
+    double commanded_right,
+    int has_ground,
+    double ground_delta_m);
+
+/* ── Scan masks (rozeta/scan_mask.hpp) ───────────────────────────────── */
+
+ROZETA_C_API double rozeta_wrap_degrees_180(double angle_deg);
+ROZETA_C_API double rozeta_angular_difference_degrees(double first_deg, double second_deg);
+/** Circular mean of \p count bearings; 0 when \p count is 0 or \p angles_deg is NULL. */
+ROZETA_C_API double rozeta_circular_mean_degrees(const double* angles_deg, int count);
+/** Half-angle a rectangular opening leaves; 180 when either measurement is
+ *  missing (non-positive), because an invented aperture hides obstacles. */
+ROZETA_C_API double rozeta_aperture_half_angle_deg(double opening_width_m, double opening_distance_m);
+
+/** A blind sector: suppresses returns inside [start, end] out to \p median_m. */
+typedef struct RozetaBlindSector {
+    double start_deg;
+    double end_deg;
+    double median_m;
+} RozetaBlindSector;
+
+ROZETA_C_API RozetaBlindSector rozeta_blind_sector_rotated(
+    RozetaBlindSector sector, double forward_angle_deg, int mirror);
+
+/** Per-point verdicts written by rozeta_scan_mask_classify. */
+#define ROZETA_SCAN_ACCEPTED 0
+#define ROZETA_SCAN_OUTSIDE_APERTURE 1
+#define ROZETA_SCAN_MASKED_SECTOR 2
+#define ROZETA_SCAN_BLIND_SECTOR 3
+
+/**
+ * Classifies a whole scan against an aperture, fixed masked sectors
+ * (unbounded range) and blind sectors (bounded by their median plus
+ * \p blind_margin_m), in that order. Writes one code to \p out_codes per point
+ * and, when \p out_index is not NULL, the index of the sector that dropped it
+ * (-1 otherwise). Either sector array may be NULL when its count is 0.
+ * Returns the number of accepted points, or -1 on invalid arguments.
+ */
+ROZETA_C_API int rozeta_scan_mask_classify(
+    const double* angles_deg,
+    const double* distances_m,
+    int count,
+    double aperture_half_angle_deg,
+    const double* masked_start_deg,
+    const double* masked_end_deg,
+    int masked_count,
+    const RozetaBlindSector* blind,
+    int blind_count,
+    double blind_margin_m,
+    int* out_codes,
+    int* out_index);
+
+typedef struct RozetaPersistentReturnConfig {
+    double bucket_deg;
+    double max_distance_m;
+    double min_fraction;
+    double max_spread_m;
+} RozetaPersistentReturnConfig;
+
+typedef struct RozetaPersistentReturn {
+    double angle_deg;
+    double median_m;
+    int seen_in;
+    int of_scans;
+    double spread_m;
+} RozetaPersistentReturn;
+
+ROZETA_C_API RozetaPersistentReturnConfig rozeta_persistent_return_default_config(void);
+/**
+ * Bearings seen at a steady distance in nearly every scan. The scans are
+ * concatenated in \p angles_deg / \p distances_m, \p scan_lengths giving each
+ * scan's point count. Writes up to \p capacity results and returns how many
+ * were found (possibly more than written), or -1 on invalid arguments.
+ */
+ROZETA_C_API int rozeta_find_persistent_returns(
+    const double* angles_deg,
+    const double* distances_m,
+    const int* scan_lengths,
+    int scan_count,
+    RozetaPersistentReturnConfig config,
+    RozetaPersistentReturn* out,
+    int capacity);
+
+/** Merges blocked bins (centre bearing, median range) into blind sectors.
+ *  Returns how many sectors there are (possibly more than written), or -1. */
+ROZETA_C_API int rozeta_merge_blind_sectors(
+    const double* bin_angles_deg,
+    const double* bin_medians_m,
+    int count,
+    double bin_width_deg,
+    double gap_bins,
+    double pad_deg,
+    RozetaBlindSector* out,
+    int capacity);
+
+/** 1 when a 2D scanner's sweep passes through the opening, 0 when it sweeps
+ *  the enclosure instead. \p reason (may be NULL) receives why. */
+ROZETA_C_API int rozeta_plane_clears_opening(
+    double opening_height_m,
+    double opening_distance_m,
+    double scan_plane_offset_m,
+    char* reason,
+    int reason_size);
+
+/* ── Camera/LiDAR mapping and its fit (rozeta/camera_lidar.hpp) ─────── */
+
+/** Mirrors rozeta::perception::CameraLidarMapping without its blind sectors,
+ *  which travel separately as RozetaBlindSector arrays. */
+typedef struct RozetaCameraLidarMapping {
+    double camera_axis_deg;
+    double degrees_per_pixel;
+    int frame_width;
+    double horizontal_fov_deg;
+    double residual_rms_deg;
+    int samples;
+    int robot_frame;
+} RozetaCameraLidarMapping;
+
+/** Returns 1 and writes the bearing, or 0 when the mapping is unusable. */
+ROZETA_C_API int rozeta_camera_lidar_pixel_to_angle(
+    RozetaCameraLidarMapping mapping, double pixel_x, double* angle_deg);
+/** Returns 1 and writes the column, or 0 when unusable or off the frame. */
+ROZETA_C_API int rozeta_camera_lidar_angle_to_pixel(
+    RozetaCameraLidarMapping mapping, double angle_deg, double* pixel_x);
+ROZETA_C_API int rozeta_camera_lidar_sees(
+    RozetaCameraLidarMapping mapping, double angle_deg, double fallback_fov_deg);
+/** The mapping rotated into the robot's frame; unchanged if already there. */
+ROZETA_C_API RozetaCameraLidarMapping rozeta_camera_lidar_to_robot_frame(
+    RozetaCameraLidarMapping mapping, double forward_angle_deg, int mirror);
+
+/** Mirrors rozeta::perception::CameraLidarFitOptions. */
+typedef struct RozetaCameraLidarFitOptions {
+    int pixel_step;
+    int pixel_threshold;
+    double min_pixel_fraction;
+    double drop_m;
+    double max_range_m;
+    int min_bins;
+    double min_object_m;
+    double static_range_m;
+    double outlier_deg;
+    double static_seen_fraction;
+    double bin_deg;
+} RozetaCameraLidarFitOptions;
+
+typedef struct RozetaCameraLidarFitReport {
+    int ok;
+    RozetaCameraLidarMapping mapping;
+    int samples;
+    int paired;
+    int used;
+    int rejected;
+    double max_residual_deg;
+    int mirrored;
+    /** Blind sectors found; may exceed the capacity passed to run. */
+    int blind_sector_count;
+    char problem[320];
+} RozetaCameraLidarFitReport;
+
+ROZETA_C_API RozetaCameraLidarFitOptions rozeta_camera_lidar_fit_default_options(void);
+/** A session collector: add samples, then run the fit. */
+ROZETA_C_API void* rozeta_camera_lidar_fit_create(RozetaCameraLidarFitOptions options);
+ROZETA_C_API void rozeta_camera_lidar_fit_destroy(void* fit);
+/** Adds one sample: a row-major luma grid of \p rows x \p columns cells and a
+ *  scan in the scanner's own bearings. Returns 0, or -1 on invalid arguments. */
+ROZETA_C_API int rozeta_camera_lidar_fit_add_sample(
+    void* fit,
+    const int* luma,
+    int rows,
+    int columns,
+    const double* angles_deg,
+    const double* distances_m,
+    int point_count);
+ROZETA_C_API int rozeta_camera_lidar_fit_sample_count(void* fit);
+/** Runs the fit over every sample added. Writes up to \p capacity blind
+ *  sectors (in the scanner's frame) and returns the report. */
+ROZETA_C_API RozetaCameraLidarFitReport rozeta_camera_lidar_fit_run(
+    void* fit, int frame_width, RozetaBlindSector* out_sectors, int capacity);
+
+/* ── Monitors (rozeta/monitors.hpp) ──────────────────────────────────── */
+
+typedef struct RozetaGeoRect {
+    double min_lat;
+    double min_lon;
+    double max_lat;
+    double max_lon;
+} RozetaGeoRect;
+
+ROZETA_C_API int rozeta_geo_rect_valid(RozetaGeoRect rect);
+/** Metres to the nearest edge: positive inside, negative outside. */
+ROZETA_C_API double rozeta_geo_rect_margin_m(RozetaGeoRect rect, double lat, double lon);
+
+typedef struct RozetaBoundaryVerdict {
+    int inside;
+    double margin_m;
+    int warning;
+    /** 1 on the first tick of an episode worth reporting. */
+    int report;
+    int must_stop;
+} RozetaBoundaryVerdict;
+
+/** \p has_area 0 makes a watch for which everywhere is inside. */
+ROZETA_C_API void* rozeta_boundary_watch_create(RozetaGeoRect area, int has_area, double warn_margin_m);
+ROZETA_C_API void rozeta_boundary_watch_destroy(void* watch);
+ROZETA_C_API RozetaBoundaryVerdict rozeta_boundary_watch_check(void* watch, double lat, double lon);
+/** Returns 1 and writes the smallest margin seen, or 0 before any check. */
+ROZETA_C_API int rozeta_boundary_watch_closest(void* watch, double* closest_m);
+
+typedef struct RozetaHeldConditionState {
+    int active;
+    double since_s;
+    int reported;
+} RozetaHeldConditionState;
+
+ROZETA_C_API void* rozeta_held_condition_create(double hold_s);
+ROZETA_C_API void rozeta_held_condition_destroy(void* condition);
+/** Returns 1 exactly once per episode, when \p active has held for hold_s. */
+ROZETA_C_API int rozeta_held_condition_update(void* condition, double now_s, int active);
+ROZETA_C_API RozetaHeldConditionState rozeta_held_condition_state(void* condition);
+ROZETA_C_API void rozeta_held_condition_reset(void* condition);
+
+typedef struct RozetaStallWatchState {
+    int anchored;
+    double anchor_lat;
+    double anchor_lon;
+    double anchor_since_s;
+    int reported;
+} RozetaStallWatchState;
+
+ROZETA_C_API void* rozeta_stall_watch_create(double radius_m, double seconds);
+ROZETA_C_API void rozeta_stall_watch_destroy(void* watch);
+/** Returns 1 exactly once per stall. Not driving clears the watch. */
+ROZETA_C_API int rozeta_stall_watch_update(void* watch, double now_s, double lat, double lon, int driving);
+ROZETA_C_API RozetaStallWatchState rozeta_stall_watch_state(void* watch);
+ROZETA_C_API void rozeta_stall_watch_reset(void* watch);
+
 /** @} */
 
 #ifdef __cplusplus
