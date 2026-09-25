@@ -409,9 +409,20 @@ void test_boundary_watch_reports_each_episode_once();
 void test_held_condition_and_stall_watch_fire_once();
 void test_sensing_c_abi_round_trip();
 
+void test_guarded_follower_progress_never_snaps_backwards();
+void test_guarded_follower_steers_damps_and_reaches_the_goal();
+void test_bounded_bypass_drives_a_box_closed_on_the_heading();
+void test_bounded_bypass_gives_up_rather_than_guess();
+void test_guarded_navigation_c_abi();
+
 int main(){
     std::vector<std::pair<const char*, std::function<void()>>> tests = {
         {"gps_gga", test_gps_parses_gga_fix},
+        {"guarded_follower_progress_never_snaps_backwards", test_guarded_follower_progress_never_snaps_backwards},
+        {"guarded_follower_steers_damps_and_reaches_the_goal", test_guarded_follower_steers_damps_and_reaches_the_goal},
+        {"bounded_bypass_drives_a_box_closed_on_the_heading", test_bounded_bypass_drives_a_box_closed_on_the_heading},
+        {"bounded_bypass_gives_up_rather_than_guess", test_bounded_bypass_gives_up_rather_than_guess},
+        {"guarded_navigation_c_abi", test_guarded_navigation_c_abi},
         {"odometry_scales_rates_and_discontinuities", test_odometry_scales_rates_and_discontinuities},
         {"slip_detector_names_each_fault", test_slip_detector_names_each_fault},
         {"scan_mask_filters_by_direction_not_range", test_scan_mask_filters_by_direction_not_range},

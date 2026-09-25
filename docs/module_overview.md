@@ -98,6 +98,18 @@ nearly every scan), `mergeBlindSectors` joins blocked bins across the +-180 seam
 
 `depth::DepthFrame` and `depth::PointCloud` are neutral metric perception contracts shared by Kinect loaders and obstacle detection, keeping obstacle logic independent from hardware-specific capture APIs.
 
+## Route follower
+
+`rozeta/route_follower.hpp` holds `navigation::GuardedRouteFollower`, a GPS route follower guarded against
+backwards snapping, waypoint oscillation, overshoot and noise-chasing, with a recovery that is the only way
+progress moves back. See `docs/navigation.md`.
+
+## Bounded bypass
+
+`rozeta/bounded_bypass.hpp` holds `obstacle_behavior::BoundedBypass`, a box round an obstacle bounded by a
+wait, a measured clearance, heading-closed turns with timeouts, leg budgets and an attempt limit. See
+`docs/navigation.md`.
+
 ## Obstacle detection
 
 Combines normalized sensor results into `ObstacleInfo` with ahead/left/right flags and nearest distance. Current implementation supports LiDAR scan sectors and depth-frame obstacle extraction through the same navigation contract.

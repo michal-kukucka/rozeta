@@ -88,6 +88,30 @@ Behaviour:
 The phase is one of `Idle`, `Following`, `GoalReached` or `Aborted`
 (`navigation::toString` renders it).
 
+## GuardedRouteFollower (`rozeta/route_follower.hpp`)
+
+`navigation::GuardedRouteFollower` follows a geographic route with the same simple control law as
+`GeoRouteFollower` — a proportional heading follower with a tank-style skid-steer mix — and adds an
+explicit answer to each of the four ways naive route following goes wrong in the field:
+
+| failure | guard |
+|---------|-------|
+| backwards snapping (a noisy fix picks a point passed a minute ago) | the resynchronisation searches forward only, within `resync_lookahead_m`; `beginRecovery()` is the one deliberate way back |
+| waypoint oscillation on the tolerance boundary | a reached waypoint stays reached |
+| overshoot on a tight corner taken fast | a waypoint the robot recedes from while it is closer to the next one than the leg is long counts as reached |
+| noise-chasing | steering is damped by the measured position jitter: a correction smaller than the noise is not made |
+
+Beyond `turn_in_place_threshold_rad` the tracks counter-rotate at `max(speed_minimum_useful,
+speed_degraded)`. `GuardedFollowerInput` carries the per-tick context: an obstacle slowing the robot
+(throttle capped at `speed_degraded`), the jitter, and a speed-governor scale in [0, 1] that can only lower
+the command. The configuration is passed to every `update()`, so settings edited while a route is driven
+take effect on the next tick. `localBearingRad` and `segmentCrossTrackM` are the equirectangular helpers
+it steers by.
+
+It is the follower the Robotour Praha application drives with, ported line for line from it, and its
+parity with that implementation is tested on randomised noisy drives. Choose it over `GeoRouteFollower`
+for a robot navigating on GPS alone.
+
 ## HeadingEstimator
 
 A control tick is usually far shorter than the distance a robot has to move
@@ -110,6 +134,26 @@ that turns in place needs an IMU or compass as well; see `docs/simulator.md`.
 ## Depth-derived obstacles
 
 `obstacle_detection::fromDepthFrame()` lets Kinect/depth data feed the same `ObstacleInfo` contract as LiDAR. A `kinect::DepthFrame` can be loaded from a CSV fixture for CI-safe replay, converted to a point cloud with `kinect::depthFrameToPointCloud()`, or reduced directly into ahead/left/right sectors and nearest-distance data for `RouteFollower`. Invalid or missing depth pixels are ignored, so no physical Kinect is required for tests.
+
+## BoundedBypass (`rozeta/bounded_bypass.hpp`)
+
+`obstacle_behavior::BoundedBypass` drives a box round an obstacle — turn out, step out, turn along, drive
+along, turn back, step back, turn to resume — and bounds every step, because on a platform without wheel
+encoders the manoeuvre is movement the robot cannot verify:
+
+- it starts only after the obstacle has had `wait_s` to move on its own, and only towards a side the
+  ranging sensor reports clear by `required_clearance_m`; `BypassCameraAdvice` may narrow that choice
+  (a clear side over grass is dropped) and never widens it;
+- straight legs are dead-reckoned from `ground_speed_mps` plus `ramp_allowance_s`; turns close the loop on
+  the heading estimate when one is given, keeping their dead-reckoned time as a timeout;
+  `BoundedBypassConfig::forChassis` derives the rates from the track width and wheel speed;
+- a leg that overruns its budget by `leg_timeout_factor`, a new blocking obstacle (after the
+  `clearing_grace_s` that still belongs to the original one), or lost obstacle sensing abandons it;
+- after `max_attempts` the obstacle is permanent and `give_up` asks the caller to stop.
+
+It returns wheel commands and a `history()` of phase changes; it never raises a speed limit, so every
+command still passes the caller's safety gate. The configuration is passed to every `update()`.
+`ObstacleBehavior` below is the simpler, purely time-based variant.
 
 ## M10 — Obstacle wait and bypass behavior
 

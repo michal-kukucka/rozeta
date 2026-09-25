@@ -1005,6 +1005,134 @@ ROZETA_C_API int rozeta_stall_watch_update(void* watch, double now_s, double lat
 ROZETA_C_API RozetaStallWatchState rozeta_stall_watch_state(void* watch);
 ROZETA_C_API void rozeta_stall_watch_reset(void* watch);
 
+/* ── Guarded route follower (rozeta/route_follower.hpp) ───────────────── */
+
+/** Mirrors rozeta::navigation::GuardedFollowerConfig; passed on every update. */
+typedef struct RozetaGuardedFollowerConfig {
+    double waypoint_tolerance_m;
+    double goal_tolerance_m;
+    double resync_lookahead_m;
+    double off_route_distance_m;
+    double turn_in_place_threshold_rad;
+    double heading_gain;
+    double speed_nominal;
+    double speed_degraded;
+    double speed_minimum_useful;
+} RozetaGuardedFollowerConfig;
+
+/** Navigation phases: 0 idle, 1 following, 2 goal reached, 3 aborted. */
+typedef struct RozetaGuardedDecision {
+    double left;
+    double right;
+    int phase;
+    int waypoint_index;
+    int waypoint_count;
+    double distance_to_waypoint_m;
+    double distance_to_goal_m;
+    double cross_track_error_m;
+    double heading_error_rad;
+    double desired_bearing_deg;
+    int off_route;
+    int goal_reached;
+    int turning_in_place;
+    char reason[160];
+} RozetaGuardedDecision;
+
+typedef struct RozetaGuardedFollowerState {
+    int phase;
+    int index;
+    int high_water;
+    int route_count;
+    double route_length_m;
+    double progress_fraction;
+    char reason[160];
+} RozetaGuardedFollowerState;
+
+ROZETA_C_API RozetaGuardedFollowerConfig rozeta_guarded_follower_default_config(void);
+ROZETA_C_API void* rozeta_guarded_follower_create(void);
+ROZETA_C_API void rozeta_guarded_follower_destroy(void* follower);
+/** Loads \p count points (NULL arrays allowed when \p count is 0). Returns 0, or -1. */
+ROZETA_C_API int rozeta_guarded_follower_set_route(
+    void* follower, const double* lat, const double* lon, int count);
+ROZETA_C_API void rozeta_guarded_follower_clear(void* follower);
+ROZETA_C_API void rozeta_guarded_follower_abort(void* follower, const char* reason);
+ROZETA_C_API void rozeta_guarded_follower_begin_recovery(void* follower, const char* reason);
+ROZETA_C_API RozetaGuardedDecision rozeta_guarded_follower_update(
+    void* follower,
+    RozetaGuardedFollowerConfig config,
+    double latitude,
+    double longitude,
+    double heading_rad,
+    int obstacle_slowing,
+    double jitter_m,
+    double speed_scale);
+ROZETA_C_API RozetaGuardedFollowerState rozeta_guarded_follower_state(void* follower);
+
+/* ── Bounded obstacle bypass (rozeta/bounded_bypass.hpp) ─────────────── */
+
+/** Mirrors rozeta::obstacle_behavior::BoundedBypassConfig; passed on every update. */
+typedef struct RozetaBypassConfig {
+    int enabled;
+    double side_step_m;
+    double along_m;
+    double required_clearance_m;
+    double speed;
+    double spin_deg_s;
+    double ground_speed_mps;
+    int max_attempts;
+    double clearing_grace_s;
+    double leg_timeout_factor;
+    double ramp_allowance_s;
+} RozetaBypassConfig;
+
+typedef struct RozetaBypassInput {
+    double now_s;
+    int blocking;
+    int sensing_usable;
+    double left_clear_m;
+    double right_clear_m;
+    int has_heading;
+    double heading_rad;
+    int camera_usable;
+    int camera_allows_left;
+    int camera_allows_right;
+} RozetaBypassInput;
+
+/** Phases: 0 idle, 1 waiting, 2 turn_out, 3 step_out, 4 turn_along, 5 along,
+ *  6 turn_back, 7 step_back, 8 turn_resume, 9 resuming, 10 exhausted. */
+typedef struct RozetaBypassCommand {
+    double left;
+    double right;
+    int owns_drive;
+    int phase;
+    int give_up;
+    char reason[160];
+} RozetaBypassCommand;
+
+typedef struct RozetaBypassState {
+    int phase;
+    int attempts;
+    int direction;
+    int history_count;
+    char reason[160];
+} RozetaBypassState;
+
+ROZETA_C_API RozetaBypassConfig rozeta_bypass_default_config(void);
+ROZETA_C_API RozetaBypassConfig rozeta_bypass_config_for_chassis(
+    double track_width_m, double max_wheel_speed_mps, double drive_efficiency, double speed);
+/** Writes the first problem to \p problem (may be NULL) and returns how many there are. */
+ROZETA_C_API int rozeta_bypass_config_problems(RozetaBypassConfig config, char* problem, int problem_size);
+ROZETA_C_API void* rozeta_bypass_create(double wait_s);
+ROZETA_C_API void rozeta_bypass_destroy(void* bypass);
+ROZETA_C_API void rozeta_bypass_reset(void* bypass);
+ROZETA_C_API RozetaBypassCommand rozeta_bypass_update(
+    void* bypass, RozetaBypassConfig config, RozetaBypassInput input);
+ROZETA_C_API RozetaBypassState rozeta_bypass_state(void* bypass);
+ROZETA_C_API void rozeta_bypass_set_attempts(void* bypass, int attempts);
+/** One history entry; returns 0 when \p index is out of range. */
+ROZETA_C_API int rozeta_bypass_history_entry(
+    void* bypass, int index, double* at_s, int* phase, char* reason, int reason_size);
+
 /** @} */
 
 #ifdef __cplusplus

@@ -43,6 +43,7 @@ add_executable(rozeta_tests
     test_safety_state.cpp
     test_faults.cpp
     test_sensing_extract.cpp
+    test_guarded_navigation.cpp
 )
 if(ROZETA_PLATFORM_POSIX)
   target_sources(rozeta_tests PRIVATE test_serial_port.cpp)

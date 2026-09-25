@@ -89,6 +89,12 @@ Available C entry points:
   run `perception::fitCameraLidar` over a session.
 - Monitors: `rozeta_geo_rect_valid/margin_m`, `rozeta_boundary_watch_*`, `rozeta_held_condition_*` and
   `rozeta_stall_watch_*` wrap `rozeta/monitors.hpp`.
+- Route following: `rozeta_guarded_follower_create/destroy/set_route/clear/abort/begin_recovery/update/state`
+  drive a `navigation::GuardedRouteFollower`; the `RozetaGuardedFollowerConfig` is passed on every update.
+- Obstacle bypass: `rozeta_bypass_create/destroy/reset/update/state/set_attempts/history_entry`,
+  `rozeta_bypass_default_config`, `rozeta_bypass_config_for_chassis` and `rozeta_bypass_config_problems`
+  drive an `obstacle_behavior::BoundedBypass`; the camera's opinion crosses as two booleans in
+  `RozetaBypassInput`.
 - M19 Python migration bridge helpers expose `rozeta_runtime_create`, `rozeta_runtime_tick`, `rozeta_safety_latch_step`, `rozeta_plan_field_runner`, and `rozeta_operator_dashboard_phase` so ctypes users can drive runtime, safety, field-runner and operator dashboard workflows without C++ ownership details.
 
 The smoke example is executable documentation:
