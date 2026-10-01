@@ -2,6 +2,7 @@
 """Contract checks for Rozeta Windows DLL/static export policy."""
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -32,9 +33,19 @@ def main() -> None:
         require(export_text, needle, f"export.h missing {needle}")
 
     c_api = read("include/rozeta/c_api.h")
+    # Every struct a binding might copy must be in the ABI size table, or a
+    # binding cannot check its copy and a short struct goes unnoticed.
+    c_api_cpp = read("src/c_api.cpp")
+    for name in re.findall(r"^\} (Rozeta\w+);", c_api, re.MULTILINE):
+        require(c_api_cpp, f"ROZETA_ABI_STRUCT({name})",
+                f"{name} is missing from the ABI size table in src/c_api.cpp")
     require(c_api, "#include <rozeta/export.h>", "C ABI header should include export macros")
     for declaration in (
         "ROZETA_C_API const char* rozeta_version",
+        "ROZETA_C_API int rozeta_abi_version",
+        "ROZETA_C_API size_t rozeta_abi_struct_size",
+        "ROZETA_C_API size_t rozeta_abi_struct_count",
+        "ROZETA_C_API const char* rozeta_abi_struct_name",
         "ROZETA_C_API double rozeta_normalize_angle",
         "ROZETA_C_API double rozeta_distance_2d",
         "ROZETA_C_API RozetaObstacleInfo rozeta_obstacles_from_lidar",

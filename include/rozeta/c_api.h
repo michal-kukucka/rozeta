@@ -108,6 +108,27 @@ typedef struct RozetaFieldRunnerPlan {
 } RozetaFieldRunnerPlan;
 
 ROZETA_C_API const char* rozeta_version(void);
+
+/** \name ABI self-description
+ * A binding written in another language (ctypes, cffi, a P/Invoke table) copies
+ * these struct layouts by hand, and nothing at link time notices when the copy
+ * falls behind: a struct passed by value that grew a field is read past its end
+ * by the library, silently. These let a binding check, at load, that its copy of
+ * every struct is the size the library was built with, and refuse to use the
+ * library rather than hand it a short struct.
+ * @{ */
+/** Bumped whenever any struct in this header changes layout. */
+#define ROZETA_ABI_VERSION 2
+ROZETA_C_API int rozeta_abi_version(void);
+/** sizeof the named struct (its C name, e.g. "RozetaSafetyInputs"), or 0 when
+ *  the name is not a struct of this ABI. */
+ROZETA_C_API size_t rozeta_abi_struct_size(const char* name);
+/** How many structs the ABI describes; with rozeta_abi_struct_name, lets a
+ *  binding list them rather than only look up the ones it knows. */
+ROZETA_C_API size_t rozeta_abi_struct_count(void);
+/** The C name of struct \p index, or NULL past the end. */
+ROZETA_C_API const char* rozeta_abi_struct_name(size_t index);
+/** @} */
 ROZETA_C_API double rozeta_normalize_angle(double radians);
 ROZETA_C_API double rozeta_distance_2d(double ax, double ay, double bx, double by);
 ROZETA_C_API RozetaObstacleInfo rozeta_obstacles_from_lidar(

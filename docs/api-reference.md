@@ -60,6 +60,13 @@ and link the installed `rozeta::rozeta` CMake target.
 Available C entry points:
 
 - `rozeta_version()` returns the library version string.
+- `rozeta_abi_version()` returns `ROZETA_ABI_VERSION`, bumped whenever a struct in
+  `c_api.h` changes layout. `rozeta_abi_struct_size(name)` returns `sizeof` of a struct
+  by its C name (0 when unknown), and `rozeta_abi_struct_count()` /
+  `rozeta_abi_struct_name(i)` list them. A binding that copies struct layouts by hand
+  (ctypes, cffi) should compare its sizes at load and refuse the library on any
+  mismatch: a struct passed by value that is shorter than the library's is read past
+  its end without any error.
 - `rozeta_normalize_angle(double radians)` normalizes radians into `[-pi, pi]`.
 - `rozeta_distance_2d(ax, ay, bx, by)` computes planar distance.
 - `rozeta_obstacles_from_lidar(points, count, threshold_m)` maps C scan points to

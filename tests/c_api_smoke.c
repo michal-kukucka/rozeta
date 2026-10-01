@@ -15,6 +15,32 @@ int main(void) {
         return 1;
     }
 
+    if (rozeta_abi_version() != ROZETA_ABI_VERSION) {
+        fprintf(stderr, "abi version %d, header says %d\n", rozeta_abi_version(), ROZETA_ABI_VERSION);
+        return 1;
+    }
+    if (rozeta_abi_struct_size("RozetaSafetyInputs") != sizeof(RozetaSafetyInputs)
+        || rozeta_abi_struct_size("RozetaBoundedAutonomy") != sizeof(RozetaBoundedAutonomy)
+        || rozeta_abi_struct_size("RozetaSafetyDecision") != sizeof(RozetaSafetyDecision)) {
+        fprintf(stderr, "abi struct sizes disagree with this compiler\n");
+        return 1;
+    }
+    if (rozeta_abi_struct_size("RozetaNoSuchStruct") != 0 || rozeta_abi_struct_size(NULL) != 0) {
+        fprintf(stderr, "an unknown struct name should have size 0\n");
+        return 1;
+    }
+    if (rozeta_abi_struct_count() < 50 || rozeta_abi_struct_name(rozeta_abi_struct_count()) != NULL) {
+        fprintf(stderr, "abi struct listing is wrong\n");
+        return 1;
+    }
+    for (size_t i = 0; i < rozeta_abi_struct_count(); ++i) {
+        const char* name = rozeta_abi_struct_name(i);
+        if (name == NULL || rozeta_abi_struct_size(name) == 0) {
+            fprintf(stderr, "abi struct %zu has no name or size\n", i);
+            return 1;
+        }
+    }
+
     if (!near_double(rozeta_normalize_angle(4.0), -2.2831853071795862)) {
         fprintf(stderr, "angle normalization failed\n");
         return 1;

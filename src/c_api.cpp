@@ -34,6 +34,100 @@ extern "C" const char* rozeta_version(void) {
     return ROZETA_VERSION_STRING;
 }
 
+namespace {
+
+struct AbiStruct {
+    const char* name;
+    std::size_t size;
+};
+
+#define ROZETA_ABI_STRUCT(type) AbiStruct{#type, sizeof(type)}
+// Every struct in c_api.h. tests/test_dll_export_contract.py fails when one
+// is added to the header and not here.
+constexpr AbiStruct kAbiStructs[] = {
+    ROZETA_ABI_STRUCT(RozetaBlindSector),
+    ROZETA_ABI_STRUCT(RozetaBoundaryVerdict),
+    ROZETA_ABI_STRUCT(RozetaBoundedAutonomy),
+    ROZETA_ABI_STRUCT(RozetaBypassCommand),
+    ROZETA_ABI_STRUCT(RozetaBypassConfig),
+    ROZETA_ABI_STRUCT(RozetaBypassInput),
+    ROZETA_ABI_STRUCT(RozetaBypassState),
+    ROZETA_ABI_STRUCT(RozetaCameraLidarFitOptions),
+    ROZETA_ABI_STRUCT(RozetaCameraLidarFitReport),
+    ROZETA_ABI_STRUCT(RozetaCameraLidarMapping),
+    ROZETA_ABI_STRUCT(RozetaFieldRunnerPlan),
+    ROZETA_ABI_STRUCT(RozetaGeoRect),
+    ROZETA_ABI_STRUCT(RozetaGpsFix),
+    ROZETA_ABI_STRUCT(RozetaGpsGateConfig),
+    ROZETA_ABI_STRUCT(RozetaGpsGateResult),
+    ROZETA_ABI_STRUCT(RozetaGpsGateSample),
+    ROZETA_ABI_STRUCT(RozetaGpsReceiverStats),
+    ROZETA_ABI_STRUCT(RozetaGpsSample),
+    ROZETA_ABI_STRUCT(RozetaGraphRouteResult),
+    ROZETA_ABI_STRUCT(RozetaGraphSectionResult),
+    ROZETA_ABI_STRUCT(RozetaGuardedDecision),
+    ROZETA_ABI_STRUCT(RozetaGuardedFollowerConfig),
+    ROZETA_ABI_STRUCT(RozetaGuardedFollowerState),
+    ROZETA_ABI_STRUCT(RozetaHealthState),
+    ROZETA_ABI_STRUCT(RozetaHealthSummary),
+    ROZETA_ABI_STRUCT(RozetaHeldConditionState),
+    ROZETA_ABI_STRUCT(RozetaLidarScanPoint),
+    ROZETA_ABI_STRUCT(RozetaMissionTargetResult),
+    ROZETA_ABI_STRUCT(RozetaMotorCommand),
+    ROZETA_ABI_STRUCT(RozetaNetworkGpsConfig),
+    ROZETA_ABI_STRUCT(RozetaObstacleInfo),
+    ROZETA_ABI_STRUCT(RozetaPersistentReturn),
+    ROZETA_ABI_STRUCT(RozetaPersistentReturnConfig),
+    ROZETA_ABI_STRUCT(RozetaPose2D),
+    ROZETA_ABI_STRUCT(RozetaPoseFusionInput),
+    ROZETA_ABI_STRUCT(RozetaPoseFusionResult),
+    ROZETA_ABI_STRUCT(RozetaRgbObstacleConfig),
+    ROZETA_ABI_STRUCT(RozetaRgbObstacleResult),
+    ROZETA_ABI_STRUCT(RozetaRouteCorridorResult),
+    ROZETA_ABI_STRUCT(RozetaRuntimeInputs),
+    ROZETA_ABI_STRUCT(RozetaRuntimeOutput),
+    ROZETA_ABI_STRUCT(RozetaSafetyDecision),
+    ROZETA_ABI_STRUCT(RozetaSafetyInputs),
+    ROZETA_ABI_STRUCT(RozetaSafetyLatchState),
+    ROZETA_ABI_STRUCT(RozetaSafetyState),
+    ROZETA_ABI_STRUCT(RozetaSensorHealth),
+    ROZETA_ABI_STRUCT(RozetaSensorHealthConfig),
+    ROZETA_ABI_STRUCT(RozetaSlipDetectorConfig),
+    ROZETA_ABI_STRUCT(RozetaSlipVerdict),
+    ROZETA_ABI_STRUCT(RozetaSpeedLimits),
+    ROZETA_ABI_STRUCT(RozetaStallWatchState),
+    ROZETA_ABI_STRUCT(RozetaWheelOdometryConfig),
+    ROZETA_ABI_STRUCT(RozetaWheelOdometryReading),
+    ROZETA_ABI_STRUCT(RozetaYdLidarX4Config),
+};
+#undef ROZETA_ABI_STRUCT
+
+}  // namespace
+
+extern "C" int rozeta_abi_version(void) {
+    return ROZETA_ABI_VERSION;
+}
+
+extern "C" size_t rozeta_abi_struct_size(const char* name) {
+    if (name == nullptr) {
+        return 0;
+    }
+    for (const AbiStruct& entry : kAbiStructs) {
+        if (std::strcmp(entry.name, name) == 0) {
+            return entry.size;
+        }
+    }
+    return 0;
+}
+
+extern "C" size_t rozeta_abi_struct_count(void) {
+    return sizeof(kAbiStructs) / sizeof(kAbiStructs[0]);
+}
+
+extern "C" const char* rozeta_abi_struct_name(size_t index) {
+    return index < rozeta_abi_struct_count() ? kAbiStructs[index].name : nullptr;
+}
+
 extern "C" double rozeta_normalize_angle(double radians) {
     return rozeta::normalizeAngle(radians);
 }
